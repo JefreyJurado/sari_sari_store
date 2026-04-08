@@ -338,8 +338,8 @@ void _showAddForm(AppProvider prov) {
   final downCtrl = TextEditingController();
   int selectedMonths = 3;
 
-  double total = selectedProducts.entries
-    .fold(0.0, (s, e) => s + e.key.sellPrice * e.value);
+  // double total = selectedProducts.entries
+  //   .fold(0.0, (s, e) => s + e.key.sellPrice * e.value);
 
   showModalBottomSheet(
     context: context,

@@ -110,8 +110,9 @@ class _PinScreenState extends State<PinScreen>
     final prefs = await SharedPreferences.getInstance();
     final savedPin = prefs.getString('app_pin') ?? '';
     if (_pin == savedPin) {
-      if (mounted)
-        Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) {
+    Navigator.pushReplacementNamed(context, '/home');
+    }
     } else {
       _shakeCtrl.forward(from: 0);
       setState(() {

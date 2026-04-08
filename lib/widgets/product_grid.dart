@@ -21,7 +21,8 @@ class ProductGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridView.builder(
       padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 1.05,
         crossAxisSpacing: 8,
@@ -61,21 +62,21 @@ class _ProductCard extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
-          color: inCart
-              ? const Color(0xFF2E7D32).withOpacity(0.08)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: inCart
-                ? const Color(0xFF2E7D32)
-                : Colors.grey.shade200,
-            width: inCart ? 2 : 1,
-          ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: inCart
+              ? Border.all(
+                  color: const Color(0xFF2E7D32), width: 2)
+              : Border.all(
+                  color: Colors.transparent, width: 2),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2))
+                color: inCart
+                    ? const Color(0xFF2E7D32)
+                        .withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2)),
           ],
         ),
         child: Padding(
@@ -84,25 +85,33 @@ class _ProductCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                Text(FilipinoCategories.emoji(product.category),
+                Text(
+                    FilipinoCategories.emoji(
+                        product.category),
                     style: const TextStyle(fontSize: 22)),
                 const Spacer(),
                 if (oos)
                   _Badge('Ubos', Colors.red)
                 else if (product.isLowStock)
-                  _Badge('${product.stock}', Colors.orange),
+                  _Badge('${product.stock}', Colors.orange)
+                else if (inCart)
+                  _Badge('$cartQty', const Color(0xFF2E7D32)),
               ]),
               const SizedBox(height: 6),
-              Text(product.name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 13),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
-              const Spacer(),
+              Expanded(
+                child: Text(product.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(height: 6),
               Row(children: [
                 Expanded(
                   child: Text(
-                    CurrencyFormatter.format(product.sellPrice),
+                    CurrencyFormatter.format(
+                        product.sellPrice),
                     style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2E7D32),
@@ -110,20 +119,33 @@ class _ProductCard extends StatelessWidget {
                   ),
                 ),
                 if (inCart) ...[
-                  _SmallBtn(Icons.remove, Colors.grey.shade200,
-                      const Color(0xFF424242), onRemove),
+                  _SmallBtn(
+                      Icons.remove,
+                      Colors.grey.shade100,
+                      Colors.grey.shade700,
+                      onRemove),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6),
                     child: Text('$cartQty',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14)),
                   ),
-                  _SmallBtn(Icons.add, const Color(0xFF2E7D32),
-                      Colors.white, oos ? () {} : onAdd),
+                  _SmallBtn(
+                      Icons.add,
+                      const Color(0xFF2E7D32),
+                      Colors.white,
+                      oos ? () {} : onAdd),
                 ] else
                   _SmallBtn(
                       Icons.add,
-                      oos ? Colors.grey.shade200 : const Color(0xFF2E7D32),
-                      oos ? Colors.grey : Colors.white,
+                      oos
+                          ? Colors.grey.shade100
+                          : const Color(0xFF2E7D32),
+                      oos
+                          ? Colors.grey.shade400
+                          : Colors.white,
                       oos ? () {} : onAdd),
               ]),
             ],
@@ -140,15 +162,16 @@ class _Badge extends StatelessWidget {
   const _Badge(this.text, this.color);
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 7, vertical: 3),
         decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(6)),
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8)),
         child: Text(text,
             style: TextStyle(
                 color: color,
                 fontSize: 10,
-                fontWeight: FontWeight.w600)),
+                fontWeight: FontWeight.bold)),
       );
 }
 
@@ -162,9 +185,11 @@ class _SmallBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 26, height: 26,
-          decoration:
-              BoxDecoration(color: bg, borderRadius: BorderRadius.circular(7)),
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, size: 16, color: fg),
         ),
       );

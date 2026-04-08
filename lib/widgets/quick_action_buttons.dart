@@ -28,7 +28,7 @@ class _QuickActionButtonsState extends State<QuickActionButtons> {
       _QA('Dagdag Stock', Icons.inventory_2_outlined, const Color(0xFF1565C0),
           () => Navigator.push(context,
               MaterialPageRoute(builder: (_) => const InventoryScreen()))),
-      _QA('Catat Gastos', Icons.receipt_long_outlined, const Color(0xFFC62828),
+      _QA('Gastusin', Icons.receipt_long_outlined, const Color(0xFFC62828),
           () => Navigator.push(context,
               MaterialPageRoute(builder: (_) => const ExpensesScreen()))),
       _QA('Cash Drawer', Icons.account_balance_wallet_outlined,

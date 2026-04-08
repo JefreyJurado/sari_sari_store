@@ -17,22 +17,44 @@ class CustomerListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final unpaid = debts.where((d) => d.status != DebtStatus.paid).toList();
-    final totalOwed = unpaid.fold(0.0, (s, d) => s + d.remaining);
+    final unpaid =
+        debts.where((d) => d.status != DebtStatus.paid).toList();
+    final totalOwed =
+        unpaid.fold(0.0, (s, d) => s + d.remaining);
     final hasOverdue = unpaid.any((d) => d.isOverdue);
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: hasOverdue
+            ? Border.all(
+                color: Colors.red.withValues(alpha: 0.3),
+                width: 1)
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: ListTile(
         onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14, vertical: 6),
         leading: CircleAvatar(
           backgroundColor: hasOverdue
-              ? Colors.red.withOpacity(0.15)
-              : const Color(0xFF2E7D32).withOpacity(0.15),
+              ? Colors.red.withValues(alpha: 0.12)
+              : const Color(0xFF2E7D32).withValues(alpha: 0.12),
           child: Text(
             customer.name[0].toUpperCase(),
             style: TextStyle(
-              color: hasOverdue ? Colors.red : const Color(0xFF2E7D32),
+              color: hasOverdue
+                  ? Colors.red
+                  : const Color(0xFF2E7D32),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -40,19 +62,27 @@ class CustomerListItem extends StatelessWidget {
         title: Row(children: [
           Expanded(
               child: Text(customer.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600))),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14))),
           if (hasOverdue)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
                   color: Colors.red,
                   borderRadius: BorderRadius.circular(6)),
               child: const Text('Overdue',
-                  style: TextStyle(color: Colors.white, fontSize: 10)),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold)),
             ),
         ]),
-        subtitle: Text(customer.phone ?? 'Walang numero',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+        subtitle: Text(
+            customer.phone ?? 'Walang numero',
+            style: TextStyle(
+                color: Colors.grey[500], fontSize: 12)),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -61,11 +91,15 @@ class CustomerListItem extends StatelessWidget {
               CurrencyFormatter.format(totalOwed),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: totalOwed > 0 ? Colors.red[700] : Colors.green,
+                fontSize: 14,
+                color: totalOwed > 0
+                    ? Colors.red
+                    : const Color(0xFF2E7D32),
               ),
             ),
             Text('${unpaid.length} utang',
-                style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                style: TextStyle(
+                    fontSize: 11, color: Colors.grey[500])),
           ],
         ),
       ),
