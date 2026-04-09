@@ -12,16 +12,44 @@ import 'expenses_screen.dart';
 import 'receipt_screen.dart';
 import 'lista_screen.dart';
 import 'payment_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _userName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() => _userName = prefs.getString('user_name') ?? '');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        title: const Text('TindaPH'),
+        centerTitle: false,
+        titleSpacing: 16,
+        title: const Text(
+          'TindaPH',
+          style: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
               icon: const Icon(Icons.receipt_long_outlined),
@@ -80,51 +108,62 @@ class HomeScreen extends StatelessWidget {
                         bottomRight: Radius.circular(28),
                       ),
                     ),
-                    padding: const EdgeInsets.fromLTRB(
-                        20, 12, 20, 28),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(DateHelper.todayFormatted(),
                             style: const TextStyle(
-                                color: Colors.white60,
-                                fontSize: 12)),
+                                color: Colors.white60, fontSize: 12)),
                         const SizedBox(height: 2),
                         Text(
-                          'Magandang ${DateHelper.greeting()}! 👋',
+                          _userName.isEmpty
+                              ? 'Magandang ${DateHelper.greeting()}! 👋'
+                              : 'Magandang ${DateHelper.greeting()}, $_userName! 👋',
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
                               fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
 
-                        // Stats row
-                        Row(children: [
-                          _statCard('Benta',
-                              CurrencyFormatter.format(
-                                  prov.todayRevenue),
-                              Icons.shopping_bag_outlined),
-                          const SizedBox(width: 10),
-                          _statCard('Kita',
-                              CurrencyFormatter.format(
-                                  prov.todayProfit),
-                              Icons.trending_up_outlined),
-                        ]),
-                        const SizedBox(height: 10),
-                        Row(children: [
-                          _statCard('Transaksyon',
-                              prov.todaySales.length
-                                  .toString(),
-                              Icons.receipt_outlined),
-                          const SizedBox(width: 10),
-                          _statCard('Total Utang',
-                              CurrencyFormatter.format(
-                                  prov.totalUnpaidDebt),
-                              Icons.account_balance_wallet_outlined,
-                              isRed: true),
-                        ]),
+                        // Stats + Mascot
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            // Stats
+                            Expanded(
+                              child: Column(children: [
+                                Row(children: [
+                                  _statCard('Benta',
+                                      CurrencyFormatter.format(
+                                          prov.todayRevenue),
+                                      Icons.shopping_bag_outlined),
+                                  const SizedBox(width: 10),
+                                  _statCard('Kita',
+                                      CurrencyFormatter.format(
+                                          prov.todayProfit),
+                                      Icons.trending_up_outlined),
+                                ]),
+                                const SizedBox(height: 10),
+                                Row(children: [
+                                  _statCard('Transaksyon',
+                                      prov.todaySales.length.toString(),
+                                      Icons.receipt_outlined),
+                                  const SizedBox(width: 10),
+                                  _statCard('Total Utang',
+                                      CurrencyFormatter.format(
+                                          prov.totalUnpaidDebt),
+                                      Icons.account_balance_wallet_outlined,
+                                      isRed: true),
+                                ]),
+                              ]),
+                            ),
+                            const SizedBox(width: 8),
+                            // Mascot
+                            const _TinderoMascot(),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -132,8 +171,7 @@ class HomeScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // ── Quick Actions ──────────────────
                         _sectionTitle('Mabilis na Aksyon'),
@@ -160,8 +198,7 @@ class HomeScreen extends StatelessWidget {
                             _alertCard(
                               'Mababang stock',
                               prov.lowStock
-                                  .map((p) =>
-                                      '${p.name} (${p.stock})')
+                                  .map((p) => '${p.name} (${p.stock})')
                                   .take(3)
                                   .join(', '),
                               Colors.orange,
@@ -178,15 +215,13 @@ class HomeScreen extends StatelessWidget {
                             onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) =>
-                                        const ListaScreen())),
+                                    builder: (_) => const ListaScreen())),
                             child: const Text(
                               'Tingnan Lahat →',
                               style: TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF2E7D32),
-                                  fontWeight:
-                                      FontWeight.w600),
+                                  fontWeight: FontWeight.w600),
                             ),
                           ),
                         ]),
@@ -194,28 +229,31 @@ class HomeScreen extends StatelessWidget {
 
                         if (customersWithDebt.isEmpty)
                           _emptyCard(
-                              'Walang utang! Lahat ay bayad na.',
-                              Icons.check_circle_outline,
-                              Colors.green)
+                              prov.customers.isEmpty
+                                  ? 'Wala pang naka-lista na umuutang.'
+                                  : 'Walang utang! Lahat ay bayad na.',
+                              prov.customers.isEmpty
+                                  ? Icons.people_outline
+                                  : Icons.check_circle_outline,
+                              prov.customers.isEmpty
+                                  ? Colors.grey
+                                  : Colors.green)
                         else
                           ...customersWithDebt.take(5).map((c) {
                             final unpaidDebts = prov
                                 .debtsFor(c.id)
-                                .where((d) =>
-                                    d.status != DebtStatus.paid)
+                                .where((d) => d.status != DebtStatus.paid)
                                 .toList();
                             final totalOwed = unpaidDebts.fold(
                                 0.0, (s, d) => s + d.remaining);
-                            final hasOverdue = unpaidDebts
-                                .any((d) => d.isOverdue);
+                            final hasOverdue =
+                                unpaidDebts.any((d) => d.isOverdue);
 
                             return Container(
-                              margin: const EdgeInsets.only(
-                                  bottom: 8),
+                              margin: const EdgeInsets.only(bottom: 8),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius:
-                                    BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(12),
                                 border: hasOverdue
                                     ? Border.all(
                                         color: Colors.red
@@ -233,18 +271,13 @@ class HomeScreen extends StatelessWidget {
                               ),
                               child: ListTile(
                                 onTap: () => _showDebtDetails(
-                                    context,
-                                    c,
-                                    unpaidDebts,
-                                    prov),
+                                    context, c, unpaidDebts, prov),
                                 contentPadding:
                                     const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 6),
+                                        horizontal: 14, vertical: 6),
                                 leading: CircleAvatar(
                                   backgroundColor: hasOverdue
-                                      ? Colors.red
-                                          .withValues(alpha: 0.15)
+                                      ? Colors.red.withValues(alpha: 0.15)
                                       : const Color(0xFF2E7D32)
                                           .withValues(alpha: 0.1),
                                   child: Text(
@@ -252,8 +285,7 @@ class HomeScreen extends StatelessWidget {
                                     style: TextStyle(
                                       color: hasOverdue
                                           ? Colors.red
-                                          : const Color(
-                                              0xFF2E7D32),
+                                          : const Color(0xFF2E7D32),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -262,29 +294,23 @@ class HomeScreen extends StatelessWidget {
                                   Expanded(
                                     child: Text(c.name,
                                         style: const TextStyle(
-                                            fontWeight:
-                                                FontWeight.w600,
+                                            fontWeight: FontWeight.w600,
                                             fontSize: 14)),
                                   ),
                                   if (hasOverdue)
                                     Container(
-                                      padding: const EdgeInsets
-                                          .symmetric(
-                                          horizontal: 6,
-                                          vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
                                           color: Colors.red,
                                           borderRadius:
-                                              BorderRadius
-                                                  .circular(4)),
-                                      child: const Text(
-                                          'OVERDUE',
+                                              BorderRadius.circular(4)),
+                                      child: const Text('OVERDUE',
                                           style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 9,
                                               fontWeight:
-                                                  FontWeight
-                                                      .bold)),
+                                                  FontWeight.bold)),
                                     ),
                                 ]),
                                 subtitle: Text(
@@ -293,8 +319,7 @@ class HomeScreen extends StatelessWidget {
                                         color: Colors.grey[500],
                                         fontSize: 12)),
                                 trailing: Text(
-                                  CurrencyFormatter.format(
-                                      totalOwed),
+                                  CurrencyFormatter.format(totalOwed),
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.red,
@@ -309,8 +334,7 @@ class HomeScreen extends StatelessWidget {
                             onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) =>
-                                        const ListaScreen())),
+                                    builder: (_) => const ListaScreen())),
                             child: Padding(
                               padding: const EdgeInsets.only(
                                   top: 4, bottom: 8),
@@ -319,8 +343,7 @@ class HomeScreen extends StatelessWidget {
                                 style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF2E7D32),
-                                    fontWeight:
-                                        FontWeight.w600),
+                                    fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
@@ -333,8 +356,7 @@ class HomeScreen extends StatelessWidget {
 
                         if (cashSales.isEmpty)
                           _emptyCard('Wala pang benta ngayon',
-                              Icons.receipt_long_outlined,
-                              Colors.grey)
+                              Icons.receipt_long_outlined, Colors.grey)
                         else
                           ...cashSales
                               .take(10)
@@ -353,21 +375,24 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+//   static Future<String> _getUserName() async {
+//   final prefs = await SharedPreferences.getInstance();
+//   return prefs.getString('user_name') ?? '';
+// }
+
   Widget _statCard(String label, String value, IconData icon,
-      {bool isRed = false}) =>
+          {bool isRed = false}) =>
       Expanded(
         child: Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 12),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Row(children: [
             Icon(icon,
-                color: isRed
-                    ? Colors.red[200]
-                    : Colors.white70,
+                color: isRed ? Colors.red[200] : Colors.white70,
                 size: 20),
             const SizedBox(width: 8),
             Expanded(
@@ -376,16 +401,13 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   Text(value,
                       style: TextStyle(
-                          color: isRed
-                              ? Colors.red[100]
-                              : Colors.white,
+                          color: isRed ? Colors.red[100] : Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 15),
                       overflow: TextOverflow.ellipsis),
                   Text(label,
                       style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 11)),
+                          color: Colors.white60, fontSize: 11)),
                 ],
               ),
             ),
@@ -402,8 +424,7 @@ class HomeScreen extends StatelessWidget {
         ),
       );
 
-  Widget _emptyCard(String msg, IconData icon, Color color) =>
-      Container(
+  Widget _emptyCard(String msg, IconData icon, Color color) => Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -421,8 +442,7 @@ class HomeScreen extends StatelessWidget {
           Icon(icon, color: color.withValues(alpha: 0.6), size: 22),
           const SizedBox(width: 10),
           Text(msg,
-              style:
-                  TextStyle(color: Colors.grey[600], fontSize: 13)),
+              style: TextStyle(color: Colors.grey[600], fontSize: 13)),
         ]),
       );
 
@@ -434,8 +454,8 @@ class HomeScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: color.withValues(alpha: 0.3), width: 1),
+          border:
+              Border.all(color: color.withValues(alpha: 0.3), width: 1),
         ),
         child: Row(children: [
           Icon(icon, color: color, size: 20),
@@ -466,7 +486,6 @@ class HomeScreen extends StatelessWidget {
           prov.sales.where((s) => s.id == d.saleId).firstOrNull;
       saleCache[d.id] = sale;
     }
-
     final totalOwed = debts.fold(0.0, (s, d) => s + d.remaining);
 
     showModalBottomSheet(
@@ -488,12 +507,11 @@ class HomeScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2)),
           ),
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(children: [
               CircleAvatar(
-                backgroundColor: const Color(0xFF2E7D32)
-                    .withValues(alpha: 0.15),
+                backgroundColor:
+                    const Color(0xFF2E7D32).withValues(alpha: 0.15),
                 child: Text(customer.name[0].toUpperCase(),
                     style: const TextStyle(
                         color: Color(0xFF2E7D32),
@@ -501,18 +519,15 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 Text(customer.name,
                     style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold)),
+                        fontSize: 18, fontWeight: FontWeight.bold)),
                 if (customer.phone != null)
                   Text(customer.phone,
                       style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 13)),
+                          color: Colors.grey[600], fontSize: 13)),
               ]),
               const Spacer(),
               Column(
@@ -524,8 +539,8 @@ class HomeScreen extends StatelessWidget {
                         fontSize: 20,
                         color: Colors.red)),
                 const Text('kabuuang utang',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey)),
+                    style:
+                        TextStyle(fontSize: 11, color: Colors.grey)),
               ]),
             ]),
           ),
@@ -544,13 +559,11 @@ class HomeScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     border: d.isOverdue
                         ? Border.all(
-                            color: Colors.red
-                                .withValues(alpha: 0.3))
+                            color: Colors.red.withValues(alpha: 0.3))
                         : null,
                     boxShadow: [
                       BoxShadow(
-                        color:
-                            Colors.black.withValues(alpha: 0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -559,15 +572,13 @@ class HomeScreen extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                       Row(children: [
                         Text(
                           DateHelper.formatDate(d.createdAt),
                           style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 12),
+                              color: Colors.grey[500], fontSize: 12),
                         ),
                         const Spacer(),
                         if (d.isOverdue)
@@ -582,22 +593,19 @@ class HomeScreen extends StatelessWidget {
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 10,
-                                    fontWeight:
-                                        FontWeight.bold)),
+                                    fontWeight: FontWeight.bold)),
                           ),
                       ]),
-                      if (sale != null &&
-                          sale.items.isNotEmpty) ...[
+                      if (sale != null && sale.items.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         ...sale.items.map((item) => Padding(
-                              padding: const EdgeInsets.only(
-                                  bottom: 8),
+                              padding:
+                                  const EdgeInsets.only(bottom: 8),
                               child: Row(children: [
                                 Expanded(
                                   child: Column(
                                       crossAxisAlignment:
-                                          CrossAxisAlignment
-                                              .start,
+                                          CrossAxisAlignment.start,
                                       children: [
                                     Text(item.productName,
                                         style: const TextStyle(
@@ -607,8 +615,7 @@ class HomeScreen extends StatelessWidget {
                                     Text(
                                         '${CurrencyFormatter.format(item.price)} × ${item.quantity}',
                                         style: TextStyle(
-                                            color:
-                                                Colors.grey[500],
+                                            color: Colors.grey[500],
                                             fontSize: 12)),
                                   ]),
                                 ),
@@ -625,8 +632,7 @@ class HomeScreen extends StatelessWidget {
                       ],
                       if (d.paidAmount > 0)
                         Padding(
-                          padding:
-                              const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.only(bottom: 6),
                           child: Row(children: [
                             Text('Bayad na:',
                                 style: TextStyle(
@@ -637,17 +643,14 @@ class HomeScreen extends StatelessWidget {
                                     d.paidAmount),
                                 style: const TextStyle(
                                     color: Colors.green,
-                                    fontWeight:
-                                        FontWeight.w600)),
+                                    fontWeight: FontWeight.w600)),
                           ]),
                         ),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.red
-                              .withValues(alpha: 0.08),
-                          borderRadius:
-                              BorderRadius.circular(10),
+                          color: Colors.red.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(children: [
                           const Text('NATITIRA:',
@@ -657,8 +660,7 @@ class HomeScreen extends StatelessWidget {
                                   fontSize: 13)),
                           const Spacer(),
                           Text(
-                            CurrencyFormatter.format(
-                                d.remaining),
+                            CurrencyFormatter.format(d.remaining),
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,
@@ -676,16 +678,13 @@ class HomeScreen extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                   builder: (_) => PaymentScreen(
-                                      debt: d,
-                                      customer: customer)),
+                                      debt: d, customer: customer)),
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(
-                                      vertical: 12)),
-                          child: const Text(
-                              'Tanggap ng Bayad'),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12)),
+                          child: const Text('Tanggap ng Bayad'),
                         ),
                       ),
                     ]),
@@ -700,6 +699,154 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+// ── Tindero Mascot Widget ──────────────────────────────────────
+class _TinderoMascot extends StatefulWidget {
+  const _TinderoMascot();
+  @override
+  State<_TinderoMascot> createState() => _TinderoMascotState();
+}
+
+class _TinderoMascotState extends State<_TinderoMascot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _floatAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+    _floatAnim = Tween<double>(begin: 0, end: -10).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _floatAnim,
+      builder: (_, __) => Transform.translate(
+        offset: Offset(0, _floatAnim.value),
+        child: SizedBox(
+          width: 80,
+          height: 95,
+          child: CustomPaint(painter: _TinderoPainter()),
+        ),
+      ),
+    );
+  }
+}
+
+class _TinderoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..style = PaintingStyle.fill;
+    final w = size.width;
+    final h = size.height;
+
+    // Hat brim
+    p.color = const Color(0xFFFFD700);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.15, h * 0.09, w * 0.70, h * 0.08),
+            const Radius.circular(4)),
+        p);
+    // Hat top
+    p.color = const Color(0xFFFFC107);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.25, h * 0.01, w * 0.50, h * 0.11),
+            const Radius.circular(6)),
+        p);
+
+    // Head
+    p.color = const Color(0xFFFFCC80);
+    canvas.drawOval(
+        Rect.fromLTWH(w * 0.15, h * 0.14, w * 0.70, h * 0.30), p);
+
+    // Eye whites
+    p.color = Colors.white;
+    canvas.drawOval(
+        Rect.fromLTWH(w * 0.22, h * 0.19, w * 0.18, h * 0.11), p);
+    canvas.drawOval(
+        Rect.fromLTWH(w * 0.60, h * 0.19, w * 0.18, h * 0.11), p);
+
+    // Pupils
+    p.color = const Color(0xFF333333);
+    canvas.drawCircle(Offset(w * 0.32, h * 0.255), w * 0.065, p);
+    canvas.drawCircle(Offset(w * 0.68, h * 0.255), w * 0.065, p);
+
+    // Eye shine
+    p.color = Colors.white;
+    canvas.drawCircle(Offset(w * 0.335, h * 0.245), w * 0.022, p);
+    canvas.drawCircle(Offset(w * 0.695, h * 0.245), w * 0.022, p);
+
+    // Blush
+    p.color = const Color(0xFFFF8A80).withValues(alpha: 0.5);
+    canvas.drawOval(
+        Rect.fromLTWH(w * 0.12, h * 0.30, w * 0.17, h * 0.07), p);
+    canvas.drawOval(
+        Rect.fromLTWH(w * 0.71, h * 0.30, w * 0.17, h * 0.07), p);
+
+    // Smile
+    final smilePaint = Paint()
+      ..color = const Color(0xFF333333)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+    final smilePath = Path()
+      ..moveTo(w * 0.30, h * 0.385)
+      ..quadraticBezierTo(w * 0.50, h * 0.475, w * 0.70, h * 0.385);
+    canvas.drawPath(smilePath, smilePaint);
+
+    // Body
+    p.color = const Color(0xFF1565C0);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.18, h * 0.52, w * 0.64, h * 0.33),
+            const Radius.circular(12)),
+        p);
+
+    // Apron
+    p.color = Colors.white.withValues(alpha: 0.4);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.30, h * 0.55, w * 0.40, h * 0.26),
+            const Radius.circular(8)),
+        p);
+
+    // Left arm
+    p.color = const Color(0xFFFFCC80);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.01, h * 0.53, w * 0.19, h * 0.15),
+            const Radius.circular(8)),
+        p);
+    // Right arm
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.80, h * 0.53, w * 0.19, h * 0.15),
+            const Radius.circular(8)),
+        p);
+
+    // Shadow below mascot
+    p.color = Colors.black.withValues(alpha: 0.15);
+    canvas.drawOval(
+        Rect.fromLTWH(w * 0.20, h * 0.91, w * 0.60, h * 0.06), p);
+  }
+
+  @override
+  bool shouldRepaint(_TinderoPainter old) => false;
+}
+
+// ── Sale Tile ─────────────────────────────────────────────────
 class _SaleTile extends StatelessWidget {
   final Sale sale;
   const _SaleTile({required this.sale});
@@ -723,24 +870,21 @@ class _SaleTile extends StatelessWidget {
       ),
       child: ListTile(
         onTap: () => _showSaleDetails(context, sale),
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 6),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         leading: Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
             color: isOnline
                 ? Colors.blue.withValues(alpha: 0.1)
-                : const Color(0xFF2E7D32)
-                    .withValues(alpha: 0.1),
+                : const Color(0xFF2E7D32).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
               isOnline ? Icons.phone_android : Icons.payments,
               size: 20,
-              color: isOnline
-                  ? Colors.blue
-                  : const Color(0xFF2E7D32)),
+              color: isOnline ? Colors.blue : const Color(0xFF2E7D32)),
         ),
         title: Row(children: [
           Expanded(
@@ -752,14 +896,12 @@ class _SaleTile extends StatelessWidget {
           ),
           Text(
             DateHelper.formatDate(sale.createdAt),
-            style: TextStyle(
-                fontSize: 11, color: Colors.grey[400]),
+            style: TextStyle(fontSize: 11, color: Colors.grey[400]),
           ),
         ]),
         subtitle: Text(
             '${sale.items.length} item  •  ${DateHelper.formatTime(sale.createdAt)}',
-            style: TextStyle(
-                fontSize: 12, color: Colors.grey[500])),
+            style: TextStyle(fontSize: 12, color: Colors.grey[500])),
         trailing: Text(
           CurrencyFormatter.format(sale.totalAmount),
           style: const TextStyle(
@@ -793,8 +935,7 @@ class _SaleTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2)),
           ),
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(children: [
               Container(
                 width: 44,
@@ -802,37 +943,29 @@ class _SaleTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isOnline
                       ? Colors.blue.withValues(alpha: 0.1)
-                      : const Color(0xFF2E7D32)
-                          .withValues(alpha: 0.1),
+                      : const Color(0xFF2E7D32).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                    isOnline
-                        ? Icons.phone_android
-                        : Icons.payments,
+                    isOnline ? Icons.phone_android : Icons.payments,
                     color: isOnline
                         ? Colors.blue
                         : const Color(0xFF2E7D32)),
               ),
               const SizedBox(width: 12),
               Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Text(
-                    isOnline ? 'Online Payment' : 'Cash Sale',
+                Text(isOnline ? 'Online Payment' : 'Cash Sale',
                     style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold)),
+                        fontSize: 16, fontWeight: FontWeight.bold)),
                 Text(
                     '${DateHelper.formatDate(sale.createdAt)}  •  ${DateHelper.formatTime(sale.createdAt)}',
                     style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 12)),
+                        color: Colors.grey[500], fontSize: 12)),
               ]),
               const Spacer(),
-              Text(
-                  CurrencyFormatter.format(sale.totalAmount),
+              Text(CurrencyFormatter.format(sale.totalAmount),
                   style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -847,12 +980,10 @@ class _SaleTile extends StatelessWidget {
               children: [
                 const Text('Mga Item:',
                     style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14)),
+                        fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 10),
                 ...sale.items.map((item) => Padding(
-                      padding:
-                          const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: 10),
                       child: Row(children: [
                         Expanded(
                           child: Column(
@@ -870,9 +1001,7 @@ class _SaleTile extends StatelessWidget {
                                     fontSize: 12)),
                           ]),
                         ),
-                        Text(
-                            CurrencyFormatter.format(
-                                item.subtotal),
+                        Text(CurrencyFormatter.format(item.subtotal),
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14)),
@@ -888,8 +1017,7 @@ class _SaleTile extends StatelessWidget {
                       color: Colors.blue),
                 ],
                 if (isOnline && sale.notes != null)
-                  _row('Payment:', sale.notes!,
-                      color: Colors.blue),
+                  _row('Payment:', sale.notes!, color: Colors.blue),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(14),
@@ -905,9 +1033,7 @@ class _SaleTile extends StatelessWidget {
                             fontSize: 15,
                             color: Color(0xFF2E7D32))),
                     const Spacer(),
-                    Text(
-                        CurrencyFormatter.format(
-                            sale.totalAmount),
+                    Text(CurrencyFormatter.format(sale.totalAmount),
                         style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 22,
@@ -942,12 +1068,10 @@ class _SaleTile extends StatelessWidget {
     );
   }
 
-  Widget _row(String label, String value, {Color? color}) =>
-      Padding(
+  Widget _row(String label, String value, {Color? color}) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Row(children: [
-          Text(label,
-              style: TextStyle(color: Colors.grey[600])),
+          Text(label, style: TextStyle(color: Colors.grey[600])),
           const Spacer(),
           Text(value,
               style: TextStyle(

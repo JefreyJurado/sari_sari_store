@@ -54,7 +54,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        title: const Text('Mga Ulat'),
+        centerTitle: false,
+        titleSpacing: 16,
+        title: const Text(
+          'Mga Ulat',
+          style: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_outlined),

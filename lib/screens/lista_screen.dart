@@ -59,13 +59,16 @@ class _ListaScreenState extends State<ListaScreen>
       return Scaffold(
         backgroundColor: const Color(0xFFF5F6FA),
         appBar: AppBar(
-          title: const Text('Lista ng Utang'),
-          actions: [
-            IconButton(
-                icon: const Icon(Icons.person_add_outlined),
-                tooltip: 'Bagong Uutang',
-                onPressed: () => _addDebtor(context, prov)),
-          ],
+          centerTitle: false,
+          titleSpacing: 16,
+          title: const Text(
+            'Lista ng Utang',
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
           bottom: TabBar(
             controller: _tabCtrl,
             labelColor: Colors.white,

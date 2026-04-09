@@ -251,6 +251,35 @@ class DatabaseService {
         .toList();
   }
 
+    Future<void> clearAllData() async {
+    await clearSales();
+    await clearDebts();
+    await clearExpenses();
+    await clearCustomers();
+  }
+
+  Future<void> clearSales() async {
+    final db = await database;
+    await db.delete('sales');
+    await db.delete('sale_items');
+  }
+
+  Future<void> clearDebts() async {
+    final db = await database;
+    await db.delete('debts');
+    await db.delete('payments');
+  }
+
+  Future<void> clearExpenses() async {
+    final db = await database;
+    await db.delete('expenses');
+  }
+
+  Future<void> clearCustomers() async {
+    final db = await database;
+    await db.delete('customers');
+  }
+
   // ── BACKUP ─────────────────────────────────────────────────────
   Future<Map<String, dynamic>> exportAll() async {
     final db = await database;

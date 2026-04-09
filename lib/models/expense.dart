@@ -1,5 +1,3 @@
-
-
 class Expense {
   final String id;
   final String description;

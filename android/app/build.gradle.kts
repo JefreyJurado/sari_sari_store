@@ -14,7 +14,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.tindaph.app"
+    namespace = "com.yourbrand.sari_sari_store"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -29,7 +29,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.tindaph.app"
+        applicationId = "com.yourbrand.sari_sari_store"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutter.versionCode

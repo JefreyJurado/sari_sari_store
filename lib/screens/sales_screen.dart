@@ -5,7 +5,6 @@ import '../models/product.dart';
 import '../models/transaction.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
-import 'barcode_scanner_screen.dart';
 import 'receipt_screen.dart';
 
 class SalesScreen extends StatefulWidget {
@@ -45,17 +44,16 @@ class _SalesScreenState extends State<SalesScreen> {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F6FA),
         appBar: AppBar(
-          title: const Text('Benta'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.qr_code_scanner_outlined),
-              tooltip: 'Barcode Scanner',
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          const BarcodeScannerScreen())),
+          centerTitle: false,
+          titleSpacing: 16,
+          title: const Text(
+            'Benta',
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
             ),
+          ),
+          actions: [
             if (prov.cartItemCount > 0)
               Badge(
                 label: Text('${prov.cartItemCount}'),

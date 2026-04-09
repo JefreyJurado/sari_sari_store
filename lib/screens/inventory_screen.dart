@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/app_provider.dart';
 import '../models/product.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
+import 'barcode_scanner_screen.dart';
 
 const _uuid = Uuid();
 
@@ -17,6 +19,26 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   String _search = '';
   String _sortBy = 'name';
+  bool _showBarcodeHint = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> _checkHint() async {
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool('barcode_hint_seen') ?? false;
+    if (!seen) {
+      setState(() => _showBarcodeHint = true);
+    }
+  }
+
+  Future<void> _dismissHint() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('barcode_hint_seen', true);
+    setState(() => _showBarcodeHint = false);
+  }
 
   List<Product> _filtered(List<Product> products) {
     var list = products
@@ -45,8 +67,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F6FA),
         appBar: AppBar(
-          title: const Text('Mga Produkto'),
+          centerTitle: false,
+          titleSpacing: 16,
+          title: const Text(
+            'Mga Produkto',
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           actions: [
+            // Barcode scanner button sa AppBar
+            IconButton(
+              icon: const Icon(Icons.qr_code_scanner_outlined),
+              tooltip: 'Barcode Scanner',
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          const BarcodeScannerScreen())),
+            ),
             PopupMenuButton<String>(
               onSelected: (v) => setState(() => _sortBy = v),
               itemBuilder: (_) => const [
@@ -103,8 +143,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color:
-                        Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -114,24 +153,86 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 onChanged: (v) => setState(() => _search = v),
                 decoration: InputDecoration(
                   hintText: 'Hanapin ang produkto...',
-                  hintStyle:
-                      TextStyle(color: Colors.grey[400]),
-                  prefixIcon: Icon(Icons.search,
-                      color: Colors.grey[400]),
+                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  prefixIcon:
+                      Icon(Icons.search, color: Colors.grey[400]),
                   border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none),
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding:
-                      const EdgeInsets.symmetric(
-                          vertical: 0),
+                      const EdgeInsets.symmetric(vertical: 0),
                 ),
               ),
             ),
           ),
           const SizedBox(height: 8),
+
+    // Permanent barcode hint banner
+    Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: GestureDetector(
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const BarcodeScannerScreen())),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: Colors.blue.withValues(alpha: 0.3)),
+          ),
+          child: Row(children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                  Icons.qr_code_scanner_outlined,
+                  color: Colors.blue,
+                  size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('I-scan ang Barcode',
+                      style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13)),
+                  Text(
+                      'Mas mabilis mag-add ng produkto gamit ang barcode scanner!',
+                      style: TextStyle(
+                          color: Colors.blue, fontSize: 11)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text('I-scan',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold)),
+            ),
+          ]),
+        ),
+      ),
+    ),
 
           // Product list
           Expanded(
@@ -155,17 +256,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     itemCount: products.length,
                     itemBuilder: (_, i) => _ProductTile(
                       product: products[i],
-                      onEdit: () => _showForm(
-                          context, prov, products[i]),
+                      onEdit: () =>
+                          _showForm(context, prov, products[i]),
                       onArchive: () => _confirmArchive(
                           context, prov, products[i]),
-                      onAdjust: () => _adjustStock(
-                          context, prov, products[i]),
+                      onAdjust: () =>
+                          _adjustStock(context, prov, products[i]),
                     ),
                   ),
           ),
         ]),
+
+        // Dalawang FAB
         floatingActionButton: FloatingActionButton.extended(
+          heroTag: 'add',
           onPressed: () => _showForm(context, prov, null),
           icon: const Icon(Icons.add),
           label: const Text('Dagdag Produkto'),
@@ -216,20 +320,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
       isScrollControlled: true,
       backgroundColor: const Color(0xFFF5F6FA),
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular(24))),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
           padding: EdgeInsets.only(
-              bottom:
-                  MediaQuery.of(context).viewInsets.bottom),
+              bottom: MediaQuery.of(context).viewInsets.bottom),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              // Handle
               Center(
                 child: Container(
                   width: 40,
@@ -237,8 +338,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                       color: Colors.grey[300],
-                      borderRadius:
-                          BorderRadius.circular(2)),
+                      borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               Text(
@@ -257,8 +357,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 decoration: InputDecoration(
                   labelText: 'Kategorya',
                   border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12)),
                   filled: true,
                   fillColor: Colors.white,
                 ),
@@ -269,8 +368,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         child: Text(
                             '${FilipinoCategories.emoji(c)} $c')))
                     .toList(),
-                onChanged: (v) =>
-                    setS(() => category = v!),
+                onChanged: (v) => setS(() => category = v!),
               ),
               const SizedBox(height: 12),
               Row(children: [
@@ -282,9 +380,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _field(
-                      sellCtrl,
-                      'Presyo ng Benta',
+                  child: _field(sellCtrl, 'Presyo ng Benta',
                       Icons.arrow_upward_outlined,
                       keyboardType: TextInputType.number,
                       prefix: '₱ '),
@@ -293,8 +389,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
               const SizedBox(height: 12),
               Row(children: [
                 Expanded(
-                  child: _field(
-                      stockCtrl, 'Stock', Icons.inventory_outlined,
+                  child: _field(stockCtrl, 'Stock',
+                      Icons.inventory_outlined,
                       keyboardType: TextInputType.number),
                 ),
                 const SizedBox(width: 12),
@@ -316,15 +412,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       buyPrice:
                           double.tryParse(buyCtrl.text) ?? 0,
                       sellPrice:
-                          double.tryParse(sellCtrl.text) ??
-                              0,
+                          double.tryParse(sellCtrl.text) ?? 0,
                       stock:
                           int.tryParse(stockCtrl.text) ?? 0,
                       unit: unitCtrl.text.trim().isEmpty
                           ? 'pcs'
                           : unitCtrl.text.trim(),
-                      createdAt: existing?.createdAt ??
-                          DateTime.now(),
+                      createdAt:
+                          existing?.createdAt ?? DateTime.now(),
                     );
                     if (existing == null) {
                       await prov.addProduct(p);
@@ -382,14 +477,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
-        title: Text('Adjust Stock'),
+        title: const Text('Adjust Stock'),
         content:
             Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF2E7D32)
-                  .withValues(alpha: 0.08),
+              color:
+                  const Color(0xFF2E7D32).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(children: [
@@ -398,8 +493,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                   Text(product.name,
                       style: const TextStyle(
@@ -407,8 +501,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   Text(
                       'Kasalukuyang: ${product.stock} ${product.unit ?? 'pcs'}',
                       style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12)),
+                          color: Colors.grey[600], fontSize: 12)),
                 ]),
               ),
             ]),
@@ -416,9 +509,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
           const SizedBox(height: 14),
           TextField(
             controller: ctrl,
-            keyboardType:
-                const TextInputType.numberWithOptions(
-                    signed: true),
+            keyboardType: const TextInputType.numberWithOptions(
+                signed: true),
             decoration: InputDecoration(
               labelText: 'Dagdag/Bawas',
               hintText: 'hal: +10 o -5',
@@ -530,11 +622,9 @@ class _ProductTile extends StatelessWidget {
                 fontWeight: FontWeight.w600, fontSize: 14)),
         subtitle: Text(
             'Bili: ${CurrencyFormatter.format(product.buyPrice)}  •  Benta: ${CurrencyFormatter.format(product.sellPrice)}',
-            style: TextStyle(
-                fontSize: 12, color: Colors.grey[500])),
-        trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+            style:
+                TextStyle(fontSize: 12, color: Colors.grey[500])),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           GestureDetector(
             onTap: onAdjust,
             child: Container(
@@ -551,8 +641,8 @@ class _ProductTile extends StatelessWidget {
             ),
           ),
           PopupMenuButton(
-            icon: Icon(Icons.more_vert,
-                color: Colors.grey[400], size: 20),
+            icon:
+                Icon(Icons.more_vert, color: Colors.grey[400], size: 20),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)),
             itemBuilder: (_) => const [
@@ -568,8 +658,7 @@ class _ProductTile extends StatelessWidget {
                   value: 'stock',
                   child: Row(children: [
                     Icon(Icons.inventory_outlined,
-                        size: 18,
-                        color: Color(0xFF2E7D32)),
+                        size: 18, color: Color(0xFF2E7D32)),
                     SizedBox(width: 8),
                     Text('Adjust Stock'),
                   ])),
@@ -580,8 +669,7 @@ class _ProductTile extends StatelessWidget {
                         size: 18, color: Colors.red),
                     SizedBox(width: 8),
                     Text('I-archive',
-                        style:
-                            TextStyle(color: Colors.red)),
+                        style: TextStyle(color: Colors.red)),
                   ])),
             ],
             onSelected: (v) {
