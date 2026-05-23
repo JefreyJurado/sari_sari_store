@@ -10,17 +10,17 @@ class DateHelper {
 
   static String greeting() {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Umaga';
-    if (h < 18) return 'Tanghali';
-    return 'Gabi';
+    if (h < 12) return 'Morning';
+    if (h < 18) return 'Afternoon';
+    return 'Evening';
   }
 
   static String timeAgo(DateTime d) {
     final diff = DateTime.now().difference(d);
-    if (diff.inMinutes < 1) return 'Kaagad';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}min';
-    if (diff.inHours < 24) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
     return _date.format(d);
   }
 

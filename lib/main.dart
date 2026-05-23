@@ -14,6 +14,8 @@ import 'services/notification_service.dart';
 import 'services/database_service.dart';
 import 'data/default_products.dart';
 
+const _blue = Color(0xFF1E3A8A);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations(
@@ -37,35 +39,36 @@ class TindaPHApp extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF2E7D32),
+            seedColor: _blue,
             brightness: Brightness.light,
           ),
           textTheme: GoogleFonts.poppinsTextTheme(),
           appBarTheme: AppBarTheme(
-            centerTitle: true,
-            backgroundColor: const Color(0xFF2E7D32),
-            foregroundColor: Colors.white,
+            centerTitle: false,
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black87,
             elevation: 0,
             titleTextStyle: GoogleFonts.poppins(
-              color: Colors.white,
+              color: Colors.black87,
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
           cardTheme: CardThemeData(
-            elevation: 2,
+            elevation: 0,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)),
           ),
           floatingActionButtonTheme:
               const FloatingActionButtonThemeData(
-            backgroundColor: Color(0xFF2E7D32),
+            backgroundColor: _blue,
             foregroundColor: Colors.white,
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2E7D32),
+              backgroundColor: _blue,
               foregroundColor: Colors.white,
+              elevation: 0,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(
@@ -111,38 +114,75 @@ class _MainShellState extends State<_MainShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _tab, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        labelBehavior:
-            NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Bahay',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+              top: BorderSide(color: Colors.grey.shade200)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                vertical: 8, horizontal: 8),
+            child: Row(
+              mainAxisAlignment:
+                  MainAxisAlignment.spaceAround,
+              children: [
+                _navItem(0, Icons.home_outlined, 'Home'),
+                _navItem(1, Icons.point_of_sale_outlined,
+                    'Sales'),
+                _navItem(
+                    2, Icons.list_alt_outlined, 'Credit'),
+                _navItem(3, Icons.inventory_2_outlined,
+                    'Products'),
+                _navItem(
+                    4, Icons.bar_chart_outlined, 'Reports'),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.point_of_sale_outlined),
-            selectedIcon: Icon(Icons.point_of_sale),
-            label: 'Benta',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.list_alt_outlined),
-            selectedIcon: Icon(Icons.list_alt),
-            label: 'Lista',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2),
-            label: 'Produkto',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
-            label: 'Ulat',
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem(int index, IconData icon, String label) {
+    final selected = _tab == index;
+    return GestureDetector(
+      onTap: () => setState(() => _tab = index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? _blue.withValues(alpha: 0.08)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              // Changed from Colors.grey[400] to a much darker mid-tone gray
+              color: selected ? _blue : Colors.black54, 
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: selected
+                    ? FontWeight.w600
+                    : FontWeight.normal,
+                // Changed from Colors.grey[400] to a much darker mid-tone gray
+                color: selected ? _blue : Colors.black54, 
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -22,10 +22,10 @@ class InsightsHelper {
             e.date.day == now.day)
         .fold(0.0, (s, e) => s + e.amount);
 
-    if (todayRev > 0) insights.add('Benta ngayon: ${CurrencyFormatter.format(todayRev)}');
-    if (todayProf > 0) insights.add('Tubo ngayon: ${CurrencyFormatter.format(todayProf)}');
+    if (todayRev > 0) insights.add('Today\'s Sales: ${CurrencyFormatter.format(todayRev)}');
+    if (todayProf > 0) insights.add('Today\'s Profit: ${CurrencyFormatter.format(todayProf)}');
     final net = todayProf - todayExp;
-    if (net < 0) insights.add('Mas malaki ang gastos kaysa kita ngayon ⚠️');
+    if (net < 0) insights.add('Expenses exceed your profit today ⚠️');
 
     return insights;
   }

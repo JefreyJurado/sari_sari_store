@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+// Your app's signature blue color
+const _blue = Color(0xFF1E3A8A);
+
 class ProfitChart extends StatelessWidget {
   final List<Map<String, dynamic>> dailyData;
 
@@ -12,7 +15,7 @@ class ProfitChart extends StatelessWidget {
       return const SizedBox(
         height: 160,
         child: Center(
-            child: Text('Walang data',
+            child: Text('No data available', // Translated from 'Walang data'
                 style: TextStyle(color: Colors.grey))),
       );
     }
@@ -70,19 +73,18 @@ class ProfitChart extends StatelessWidget {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            color: const Color(0xFF2E7D32),
+            color: _blue, // Changed line graph color to brand blue
             barWidth: 3,
             belowBarData: BarAreaData(
               show: true,
-              color: const Color(0xFF2E7D32)
-                  .withValues(alpha: 0.1),
+              color: _blue.withValues(alpha: 0.1), // Changed area shadow highlight fill color to blue
             ),
             dotData: FlDotData(
               show: spots.length <= 14,
               getDotPainter: (_, __, ___, ____) =>
                   FlDotCirclePainter(
                 radius: 4,
-                color: const Color(0xFF2E7D32),
+                color: _blue, // Changed tracking node dots fill color to blue
                 strokeWidth: 2,
                 strokeColor: Colors.white,
               ),

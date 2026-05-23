@@ -35,120 +35,122 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   String get _periodLabel {
     switch (_days) {
-      case 1: return 'Ngayon';
-      case 7: return '7 Araw';
-      case 14: return '14 Araw';
-      case 30: return '1 Buwan';
-      case 60: return '2 Buwan';
-      case 90: return '3 Buwan';
-      case 180: return '6 Buwan';
-      case 365: return '1 Taon';
-      case 730: return '2 Taon';
-      case 1825: return '5 Taon';
-      default: return '$_days Araw';
+      case 1: return 'Today';
+      case 7: return '7 Days';
+      case 14: return '14 Days';
+      case 30: return '1 Month';
+      case 60: return '2 Months';
+      case 90: return '3 Months';
+      case 180: return '6 Months';
+      case 365: return '1 Year';
+      case 730: return '2 Years';
+      case 1825: return '5 Years';
+      default: return '$_days Days';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         centerTitle: false,
         titleSpacing: 16,
-        title: const Text(
-          'Mga Ulat',
-          style: TextStyle(
-            fontSize: 25,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('Reports',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_outlined),
+            icon: const Icon(Icons.refresh_outlined,
+                color: Colors.black54, size: 22),
             onPressed: _load,
-            tooltip: 'I-refresh',
+            tooltip: 'Refresh',
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: Colors.grey.shade200),
+        ),
       ),
       body: Column(children: [
-        // Header banner with period selector
-        Container(
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Color(0xFF2E7D32),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(24),
-              bottomRight: Radius.circular(24),
-            ),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Panahon ng Ulat',
+
+        // ── Period Selector ────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Column(children: [
+            Row(children: [
+              Text('Period',
                   style: TextStyle(
-                      color: Colors.white70, fontSize: 12)),
-              const SizedBox(height: 8),
+                      color: Colors.grey[500],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500)),
+              const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 4),
+                    horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFF1E3A8A).withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: const Color(0xFF1E3A8A).withValues(alpha: 0.2)),
                 ),
                 child: DropdownButton<int>(
                   value: _days,
-                  dropdownColor: const Color(0xFF2E7D32),
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold),
-                  icon: const Icon(Icons.keyboard_arrow_down,
-                      color: Colors.white),
+                  isDense: true,
                   underline: const SizedBox(),
-                  isExpanded: true,
+                  style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500),
+                  icon: const Icon(Icons.keyboard_arrow_down,
+                      color: Color(0xFF1E3A8A), size: 18),
                   items: const [
                     DropdownMenuItem(
-                        value: 1,
-                        child: Text('Ngayon')),
+                        value: 1, child: Text('Today')),
                     DropdownMenuItem(
-                        value: 7,
-                        child: Text('7 Araw')),
+                        value: 7, child: Text('7 Days')),
                     DropdownMenuItem(
-                        value: 14,
-                        child: Text('14 Araw')),
+                        value: 14, child: Text('14 Days')),
                     DropdownMenuItem(
-                        value: 30,
-                        child: Text('30 Araw (1 Buwan)')),
+                        value: 30, child: Text('1 Month')),
                     DropdownMenuItem(
-                        value: 60,
-                        child: Text('60 Araw (2 Buwan)')),
+                        value: 60, child: Text('2 Months')),
                     DropdownMenuItem(
-                        value: 90,
-                        child: Text('90 Araw (3 Buwan)')),
+                        value: 90, child: Text('3 Months')),
                     DropdownMenuItem(
-                        value: 180, child: Text('6 Buwan')),
+                        value: 180, child: Text('6 Months')),
                     DropdownMenuItem(
-                        value: 365, child: Text('1 Taon')),
+                        value: 365, child: Text('1 Year')),
                     DropdownMenuItem(
-                        value: 730, child: Text('2 Taon')),
+                        value: 730, child: Text('2 Years')),
                     DropdownMenuItem(
-                        value: 1825, child: Text('5 Taon')),
+                        value: 1825, child: Text('5 Years')),
                   ],
                   onChanged: (v) =>
                       setState(() { _days = v!; _load(); }),
                 ),
               ),
-            ],
-          ),
+            ]),
+            const SizedBox(height: 10),
+          ]),
         ),
 
+        Divider(height: 1, color: Colors.grey.shade100),
+
+        // ── Body ──────────────────────────────────────
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator())
               : _report == null
-                  ? const Center(child: Text('Walang data'))
+                  ? Center(
+                      child: Text('No data',
+                          style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 14)))
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: SingleChildScrollView(
@@ -159,128 +161,99 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
                           children: [
-                            // Summary cards
-                            Row(children: [
-                              Expanded(
-                                child: _summaryCard(
-                                  'Kabuuang Benta',
-                                  CurrencyFormatter.format(
-                                      _report!.totalRevenue),
-                                  Icons.shopping_bag_outlined,
-                                  const Color(0xFF2E7D32),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _summaryCard(
-                                  'Kabuuang Kita',
-                                  CurrencyFormatter.format(
-                                      _report!.totalProfit),
-                                  Icons.trending_up_outlined,
-                                  Colors.blue,
-                                ),
-                              ),
-                            ]),
-                            const SizedBox(height: 12),
-                            Row(children: [
-                              Expanded(
-                                child: _summaryCard(
-                                  'Gastos',
-                                  CurrencyFormatter.format(
-                                      _report!.totalExpenses),
-                                  Icons.receipt_outlined,
-                                  Colors.red,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _summaryCard(
-                                  'Net Income',
-                                  CurrencyFormatter.format(
-                                      _report!.netIncome),
-                                  Icons
-                                      .account_balance_wallet_outlined,
-                                  _report!.netIncome >= 0
-                                      ? const Color(0xFF2E7D32)
-                                      : Colors.red,
-                                ),
-                              ),
-                            ]),
-                            const SizedBox(height: 12),
 
-                            // Transactions card
+                            // ── Summary Cards ──────────
+                            Row(children: [
+                              _statCard(
+                                'Total Sales',
+                                CurrencyFormatter.format(
+                                    _report!.totalRevenue),
+                                Icons.shopping_bag_outlined,
+                              ),
+                              const SizedBox(width: 10),
+                              _statCard(
+                                'Total Profit',
+                                CurrencyFormatter.format(
+                                    _report!.totalProfit),
+                                Icons.trending_up_outlined,
+                              ),
+                            ]),
+                            const SizedBox(height: 10),
+                            Row(children: [
+                              _statCard(
+                                'Expenses',
+                                CurrencyFormatter.format(
+                                    _report!.totalExpenses),
+                                Icons.receipt_outlined,
+                                isAlert:
+                                    _report!.totalExpenses > 0,
+                              ),
+                              const SizedBox(width: 10),
+                              _statCard(
+                                'Net Income',
+                                CurrencyFormatter.format(
+                                    _report!.netIncome),
+                                Icons.account_balance_wallet_outlined,
+                                isAlert:
+                                    _report!.netIncome < 0,
+                              ),
+                            ]),
+                            const SizedBox(height: 10),
+
+                            // ── Transactions ───────────
                             Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius:
-                                    BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black
-                                        .withValues(alpha: 0.05),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                                    BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: Colors.grey.shade200),
                               ),
                               child: Row(children: [
-                                Container(
-                                  width: 46,
-                                  height: 46,
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange
-                                        .withValues(alpha: 0.1),
-                                    borderRadius:
-                                        BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                      Icons.receipt_outlined,
-                                      color: Colors.orange),
-                                ),
-                                const SizedBox(width: 12),
+                                Icon(Icons.receipt_outlined,
+                                    color: Colors.grey[400],
+                                    size: 18),
+                                const SizedBox(width: 10),
                                 Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                  const Text('Kabuuang Transaksyon',
+                                  const Text('Transactions',
                                       style: TextStyle(
                                           fontWeight:
                                               FontWeight.w600,
-                                          fontSize: 14)),
-                                  Text('Sa loob ng $_periodLabel',
+                                          fontSize: 13,
+                                          color: Colors.black87)),
+                                  Text(
+                                      'Within $_periodLabel',
                                       style: TextStyle(
                                           color: Colors.grey[500],
-                                          fontSize: 12)),
+                                          fontSize: 11)),
                                 ]),
                                 const Spacer(),
                                 Text(
                                     '${_report!.transactionCount}',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 30,
-                                        color: Colors.orange)),
+                                        fontSize: 26,
+                                        color: Colors.black87)),
                               ]),
                             ),
                             const SizedBox(height: 20),
 
-                            // Chart
-                            _sectionTitle('Trend ng Benta'),
+                            // ── Chart ──────────────────
+                            _sectionHeader('Sales Trend'),
                             const SizedBox(height: 10),
                             Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius:
-                                    BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black
-                                        .withValues(alpha: 0.05),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                                    BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: Colors.grey.shade200),
                               ),
                               child: ProfitChart(
                                   dailyData:
@@ -288,24 +261,28 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             ),
                             const SizedBox(height: 20),
 
-                            // Top products
-                            _sectionTitle('Pinaka-mabenta'),
+                            // ── Top Products ───────────
+                            _sectionHeader('Top Products'),
                             const SizedBox(height: 10),
 
                             if (_report!.topProducts.isEmpty)
                               Container(
                                 padding:
-                                    const EdgeInsets.all(24),
+                                    const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: Colors.grey.shade50,
                                   borderRadius:
-                                      BorderRadius.circular(14),
+                                      BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color:
+                                          Colors.grey.shade200),
                                 ),
                                 child: Center(
-                                    child: Text('Walang data',
-                                        style: TextStyle(
-                                            color:
-                                                Colors.grey[400]))),
+                                  child: Text('No data yet',
+                                      style: TextStyle(
+                                          color: Colors.grey[400],
+                                          fontSize: 13)),
+                                ),
                               )
                             else
                               ..._report!.topProducts
@@ -314,94 +291,96 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                   .map((e) => Container(
                                         margin: const EdgeInsets
                                             .only(bottom: 8),
+                                        padding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 14,
+                                                vertical: 10),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
                                           borderRadius:
                                               BorderRadius.circular(
-                                                  14),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black
-                                                  .withValues(
-                                                      alpha: 0.04),
-                                              blurRadius: 6,
-                                              offset:
-                                                  const Offset(0, 2),
-                                            ),
-                                          ],
+                                                  10),
+                                          border: Border.all(
+                                              color: Colors
+                                                  .grey.shade200),
                                         ),
-                                        child: ListTile(
-                                          contentPadding:
-                                              const EdgeInsets
-                                                  .symmetric(
-                                                  horizontal: 14,
-                                                  vertical: 8),
-                                          leading: Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: const Color(
-                                                      0xFF2E7D32)
-                                                  .withValues(
-                                                      alpha: 0.1),
+                                        child: Row(children: [
+                                          Container(
+                                            width: 28,
+                                            height: 28,
+                                            decoration:
+                                                BoxDecoration(
+                                              color: Colors
+                                                  .grey.shade100,
                                               borderRadius:
                                                   BorderRadius
-                                                      .circular(10),
+                                                      .circular(6),
                                             ),
                                             child: Center(
                                               child: Text(
                                                 '${e.key + 1}',
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                     fontWeight:
-                                                        FontWeight.bold,
-                                                    color: Color(
-                                                        0xFF2E7D32),
-                                                    fontSize: 16),
+                                                        FontWeight
+                                                            .bold,
+                                                    color: Colors
+                                                        .grey[600],
+                                                    fontSize: 12),
                                               ),
                                             ),
                                           ),
-                                          title: Text(
-                                              e.value['productName'] ??
-                                                  '',
-                                              style: const TextStyle(
-                                                  fontWeight:
-                                                      FontWeight.w600,
-                                                  fontSize: 14)),
-                                          subtitle: Text(
-                                              '${e.value['totalQty']} pirasong naibenta',
-                                              style: TextStyle(
-                                                  fontSize: 12,
-                                                  color:
-                                                      Colors.grey[500])),
-                                          trailing: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment
-                                                    .center,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment
-                                                    .end,
-                                            children: [
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment
+                                                        .start,
+                                                children: [
                                               Text(
-                                                  CurrencyFormatter
-                                                      .format((e.value[
-                                                                  'totalRevenue']
-                                                              as num?)
-                                                          ?.toDouble() ??
-                                                          0),
+                                                  e.value[
+                                                          'productName'] ??
+                                                      '',
                                                   style: const TextStyle(
                                                       fontWeight:
                                                           FontWeight
-                                                              .bold,
-                                                      fontSize: 14)),
+                                                              .w600,
+                                                      fontSize: 13,
+                                                      color: Colors
+                                                          .black87)),
                                               Text(
-                                                  'tubo: ${CurrencyFormatter.format((e.value['totalProfit'] as num?)?.toDouble() ?? 0)}',
-                                                  style: const TextStyle(
+                                                  '${e.value['totalQty']} sold',
+                                                  style: TextStyle(
                                                       fontSize: 11,
-                                                      color: Color(
-                                                          0xFF2E7D32))),
-                                            ],
+                                                      color: Colors
+                                                          .grey[500])),
+                                            ]),
                                           ),
-                                        ),
+                                          Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment
+                                                      .end,
+                                              children: [
+                                            Text(
+                                                CurrencyFormatter
+                                                    .format((e.value[
+                                                                    'totalRevenue']
+                                                                as num?)
+                                                            ?.toDouble() ??
+                                                        0),
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold,
+                                                    fontSize: 13,
+                                                    color: Colors
+                                                        .black87)),
+                                            Text(
+                                                'profit: ${CurrencyFormatter.format((e.value['totalProfit'] as num?)?.toDouble() ?? 0)}',
+                                                style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors
+                                                        .grey[500])),
+                                          ]),
+                                        ]),
                                       )),
                             const SizedBox(height: 20),
                           ],
@@ -413,53 +392,53 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _summaryCard(
-      String label, String value, IconData icon, Color color) =>
-      Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 10),
-            Text(value,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: color),
-                overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
-            Text(label,
-                style: TextStyle(
-                    color: Colors.grey[500], fontSize: 12)),
-          ],
+  Widget _statCard(String label, String value, IconData icon,
+      {bool isAlert = false}) =>
+      Expanded(
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: isAlert
+                    ? Colors.red.shade100
+                    : const Color(0xFF1E3A8A).withValues(alpha: 0.15)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Icon(icon,
+                    color: isAlert
+                  ? Colors.red.shade300
+                  : const Color(0xFF1E3A8A).withValues(alpha: 0.5),
+                    size: 16),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(label,
+                      style: TextStyle(
+                          color: Colors.grey[500], fontSize: 11),
+                      overflow: TextOverflow.ellipsis),
+                ),
+              ]),
+              const SizedBox(height: 8),
+              Text(value,
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: isAlert
+                          ? Colors.red.shade400
+                          : Colors.black87),
+                  overflow: TextOverflow.ellipsis),
+            ],
+          ),
         ),
       );
 
-  Widget _sectionTitle(String title) => Text(
-        title,
-        style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A2E)),
-      );
+  Widget _sectionHeader(String title) => Text(title,
+      style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87));
 }

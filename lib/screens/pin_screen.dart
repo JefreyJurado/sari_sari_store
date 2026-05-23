@@ -90,7 +90,7 @@ class _PinScreenState extends State<PinScreen>
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-          content: Text('PIN na-set na!'),
+          content: Text('PIN set successfully!'),
           backgroundColor: Colors.green,
         ));
       }
@@ -98,7 +98,7 @@ class _PinScreenState extends State<PinScreen>
       _shakeCtrl.forward(from: 0);
       setState(() {
         _hasError = true;
-        _errorMsg = 'Hindi tugma ang PIN! Subukan ulit.';
+        _errorMsg = 'PINs do not match. Try again.';
         _confirmPin = '';
         _pin = '';
         _isConfirming = false;
@@ -117,7 +117,7 @@ class _PinScreenState extends State<PinScreen>
       _shakeCtrl.forward(from: 0);
       setState(() {
         _hasError = true;
-        _errorMsg = 'Mali ang PIN! Subukan ulit.';
+        _errorMsg = 'Incorrect PIN. Try again.';
         _pin = '';
       });
     }
@@ -128,18 +128,18 @@ class _PinScreenState extends State<PinScreen>
 
   String get _title {
     if (widget.isSetup) {
-      return _isConfirming ? 'Ulitin ang PIN' : 'Gumawa ng PIN';
+      return _isConfirming ? 'Confirm PIN' : 'Create PIN';
     }
-    return 'Ilagay ang PIN';
+    return 'Enter PIN';
   }
 
   String get _subtitle {
     if (widget.isSetup) {
       return _isConfirming
-          ? 'I-confirm ang iyong bagong PIN'
-          : 'Pumili ng 4-digit PIN para sa seguridad';
+          ? 'Confirm your new PIN'
+          : 'Choose a 4-digit PIN for security';
     }
-    return 'Ilagay ang iyong PIN para magpatuloy';
+    return 'Enter your PIN to continue';
   }
 
   @override
@@ -151,7 +151,7 @@ class _PinScreenState extends State<PinScreen>
               backgroundColor: Colors.transparent,
               elevation: 0,
               foregroundColor: Colors.white,
-              title: const Text('I-setup ang PIN'),
+              title: const Text('Setup PIN'),
             )
           : null,
       body: SafeArea(

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../utils/currency_formatter.dart';
-import '../utils/filipino_categories.dart';
+import '../utils/filipino_categories.dart'; // Ensure this class exposes 'getIcon'
+
+// Your app's signature blue color
+const _blue = Color(0xFF1E3A8A);
 
 class ProductGrid extends StatelessWidget {
   final List<Product> products;
@@ -65,15 +68,12 @@ class _ProductCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: inCart
-              ? Border.all(
-                  color: const Color(0xFF2E7D32), width: 2)
-              : Border.all(
-                  color: Colors.transparent, width: 2),
+              ? Border.all(color: _blue, width: 2) // Changed from green to blue
+              : Border.all(color: Colors.transparent, width: 2),
           boxShadow: [
             BoxShadow(
                 color: inCart
-                    ? const Color(0xFF2E7D32)
-                        .withValues(alpha: 0.1)
+                    ? _blue.withValues(alpha: 0.1) // Changed from green to blue
                     : Colors.black.withValues(alpha: 0.05),
                 blurRadius: 8,
                 offset: const Offset(0, 2)),
@@ -85,17 +85,19 @@ class _ProductCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                Text(
-                    FilipinoCategories.emoji(
-                        product.category),
-                    style: const TextStyle(fontSize: 22)),
+                // Swapped Text emoji element with your outline icon mapping
+                Icon(
+                  FilipinoCategories.getIcon(product.category),
+                  color: _blue,
+                  size: 22,
+                ),
                 const Spacer(),
                 if (oos)
-                  _Badge('Ubos', Colors.red)
+                  const _Badge('OOS', Colors.red) // Translated from 'Ubos'
                 else if (product.isLowStock)
                   _Badge('${product.stock}', Colors.orange)
                 else if (inCart)
-                  _Badge('$cartQty', const Color(0xFF2E7D32)),
+                  _Badge('$cartQty', _blue), // Changed from green to blue
               ]),
               const SizedBox(height: 6),
               Expanded(
@@ -110,11 +112,10 @@ class _ProductCard extends StatelessWidget {
               Row(children: [
                 Expanded(
                   child: Text(
-                    CurrencyFormatter.format(
-                        product.sellPrice),
+                    CurrencyFormatter.format(product.sellPrice),
                     style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF2E7D32),
+                        color: _blue, // Changed from green to blue
                         fontSize: 14),
                   ),
                 ),
@@ -125,8 +126,7 @@ class _ProductCard extends StatelessWidget {
                       Colors.grey.shade700,
                       onRemove),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: Text('$cartQty',
                         style: const TextStyle(
                             fontWeight: FontWeight.bold,
@@ -134,18 +134,14 @@ class _ProductCard extends StatelessWidget {
                   ),
                   _SmallBtn(
                       Icons.add,
-                      const Color(0xFF2E7D32),
+                      _blue, // Changed from green to blue
                       Colors.white,
                       oos ? () {} : onAdd),
                 ] else
                   _SmallBtn(
                       Icons.add,
-                      oos
-                          ? Colors.grey.shade100
-                          : const Color(0xFF2E7D32),
-                      oos
-                          ? Colors.grey.shade400
-                          : Colors.white,
+                      oos ? Colors.grey.shade100 : _blue, // Changed from green to blue
+                      oos ? Colors.grey.shade400 : Colors.white,
                       oos ? () {} : onAdd),
               ]),
             ],
@@ -162,8 +158,7 @@ class _Badge extends StatelessWidget {
   const _Badge(this.text, this.color);
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 7, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(
             color: color.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8)),

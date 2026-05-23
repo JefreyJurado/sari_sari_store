@@ -5,6 +5,8 @@ import 'pin_screen.dart';
 import '../services/database_service.dart';
 import '../providers/app_provider.dart';
 
+const _blue = Color(0xFF1E3A8A);
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
   @override
@@ -27,7 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _nameCtrl.text =
-          prefs.getString('store_name') ?? 'Aming Sari-Sari Store';
+          prefs.getString('store_name') ?? 'My Sari-Sari Store';
       _notif = prefs.getBool('notifications') ?? true;
       _pinEnabled = prefs.getBool('pin_enabled') ?? false;
       _loaded = true;
@@ -36,12 +38,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('store_name', _nameCtrl.text.trim());
+    await prefs.setString(
+        'store_name', _nameCtrl.text.trim());
     await prefs.setBool('notifications', _notif);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Na-save ang settings!'),
-          backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Settings saved!'),
+              backgroundColor: Colors.green));
     }
   }
 
@@ -52,27 +56,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
         MaterialPageRoute(
             builder: (_) => const PinScreen(isSetup: true)),
       );
-      if (result == true) {
-        setState(() => _pinEnabled = true);
-      }
+      if (result == true) setState(() => _pinEnabled = true);
     } else {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
-          title: const Text('I-remove ang PIN?'),
-          content: const Text(
-              'Ang iyong PIN ay matatanggal. Hindi na kailangan ng PIN para buksan ang app.'),
+              borderRadius: BorderRadius.circular(14)),
+          title: const Text('Remove PIN?',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87)),
+          content: Text(
+              'Your PIN will be removed. The app will no longer require a PIN to open.',
+              style: TextStyle(
+                  color: Colors.grey[600], fontSize: 13)),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Kanselahin')),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red),
-              child: const Text('I-remove'),
+                onPressed: () =>
+                    Navigator.pop(context, false),
+                child: Text('Cancel',
+                    style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13))),
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(context, true),
+              child: const Text('Remove',
+                  style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13)),
             ),
           ],
         ),
@@ -85,14 +101,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                  content: Text('PIN na-remove!'),
+                  content: Text('PIN removed.'),
                   backgroundColor: Colors.orange));
         }
       }
     }
   }
 
-  // ── Clear Specific Data ─────────────────────────────────────
   Future<void> _confirmClearData() async {
     bool clearSales = true;
     bool clearDebts = true;
@@ -103,64 +118,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
-          title: const Text('I-clear ang Specific Data'),
+              borderRadius: BorderRadius.circular(14)),
+          title: const Text('Clear Specific Data',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Piliin kung ano ang ie-erase:',
-                  style: TextStyle(
-                      fontSize: 13, color: Colors.grey),
-                ),
+                Text('Select what to erase:',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[500])),
                 const SizedBox(height: 12),
-
-                _checkItem('Mga Benta / Sales',
-                    'History ng lahat ng benta',
-                    clearSales,
-                    (v) => setS(() => clearSales = v ?? false)),
+                _checkItem('Sales',
+                    'All sales history', clearSales,
+                    (v) => setS(
+                        () => clearSales = v ?? false)),
                 const SizedBox(height: 8),
-
-                _checkItem('Lista ng Utang',
-                    'Lahat ng utang at payment history',
+                _checkItem('Credit / Debts',
+                    'All credit and payment history',
                     clearDebts,
-                    (v) => setS(() => clearDebts = v ?? false)),
+                    (v) => setS(
+                        () => clearDebts = v ?? false)),
                 const SizedBox(height: 8),
-
-                _checkItem('Mga Gastos',
-                    'History ng lahat ng gastos',
-                    clearExpenses,
-                    (v) => setS(() => clearExpenses = v ?? false)),
+                _checkItem('Expenses',
+                    'All expense records', clearExpenses,
+                    (v) => setS(() =>
+                        clearExpenses = v ?? false)),
                 const SizedBox(height: 8),
-
-                _checkItem('Mga Customer',
-                    'Lahat ng customer records',
-                    clearCustomers,
-                    (v) => setS(() => clearCustomers = v ?? false)),
-
+                _checkItem('Customers',
+                    'All customer records', clearCustomers,
+                    (v) => setS(() =>
+                        clearCustomers = v ?? false)),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.08),
+                    color: Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color:
-                            Colors.orange.withValues(alpha: 0.3)),
+                        color: Colors.grey.shade200),
                   ),
-                  child: const Row(children: [
+                  child: Row(children: [
                     Icon(Icons.info_outline,
-                        color: Colors.orange, size: 16),
-                    SizedBox(width: 8),
+                        color: Colors.grey[500], size: 14),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Ang mga Produkto ay hindi mabubura.',
-                        style: TextStyle(
-                            fontSize: 11, color: Colors.orange),
-                      ),
+                          'Products will not be deleted.',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600])),
                     ),
                   ]),
                 ),
@@ -169,25 +183,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Kanselahin')),
-            ElevatedButton(
+                onPressed: () =>
+                    Navigator.pop(ctx, false),
+                child: Text('Cancel',
+                    style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13))),
+            TextButton(
               onPressed: () {
                 if (!clearSales &&
                     !clearDebts &&
                     !clearExpenses &&
                     !clearCustomers) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(
-                          content: Text('Pumili ng kahit isa!'),
+                  ScaffoldMessenger.of(ctx)
+                      .showSnackBar(const SnackBar(
+                          content: Text(
+                              'Select at least one.'),
                           backgroundColor: Colors.red));
                   return;
                 }
                 Navigator.pop(ctx, true);
               },
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange),
-              child: const Text('I-clear'),
+              child: const Text('Clear',
+                  style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13)),
             ),
           ],
         ),
@@ -195,66 +216,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirm != true) return;
-
     final db = DatabaseService.instance;
     if (clearSales) await db.clearSales();
     if (clearDebts) await db.clearDebts();
     if (clearExpenses) await db.clearExpenses();
     if (clearCustomers) await db.clearCustomers();
-
     await _keepSettings();
 
     if (mounted) {
       final cleared = <String>[];
-      if (clearSales) cleared.add('Benta');
-      if (clearDebts) cleared.add('Utang');
-      if (clearExpenses) cleared.add('Gastos');
+      if (clearSales) cleared.add('Sales');
+      if (clearDebts) cleared.add('Credit');
+      if (clearExpenses) cleared.add('Expenses');
       if (clearCustomers) cleared.add('Customers');
-
       await context.read<AppProvider>().reload();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Na-clear na ang: ${cleared.join(', ')}!'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:
+            Text('Cleared: ${cleared.join(', ')}'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 3),
+      ));
     }
   }
 
-  // ── Clear All Data ──────────────────────────────────────────
   Future<void> _confirmClearAll() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: const Text('I-clear ang Lahat ng Data?'),
+            borderRadius: BorderRadius.circular(14)),
+        title: const Text('Clear All Data?',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: Colors.red.withValues(alpha: 0.2)),
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border:
+                    Border.all(color: Colors.red.shade200),
               ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
-                  Text('Mabubura ang lahat ng:',
+                  Text('This will delete:',
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red)),
-                  SizedBox(height: 8),
-                  Text('• Mga Benta at Sales History'),
-                  Text('• Lista ng Utang'),
-                  Text('• Mga Gastos'),
-                  Text('• Mga Customer'),
-                  Text('• Cash Drawer History'),
-                  Text('• Loyalty Points'),
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red.shade700,
+                          fontSize: 13)),
+                  const SizedBox(height: 8),
+                  ...['Sales history', 'Credit / Debts',
+                          'Expenses', 'Customers',
+                          'Loyalty Points']
+                      .map((t) => Padding(
+                            padding:
+                                const EdgeInsets.only(
+                                    bottom: 3),
+                            child: Row(children: [
+                              Icon(Icons.remove,
+                                  size: 12,
+                                  color: Colors
+                                      .red.shade400),
+                              const SizedBox(width: 6),
+                              Text(t,
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors
+                                          .grey[700])),
+                            ]),
+                          )),
                 ],
               ),
             ),
@@ -262,43 +299,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: Colors.green.withValues(alpha: 0.2)),
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border:
+                    Border.all(color: Colors.grey.shade200),
               ),
-              child: const Row(children: [
+              child: Row(children: [
                 Icon(Icons.check_circle_outline,
-                    color: Colors.green, size: 16),
-                SizedBox(width: 8),
+                    color: Colors.green.shade400, size: 14),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'Mananatili ang mga Produkto.',
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.green),
-                  ),
+                  child: Text('Products will be kept.',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600])),
                 ),
               ]),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: Colors.orange.shade200),
               ),
-              child: const Row(children: [
+              child: Row(children: [
                 Icon(Icons.warning_amber_outlined,
-                    color: Colors.orange, size: 16),
-                SizedBox(width: 8),
+                    color: Colors.orange.shade600,
+                    size: 14),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'Hindi na ito mababawi!',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.orange,
-                        fontWeight: FontWeight.bold),
-                  ),
+                  child: Text('This cannot be undone.',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.orange.shade700,
+                          fontWeight: FontWeight.w600)),
                 ),
               ]),
             ),
@@ -306,85 +343,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Kanselahin')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red),
-            child: const Text('I-clear Lahat'),
+              onPressed: () =>
+                  Navigator.pop(context, false),
+              child: Text('Cancel',
+                  style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 13))),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, true),
+            child: const Text('Clear All',
+                style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13)),
           ),
         ],
       ),
     );
 
     if (confirm != true) return;
-
     await DatabaseService.instance.clearAllData();
     await _keepSettings();
-
     if (mounted) {
       await context.read<AppProvider>().reload();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Na-clear na ang lahat! Nananatili ang mga Produkto.'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ),
-      );
+          const SnackBar(
+        content: Text(
+            'All data cleared. Products are kept.'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 3),
+      ));
     }
   }
 
-  // ── Helper: Keep Settings after clear ──────────────────────
   Future<void> _keepSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final storeName = prefs.getString('store_name');
     final pinEnabled = prefs.getBool('pin_enabled');
     final appPin = prefs.getString('app_pin');
     final notifications = prefs.getBool('notifications');
-
     await prefs.clear();
-
-    if (storeName != null) {
+    if (storeName != null)
       await prefs.setString('store_name', storeName);
-    }
-    if (pinEnabled != null) {
+    if (pinEnabled != null)
       await prefs.setBool('pin_enabled', pinEnabled);
-    }
-    if (appPin != null) {
+    if (appPin != null)
       await prefs.setString('app_pin', appPin);
-    }
-    if (notifications != null) {
+    if (notifications != null)
       await prefs.setBool('notifications', notifications);
-    }
   }
 
-  // ── Helper: Checkbox item ───────────────────────────────────
-  Widget _checkItem(
-    String title,
-    String subtitle,
-    bool value,
-    void Function(bool?) onChanged,
-  ) =>
+  Widget _checkItem(String title, String subtitle,
+          bool value, void Function(bool?) onChanged) =>
       Container(
         decoration: BoxDecoration(
           color: value
-              ? Colors.red.withValues(alpha: 0.05)
+              ? Colors.red.withValues(alpha: 0.04)
               : Colors.grey.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
               color: value
-                  ? Colors.red.withValues(alpha: 0.3)
-                  : Colors.grey.withValues(alpha: 0.2)),
+                  ? Colors.red.withValues(alpha: 0.2)
+                  : Colors.grey.withValues(alpha: 0.15)),
         ),
         child: CheckboxListTile(
           dense: true,
           title: Text(title,
               style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w600)),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87)),
           subtitle: Text(subtitle,
-              style: const TextStyle(fontSize: 11)),
+              style: TextStyle(
+                  fontSize: 11, color: Colors.grey[500])),
           value: value,
           activeColor: Colors.red,
           onChanged: onChanged,
@@ -400,98 +432,204 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      appBar: AppBar(title: const Text('Mga Setting')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: false,
+        titleSpacing: 16,
+        title: const Text('Settings',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(
+              height: 1, color: Colors.grey.shade200),
+        ),
+      ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // ── Tindahan ───────────────────────
-                _label('TINDAHAN'),
+
+                // Store info card
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _blue.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: _blue.withValues(alpha: 0.15)),
+                  ),
+                  child: Row(children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        color: _blue.withValues(alpha: 0.1),
+                        borderRadius:
+                            BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.store_outlined,
+                          color: _blue, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                        Text(
+                            _nameCtrl.text.isEmpty
+                                ? 'My Sari-Sari Store'
+                                : _nameCtrl.text,
+                            style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 15,
+                                fontWeight:
+                                    FontWeight.w600)),
+                        Text('Configure your app',
+                            style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 12)),
+                      ]),
+                    ),
+                    if (_pinEnabled)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _blue.withValues(alpha: 0.1),
+                          borderRadius:
+                              BorderRadius.circular(8),
+                          border: Border.all(
+                              color: _blue
+                                  .withValues(alpha: 0.2)),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.lock_outline,
+                              color: _blue, size: 12),
+                          const SizedBox(width: 4),
+                          Text('PIN',
+                              style: TextStyle(
+                                  color: _blue,
+                                  fontSize: 11,
+                                  fontWeight:
+                                      FontWeight.bold)),
+                        ]),
+                      ),
+                  ]),
+                ),
+                const SizedBox(height: 20),
+
+                // Store Name
+                _label('STORE'),
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.grey.shade200),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(14),
                     child: TextField(
                       controller: _nameCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Pangalan ng Tindahan',
-                        prefixIcon: Icon(Icons.store_outlined),
-                        border: OutlineInputBorder(),
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'Store name',
+                        labelStyle: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13),
+                        prefixIcon: Icon(
+                            Icons.store_outlined,
+                            color: Colors.grey[500],
+                            size: 18),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        border: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                                color: Colors.grey.shade300)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                                color: Colors.grey.shade300)),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // ── Notifications ──────────────────
+                // Notifications
                 _label('NOTIFICATIONS'),
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.grey.shade200),
                   ),
                   child: SwitchListTile(
-                    title: const Text('I-enable ang Notifications'),
-                    subtitle:
-                        const Text('Low stock at utang reminders'),
-                    secondary:
-                        const Icon(Icons.notifications_outlined),
+                    title: const Text('Enable Notifications',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87)),
+                    subtitle: Text(
+                        'Low stock & credit reminders',
+                        style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 11)),
+                    secondary: Icon(
+                        Icons.notifications_outlined,
+                        color: Colors.grey[500], size: 20),
                     value: _notif,
-                    onChanged: (v) => setState(() => _notif = v),
+                    activeColor: _blue,
+                    onChanged: (v) =>
+                        setState(() => _notif = v),
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // ── Seguridad ──────────────────────
-                _label('SEGURIDAD'),
+                // Security
+                _label('SECURITY'),
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.grey.shade200),
                   ),
                   child: SwitchListTile(
-                    title: const Text('PIN Lock'),
-                    subtitle: Text(_pinEnabled
-                        ? 'Naka-on — may PIN protection'
-                        : 'Naka-off — walang PIN'),
+                    title: const Text('PIN Lock',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87)),
+                    subtitle: Text(
+                      _pinEnabled
+                          ? 'Enabled — PIN required to open'
+                          : 'Disabled — no PIN required',
+                      style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 11),
+                    ),
                     secondary: Icon(
                       _pinEnabled
                           ? Icons.lock_outline
                           : Icons.lock_open_outlined,
                       color: _pinEnabled
-                          ? const Color(0xFF2E7D32)
-                          : Colors.grey,
+                          ? _blue
+                          : Colors.grey[400],
+                      size: 20,
                     ),
                     value: _pinEnabled,
+                    activeColor: _blue,
                     onChanged: _togglePin,
                   ),
                 ),
@@ -500,38 +638,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black
-                              .withValues(alpha: 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: Colors.grey.shade200),
                     ),
                     child: ListTile(
-                      leading: const Icon(
+                      leading: Icon(
                           Icons.password_outlined,
-                          color: Colors.blue),
-                      title: const Text('Palitan ang PIN'),
-                      subtitle:
-                          const Text('Gumawa ng bagong PIN'),
-                      trailing: const Icon(Icons.chevron_right,
-                          color: Colors.grey),
+                          color: _blue, size: 20),
+                      title: const Text('Change PIN',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87)),
+                      subtitle: Text('Set a new PIN',
+                          style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 11)),
+                      trailing: Icon(Icons.chevron_right,
+                          color: Colors.grey[400], size: 18),
                       onTap: () async {
-                        final result = await Navigator.push<bool>(
+                        final result =
+                            await Navigator.push<bool>(
                           context,
                           MaterialPageRoute(
-                              builder: (_) =>
-                                  const PinScreen(isSetup: true)),
+                              builder: (_) => const PinScreen(
+                                  isSetup: true)),
                         );
                         if (result == true && mounted) {
                           ScaffoldMessenger.of(context)
                               .showSnackBar(const SnackBar(
-                            content: Text('Nabago ang PIN!'),
-                            backgroundColor: Colors.green,
-                          ));
+                                  content: Text(
+                                      'PIN updated!'),
+                                  backgroundColor:
+                                      Colors.green));
                         }
                       },
                     ),
@@ -539,124 +679,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
                 const SizedBox(height: 16),
 
-                // ── Danger Zone ────────────────────
+                // Danger Zone
                 _label('DANGER ZONE'),
-
-                // Specific Data
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color:
-                            Colors.orange.withValues(alpha: 0.4)),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                        color: Colors.orange.shade100),
                   ),
                   child: ListTile(
-                    leading: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.orange),
+                    leading: Icon(Icons.delete_outline,
+                        color: Colors.orange.shade400,
+                        size: 20),
                     title: const Text(
-                        'I-clear ang Specific Data',
+                        'Clear Specific Data',
                         style: TextStyle(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.w600)),
-                    subtitle: const Text(
-                        'Piliin kung ano ang ie-erase',
-                        style: TextStyle(fontSize: 12)),
-                    trailing: const Icon(Icons.chevron_right,
-                        color: Colors.grey),
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13)),
+                    subtitle: Text(
+                        'Choose what to erase',
+                        style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 11)),
+                    trailing: Icon(Icons.chevron_right,
+                        color: Colors.grey[400], size: 18),
                     onTap: () => _confirmClearData(),
                   ),
                 ),
                 const SizedBox(height: 8),
-
-                // Clear All
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color: Colors.red.withValues(alpha: 0.4)),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                        color: Colors.red.shade100),
                   ),
                   child: ListTile(
-                    leading: const Icon(
+                    leading: Icon(
                         Icons.delete_forever_outlined,
-                        color: Colors.red),
-                    title: const Text(
-                        'I-clear ang Lahat ng Data',
+                        color: Colors.red.shade400, size: 20),
+                    title: const Text('Clear All Data',
                         style: TextStyle(
-                            color: Colors.red,
-                            fontWeight: FontWeight.w600)),
-                    subtitle: const Text(
-                        'Burahin lahat — benta, utang, gastos, customers',
-                        style: TextStyle(fontSize: 12)),
-                    trailing: const Icon(Icons.chevron_right,
-                        color: Colors.grey),
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13)),
+                    subtitle: Text(
+                        'Delete sales, credit, expenses, customers',
+                        style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 11)),
+                    trailing: Icon(Icons.chevron_right,
+                        color: Colors.grey[400], size: 18),
                     onTap: () => _confirmClearAll(),
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // ── Tungkol sa App ─────────────────
-                _label('TUNGKOL SA APP'),
+                // About
+                _label('ABOUT'),
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.grey.shade200),
                   ),
-                  child: const Column(children: [
+                  child: Column(children: [
                     ListTile(
-                      leading: Icon(Icons.phone_android_outlined),
-                      title: Text('TindaPH'),
-                      subtitle: Text('Version 1.0.0'),
+                      leading: Icon(
+                          Icons.phone_android_outlined,
+                          color: Colors.grey[500], size: 20),
+                      title: const Text('TindaPH',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87)),
+                      subtitle: Text('Version 1.0.0',
+                          style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 11)),
                     ),
-                    Divider(height: 1),
+                    Divider(
+                        height: 1,
+                        color: Colors.grey.shade100),
                     ListTile(
                       leading: Icon(Icons.favorite_outline,
-                          color: Colors.red),
-                      title: Text('Gawa para sa mga Pilipino'),
-                      subtitle: Text('Para sa inyong negosyo 🇵🇭'),
+                          color: Colors.red.shade300,
+                          size: 20),
+                      title: const Text(
+                          'Made for Filipino store owners',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87)),
+                      subtitle: Text(
+                          'For your business 🇵🇭',
+                          style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 11)),
                     ),
                   ]),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
-                // ── Save button ────────────────────
+                // Save button
                 ElevatedButton(
                   onPressed: _save,
                   style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 14)),
-                  child: const Text(
-                    'I-save ang Settings',
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold),
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(10)),
                   ),
+                  child: const Text('Save Settings',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -667,10 +811,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _label(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(text,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-                fontSize: 12,
-                letterSpacing: 1)),
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[500],
+                fontSize: 11,
+                letterSpacing: 0.8)),
       );
 }

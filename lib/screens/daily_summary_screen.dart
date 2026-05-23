@@ -6,6 +6,8 @@ import '../utils/date_helper.dart';
 import '../models/transaction.dart';
 import '../services/database_service.dart';
 
+const _blue = Color(0xFF1E3A8A);
+
 class DailySummaryScreen extends StatefulWidget {
   const DailySummaryScreen({super.key});
   @override
@@ -13,7 +15,8 @@ class DailySummaryScreen extends StatefulWidget {
       _DailySummaryScreenState();
 }
 
-class _DailySummaryScreenState extends State<DailySummaryScreen> {
+class _DailySummaryScreenState
+    extends State<DailySummaryScreen> {
   DateTime _selectedDate = DateTime.now();
   List<Map<String, dynamic>> _hourlyData = [];
   bool _loading = false;
@@ -69,10 +72,12 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
                 'revenue': 0.0,
                 'profit': 0.0,
               });
-          productMap[item.productId]!['qty'] += item.quantity;
+          productMap[item.productId]!['qty'] +=
+              item.quantity;
           productMap[item.productId]!['revenue'] +=
               item.subtotal;
-          productMap[item.productId]!['profit'] += item.profit;
+          productMap[item.productId]!['profit'] +=
+              item.profit;
         }
       }
       final topProducts = productMap.values.toList()
@@ -80,12 +85,21 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
             (b['qty'] as int).compareTo(a['qty'] as int));
 
       return Scaffold(
-        backgroundColor: const Color(0xFFF5F6FA),
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          title: const Text('Buod ng Araw'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: false,
+          titleSpacing: 16,
+          title: const Text('Daily Summary',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87)),
           actions: [
             IconButton(
-              icon: const Icon(Icons.calendar_today_outlined),
+              icon: const Icon(Icons.calendar_today_outlined,
+                  color: Colors.black54, size: 22),
               onPressed: () async {
                 final picked = await showDatePicker(
                   context: context,
@@ -100,387 +114,344 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
               },
             ),
           ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child:
+                Divider(height: 1, color: Colors.grey.shade200),
+          ),
         ),
         body: RefreshIndicator(
           onRefresh: _loadHourlyData,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header banner
+
+                // ── Date + Summary ────────────────────
                 Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2E7D32),
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(24),
-                      bottomRight: Radius.circular(24),
-                    ),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _blue.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: _blue.withValues(alpha: 0.15)),
                   ),
-                  padding: const EdgeInsets.fromLTRB(
-                      20, 16, 20, 28),
                   child: Column(children: [
-                    Text(
-                      DateHelper.isSameDay(
-                              _selectedDate, DateTime.now())
-                          ? 'Ngayon'
-                          : DateHelper.formatDate(
-                              _selectedDate),
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${sales.length} transaksyon',
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 14),
-                    ),
-                    const SizedBox(height: 20),
                     Row(children: [
-                      _statCard('Benta',
+                      Icon(Icons.calendar_today_outlined,
+                          color: _blue.withValues(alpha: 0.6),
+                          size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        DateHelper.isSameDay(
+                                _selectedDate, DateTime.now())
+                            ? 'Today'
+                            : DateHelper.formatDate(
+                                _selectedDate),
+                        style: TextStyle(
+                            color: _blue,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${sales.length} transaction${sales.length != 1 ? 's' : ''}',
+                        style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 12),
+                      ),
+                    ]),
+                    const SizedBox(height: 14),
+                    Row(children: [
+                      _topStat('Sales',
                           CurrencyFormatter.format(revenue),
                           Icons.shopping_bag_outlined),
                       const SizedBox(width: 10),
-                      _statCard('Kita',
+                      _topStat('Profit',
                           CurrencyFormatter.format(profit),
                           Icons.trending_up_outlined),
                     ]),
                   ]),
                 ),
+                const SizedBox(height: 16),
 
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      // Summary cards
-                      Row(children: [
-                        Expanded(
-                            child: _summaryCard(
-                                'Cash Sales',
-                                CurrencyFormatter.format(
-                                    cashSales),
-                                Icons.payments_outlined,
-                                const Color(0xFF2E7D32))),
+                // ── Summary Cards ─────────────────────
+                Row(children: [
+                  Expanded(
+                      child: _summaryCard(
+                          'Cash Sales',
+                          CurrencyFormatter.format(cashSales),
+                          Icons.payments_outlined)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: _summaryCard(
+                          'Credit',
+                          CurrencyFormatter.format(
+                              creditSales),
+                          Icons.credit_card_outlined)),
+                ]),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(
+                      child: _summaryCard(
+                          'Expenses',
+                          CurrencyFormatter.format(expenses),
+                          Icons.receipt_long_outlined,
+                          isAlert: expenses > 0)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: _summaryCard(
+                          'Net Income',
+                          CurrencyFormatter.format(netIncome),
+                          Icons.account_balance_wallet_outlined,
+                          isAlert: netIncome < 0)),
+                ]),
+                const SizedBox(height: 20),
+
+                // ── Hourly Breakdown ──────────────────
+                _sectionHeader('Sales by Hour'),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.grey.shade200),
+                  ),
+                  child: _loading
+                      ? const Center(
+                          child: CircularProgressIndicator())
+                      : _hourlyData.isEmpty
+                          ? Center(
+                              child: Padding(
+                              padding:
+                                  const EdgeInsets.all(20),
+                              child: Text('No data',
+                                  style: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontSize: 13)),
+                            ))
+                          : Column(
+                              children:
+                                  _hourlyData.map((h) {
+                                final hour =
+                                    h['hour'] as int? ?? 0;
+                                final rev = (h['revenue']
+                                            as num?)
+                                        ?.toDouble() ??
+                                    0;
+                                final maxRev = _hourlyData
+                                    .map((x) =>
+                                        (x['revenue'] as num?)
+                                            ?.toDouble() ??
+                                        0)
+                                    .reduce((a, b) =>
+                                        a > b ? a : b);
+                                final pct = maxRev > 0
+                                    ? rev / maxRev
+                                    : 0.0;
+                                final ampm =
+                                    hour < 12 ? 'AM' : 'PM';
+                                final h12 = hour == 0
+                                    ? 12
+                                    : hour > 12
+                                        ? hour - 12
+                                        : hour;
+
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.only(
+                                          bottom: 10),
+                                  child: Row(children: [
+                                    SizedBox(
+                                      width: 60,
+                                      child: Text(
+                                          '$h12:00 $ampm',
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors
+                                                  .grey[600])),
+                                    ),
+                                    Expanded(
+                                      child: ClipRRect(
+                                        borderRadius:
+                                            BorderRadius
+                                                .circular(4),
+                                        child:
+                                            LinearProgressIndicator(
+                                          value:
+                                              pct.toDouble(),
+                                          backgroundColor: Colors
+                                              .grey
+                                              .withValues(
+                                                  alpha: 0.12),
+                                          valueColor:
+                                              AlwaysStoppedAnimation(
+                                                  _blue),
+                                          minHeight: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    SizedBox(
+                                      width: 76,
+                                      child: Text(
+                                        CurrencyFormatter
+                                            .format(rev),
+                                        textAlign:
+                                            TextAlign.right,
+                                        style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight:
+                                                FontWeight.w600,
+                                            color:
+                                                Colors.black87),
+                                      ),
+                                    ),
+                                  ]),
+                                );
+                              }).toList(),
+                            ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Top Products ──────────────────────
+                _sectionHeader('Top Products'),
+                const SizedBox(height: 10),
+                if (topProducts.isEmpty)
+                  _emptyCard('No sales today')
+                else
+                  ...topProducts.take(5).map((p) {
+                    final rank =
+                        topProducts.indexOf(p) + 1;
+                    return Container(
+                      margin:
+                          const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius:
+                            BorderRadius.circular(10),
+                        border: Border.all(
+                            color: Colors.grey.shade200),
+                      ),
+                      child: Row(children: [
+                        Container(
+                          width: 28, height: 28,
+                          decoration: BoxDecoration(
+                            color: _blue.withValues(alpha: 0.08),
+                            borderRadius:
+                                BorderRadius.circular(6),
+                          ),
+                          child: Center(
+                            child: Text('$rank',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: _blue,
+                                    fontSize: 12)),
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
-                            child: _summaryCard(
-                                'Credit/Utang',
-                                CurrencyFormatter.format(
-                                    creditSales),
-                                Icons.credit_card_outlined,
-                                Colors.orange)),
+                          child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                            Text(p['name'],
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Colors.black87)),
+                            Text(
+                                '${p['qty']} sold',
+                                style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 11)),
+                          ]),
+                        ),
+                        Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.end,
+                            children: [
+                          Text(
+                              CurrencyFormatter.format(
+                                  p['revenue'] as double),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.black87)),
+                          Text(
+                              'profit: ${CurrencyFormatter.format(p['profit'] as double)}',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey[500])),
+                        ]),
                       ]),
-                      const SizedBox(height: 12),
-                      Row(children: [
-                        Expanded(
-                            child: _summaryCard(
-                                'Gastos',
-                                CurrencyFormatter.format(
-                                    expenses),
-                                Icons.receipt_long_outlined,
-                                Colors.red)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                            child: _summaryCard(
-                                'Net Income',
-                                CurrencyFormatter.format(
-                                    netIncome),
-                                Icons
-                                    .account_balance_wallet_outlined,
-                                netIncome >= 0
-                                    ? const Color(0xFF2E7D32)
-                                    : Colors.red)),
-                      ]),
-                      const SizedBox(height: 20),
+                    );
+                  }),
+                const SizedBox(height: 20),
 
-                      // Hourly breakdown
-                      _sectionTitle('Benta per Oras'),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(16),
+                // ── Transactions ──────────────────────
+                _sectionHeader('Transactions'),
+                const SizedBox(height: 10),
+                if (sales.isEmpty)
+                  _emptyCard('No transactions today')
+                else
+                  ...sales.map((s) => Container(
+                        margin:
+                            const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius:
-                              BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black
-                                  .withValues(alpha: 0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
+                              BorderRadius.circular(10),
+                          border: Border.all(
+                              color: Colors.grey.shade200),
                         ),
-                        child: _loading
-                            ? const Center(
-                                child:
-                                    CircularProgressIndicator())
-                            : _hourlyData.isEmpty
-                                ? Center(
-                                    child: Padding(
-                                    padding:
-                                        const EdgeInsets.all(
-                                            20),
-                                    child: Text('Walang data',
-                                        style: TextStyle(
-                                            color: Colors
-                                                .grey[400])),
-                                  ))
-                                : Column(
-                                    children:
-                                        _hourlyData.map((h) {
-                                      final hour =
-                                          h['hour'] as int? ??
-                                              0;
-                                      final rev = (h['revenue']
-                                                  as num?)
-                                              ?.toDouble() ??
-                                          0;
-                                      final maxRev = _hourlyData
-                                          .map((x) =>
-                                              (x['revenue']
-                                                      as num?)
-                                                  ?.toDouble() ??
-                                              0)
-                                          .reduce((a, b) =>
-                                              a > b ? a : b);
-                                      final pct = maxRev > 0
-                                          ? rev / maxRev
-                                          : 0.0;
-                                      final ampm = hour < 12
-                                          ? 'AM'
-                                          : 'PM';
-                                      final h12 = hour == 0
-                                          ? 12
-                                          : hour > 12
-                                              ? hour - 12
-                                              : hour;
-
-                                      return Padding(
-                                        padding:
-                                            const EdgeInsets
-                                                .only(bottom: 10),
-                                        child: Row(children: [
-                                          SizedBox(
-                                            width: 64,
-                                            child: Text(
-                                                '$h12:00 $ampm',
-                                                style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors
-                                                        .grey[600])),
-                                          ),
-                                          Expanded(
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius
-                                                      .circular(6),
-                                              child:
-                                                  LinearProgressIndicator(
-                                                value: pct
-                                                    .toDouble(),
-                                                backgroundColor:
-                                                    Colors.grey
-                                                        .withValues(
-                                                            alpha:
-                                                                0.15),
-                                                valueColor:
-                                                    const AlwaysStoppedAnimation(
-                                                        Color(
-                                                            0xFF2E7D32)),
-                                                minHeight: 22,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          SizedBox(
-                                            width: 80,
-                                            child: Text(
-                                              CurrencyFormatter
-                                                  .format(rev),
-                                              textAlign:
-                                                  TextAlign.right,
-                                              style: const TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight:
-                                                      FontWeight
-                                                          .w600),
-                                            ),
-                                          ),
-                                        ]),
-                                      );
-                                    }).toList(),
-                                  ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Top products
-                      _sectionTitle('Pinaka-mabenta Ngayon'),
-                      const SizedBox(height: 10),
-                      if (topProducts.isEmpty)
-                        _emptyCard('Walang benta ngayon')
-                      else
-                        ...topProducts.take(5).map((p) {
-                          final rank =
-                              topProducts.indexOf(p) + 1;
-                          return Container(
-                            margin:
-                                const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          contentPadding:
+                              const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 4),
+                          leading: Container(
+                            width: 36, height: 36,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Colors.grey.shade100,
                               borderRadius:
-                                  BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black
-                                      .withValues(alpha: 0.05),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                                  BorderRadius.circular(8),
                             ),
-                            child: ListTile(
-                              contentPadding:
-                                  const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8),
-                              leading: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color:
-                                      const Color(0xFF2E7D32)
-                                          .withValues(alpha: 0.1),
-                                  borderRadius:
-                                      BorderRadius.circular(10),
-                                ),
-                                child: Center(
-                                  child: Text('$rank',
-                                      style: const TextStyle(
-                                          fontWeight:
-                                              FontWeight.bold,
-                                          color:
-                                              Color(0xFF2E7D32),
-                                          fontSize: 16)),
-                                ),
-                              ),
-                              title: Text(p['name'],
-                                  style: const TextStyle(
-                                      fontWeight:
-                                          FontWeight.w600,
-                                      fontSize: 14)),
-                              subtitle: Text(
-                                  '${p['qty']} pirasong naibenta',
-                                  style: TextStyle(
-                                      color: Colors.grey[500],
-                                      fontSize: 12)),
-                              trailing: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                      CurrencyFormatter.format(
-                                          p['revenue'] as double),
-                                      style: const TextStyle(
-                                          fontWeight:
-                                              FontWeight.bold,
-                                          fontSize: 14)),
-                                  Text(
-                                      'tubo: ${CurrencyFormatter.format(p['profit'] as double)}',
-                                      style: const TextStyle(
-                                          fontSize: 11,
-                                          color:
-                                              Color(0xFF2E7D32))),
-                                ],
-                              ),
+                            child: Icon(
+                              s.type == PaymentType.cash
+                                  ? Icons.payments_outlined
+                                  : Icons
+                                      .phone_android_outlined,
+                              color: Colors.black54,
+                              size: 18,
                             ),
-                          );
-                        }),
-                      const SizedBox(height: 20),
-
-                      // Recent transactions
-                      _sectionTitle('Mga Transaksyon'),
-                      const SizedBox(height: 10),
-                      if (sales.isEmpty)
-                        _emptyCard('Walang transaksyon')
-                      else
-                        ...sales.map((s) => Container(
-                              margin: const EdgeInsets.only(
-                                  bottom: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius:
-                                    BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black
-                                        .withValues(alpha: 0.05),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: ListTile(
-                                contentPadding:
-                                    const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 6),
-                                leading: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: s.type ==
-                                            PaymentType.cash
-                                        ? const Color(0xFF2E7D32)
-                                            .withValues(alpha: 0.1)
-                                        : Colors.orange
-                                            .withValues(alpha: 0.1),
-                                    borderRadius:
-                                        BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    s.type == PaymentType.cash
-                                        ? Icons.payments_outlined
-                                        : Icons
-                                            .credit_card_outlined,
-                                    color: s.type ==
-                                            PaymentType.cash
-                                        ? const Color(0xFF2E7D32)
-                                        : Colors.orange,
-                                    size: 20,
-                                  ),
-                                ),
-                                title: Text(
-                                    s.customerName ?? 'Cash Sale',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14)),
-                                subtitle: Text(
-                                    '${s.items.length} item  •  ${DateHelper.formatTime(s.createdAt)}',
-                                    style: TextStyle(
-                                        color: Colors.grey[500],
-                                        fontSize: 12)),
-                                trailing: Text(
-                                    CurrencyFormatter.format(
-                                        s.totalAmount),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color:
-                                            Color(0xFF2E7D32))),
-                              ),
-                            )),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
+                          ),
+                          title: Text(
+                              s.customerName ?? 'Cash Sale',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: Colors.black87)),
+                          subtitle: Text(
+                              '${s.items.length} item${s.items.length != 1 ? 's' : ''}  •  ${DateHelper.formatTime(s.createdAt)}',
+                              style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 11)),
+                          trailing: Text(
+                              CurrencyFormatter.format(
+                                  s.totalAmount),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.black87)),
+                        ),
+                      )),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -489,31 +460,36 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
     });
   }
 
-  Widget _statCard(String label, String value, IconData icon) =>
+  Widget _topStat(
+          String label, String value, IconData icon) =>
       Expanded(
         child: Container(
           padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 12),
+              horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(14),
+            color: _blue.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: _blue.withValues(alpha: 0.15)),
           ),
           child: Row(children: [
-            Icon(icon, color: Colors.white70, size: 20),
+            Icon(icon,
+                color: _blue.withValues(alpha: 0.6), size: 16),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(value,
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: _blue,
                           fontWeight: FontWeight.bold,
-                          fontSize: 15),
+                          fontSize: 14),
                       overflow: TextOverflow.ellipsis),
                   Text(label,
-                      style: const TextStyle(
-                          color: Colors.white60, fontSize: 11)),
+                      style: TextStyle(
+                          color: _blue.withValues(alpha: 0.6),
+                          fontSize: 10)),
                 ],
               ),
             ),
@@ -521,73 +497,67 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
         ),
       );
 
-  Widget _summaryCard(
-          String label, String value, IconData icon, Color color) =>
+  Widget _summaryCard(String label, String value,
+          IconData icon,
+          {bool isAlert = false}) =>
       Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: isAlert
+                  ? Colors.red.shade100
+                  : _blue.withValues(alpha: 0.15)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+            Row(children: [
+              Icon(icon,
+                  color: isAlert
+                      ? Colors.red.shade300
+                      : _blue.withValues(alpha: 0.5),
+                  size: 15),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(label,
+                    style: TextStyle(
+                        color: Colors.grey[500], fontSize: 11),
+                    overflow: TextOverflow.ellipsis),
               ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 10),
+            ]),
+            const SizedBox(height: 8),
             Text(value,
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: color),
+                    fontSize: 15,
+                    color: isAlert
+                        ? Colors.red.shade400
+                        : Colors.black87),
                 overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
-            Text(label,
-                style: TextStyle(
-                    color: Colors.grey[500], fontSize: 11)),
           ],
         ),
       );
 
-  Widget _sectionTitle(String title) => Text(
-        title,
-        style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A2E)),
-      );
+  Widget _sectionHeader(String title) => Text(title,
+      style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87));
 
   Widget _emptyCard(String msg) => Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade200),
         ),
         child: Center(
           child: Text(msg,
-              style: TextStyle(color: Colors.grey[400])),
+              style: TextStyle(
+                  color: Colors.grey[400], fontSize: 13)),
         ),
       );
 }

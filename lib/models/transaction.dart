@@ -1,4 +1,4 @@
-enum PaymentType { cash, credit, mixed }
+enum PaymentType { cash, credit, mixed, online }
 enum TxStatus { completed, voided }
 
 class TxItem {
@@ -64,7 +64,8 @@ class Sale {
   });
 
   double get totalProfit => items.fold(0, (s, i) => s + i.profit);
-  double get change => cashPaid > totalAmount ? cashPaid - totalAmount : 0;
+  double get change =>
+      cashPaid > totalAmount ? cashPaid - totalAmount : 0;
   bool get isVoided => status == TxStatus.voided;
   bool get isCreditSale => creditAmount > 0;
 
@@ -81,7 +82,9 @@ class Sale {
         'createdAt': createdAt.toIso8601String(),
       };
 
-  factory Sale.fromMap(Map<String, dynamic> m, List<TxItem> items) => Sale(
+  factory Sale.fromMap(
+          Map<String, dynamic> m, List<TxItem> items) =>
+      Sale(
         id: m['id'],
         items: items,
         totalAmount: (m['totalAmount'] as num).toDouble(),
@@ -89,9 +92,11 @@ class Sale {
         creditAmount: (m['creditAmount'] as num).toDouble(),
         customerId: m['customerId'],
         customerName: m['customerName'],
-        type: PaymentType.values.firstWhere((e) => e.name == m['type'],
+        type: PaymentType.values.firstWhere(
+            (e) => e.name == m['type'],
             orElse: () => PaymentType.cash),
-        status: TxStatus.values.firstWhere((e) => e.name == m['status'],
+        status: TxStatus.values.firstWhere(
+            (e) => e.name == m['status'],
             orElse: () => TxStatus.completed),
         notes: m['notes'],
         createdAt: DateTime.parse(m['createdAt']),

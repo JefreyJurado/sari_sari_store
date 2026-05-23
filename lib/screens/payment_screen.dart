@@ -5,6 +5,8 @@ import '../models/debt.dart';
 import '../models/customer.dart';
 import '../utils/currency_formatter.dart';
 
+const _blue = Color(0xFF1E3A8A);
+
 class PaymentScreen extends StatefulWidget {
   final Debt debt;
   final Customer customer;
@@ -39,281 +41,267 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      appBar: AppBar(title: const Text('Tanggap ng Bayad')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: false,
+        titleSpacing: 16,
+        title: const Text('Accept Payment',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child:
+              Divider(height: 1, color: Colors.grey.shade200),
+        ),
+      ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header banner
+
+            // ── Customer Info ──────────────────────────
             Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF2E7D32),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(28),
-                  bottomRight: Radius.circular(28),
-                ),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _blue.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: _blue.withValues(alpha: 0.15)),
               ),
-              padding:
-                  const EdgeInsets.fromLTRB(20, 16, 20, 28),
               child: Row(children: [
                 CircleAvatar(
                   backgroundColor:
-                      Colors.white.withValues(alpha: 0.2),
-                  radius: 26,
+                      _blue.withValues(alpha: 0.12),
+                  radius: 22,
                   child: Text(
                     widget.customer.name[0].toUpperCase(),
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: _blue,
                         fontWeight: FontWeight.bold,
-                        fontSize: 20),
+                        fontSize: 16),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Column(
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
                     children: [
                   Text(widget.customer.name,
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18)),
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15)),
                   if (widget.customer.phone != null)
                     Text(widget.customer.phone!,
-                        style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13)),
+                        style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 12)),
                 ]),
               ]),
             ),
+            const SizedBox(height: 16),
 
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Debt summary card
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black
-                              .withValues(alpha: 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(18),
-                    child: Column(children: [
-                      _row('Orihinal na Utang:',
-                          CurrencyFormatter.format(
-                              widget.debt.originalAmount)),
-                      const SizedBox(height: 6),
-                      _row(
-                          'Bayad na:',
-                          CurrencyFormatter.format(
-                              widget.debt.paidAmount),
-                          color: Colors.green),
-                      const Divider(height: 20),
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.red
-                              .withValues(alpha: 0.08),
-                          borderRadius:
-                              BorderRadius.circular(12),
-                          border: Border.all(
-                              color: Colors.red
-                                  .withValues(alpha: 0.2)),
-                        ),
-                        child: Row(children: [
-                          const Text('NATITIRA:',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red,
-                                  fontSize: 14)),
-                          const Spacer(),
-                          Text(
-                            CurrencyFormatter.format(
-                                widget.debt.remaining),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red,
-                                fontSize: 24),
-                          ),
-                        ]),
-                      ),
-                    ]),
+            // ── Debt Summary ───────────────────────────
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border:
+                    Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(children: [
+                _row('Original amount:',
+                    CurrencyFormatter.format(
+                        widget.debt.originalAmount)),
+                const SizedBox(height: 6),
+                _row('Amount paid:',
+                    CurrencyFormatter.format(
+                        widget.debt.paidAmount),
+                    color: Colors.green),
+                Divider(
+                    height: 20, color: Colors.grey.shade200),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: Colors.grey.shade200),
                   ),
-                  const SizedBox(height: 24),
-
-                  const Text('Halaga ng Bayad',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15)),
-                  const SizedBox(height: 10),
-
-                  // Amount input
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black
-                              .withValues(alpha: 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _amountCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(
-                              decimal: true),
+                  child: Row(children: [
+                    Text('Balance',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                            fontSize: 13)),
+                    const Spacer(),
+                    Text(
+                      CurrencyFormatter.format(
+                          widget.debt.remaining),
                       style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold),
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        prefixText: '₱ ',
-                        border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(14),
-                            borderSide: BorderSide.none),
-                        filled: true,
-                        fillColor: Colors.white,
-                        suffixIcon: TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _amountCtrl.text = widget.debt
-                                  .remaining
-                                  .toStringAsFixed(2);
-                            });
-                          },
-                          child: const Text('BUONG\nBAYAD',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight:
-                                      FontWeight.bold)),
-                        ),
-                      ),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                          fontSize: 22),
                     ),
-                  ),
+                  ]),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 20),
 
-                  // Change indicator
-                  if (_amount > 0 &&
-                      _amount <= widget.debt.remaining) ...[
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2E7D32)
-                            .withValues(alpha: 0.08),
-                        borderRadius:
-                            BorderRadius.circular(12),
-                      ),
-                      child: Row(children: [
-                        const Icon(
-                            Icons.account_balance_wallet_outlined,
-                            color: Color(0xFF2E7D32),
-                            size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Matitira: ${CurrencyFormatter.format(widget.debt.remaining - _amount)}',
-                          style: const TextStyle(
-                              color: Color(0xFF2E7D32),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14),
-                        ),
-                      ]),
-                    ),
-                  ],
+            // ── Payment Amount ─────────────────────────
+            Text('Payment Amount',
+                style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Colors.grey[700])),
+            const SizedBox(height: 8),
 
-                  const SizedBox(height: 16),
-
-                  // Notes
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black
-                              .withValues(alpha: 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _notesCtrl,
-                      decoration: InputDecoration(
-                        labelText: 'Mga tala (optional)',
-                        prefixIcon: const Icon(
-                            Icons.notes_outlined),
-                        border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(14),
-                            borderSide: BorderSide.none),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Submit button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed:
-                          _isProcessing ? null : _process,
-                      style: ElevatedButton.styleFrom(
-                          padding:
-                              const EdgeInsets.symmetric(
-                                  vertical: 16)),
-                      child: _isProcessing
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2))
-                          : const Text('I-record ang Bayad',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight:
-                                      FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+            TextField(
+              controller: _amountCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(
+                      decimal: true),
+              style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                prefixText: '₱ ',
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                        color: Colors.grey.shade300)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                        color: Colors.grey.shade300)),
+                suffixIcon: TextButton(
+                  onPressed: () => setState(() {
+                    _amountCtrl.text = widget.debt.remaining
+                        .toStringAsFixed(2);
+                  }),
+                  child: Text('FULL\nPAY',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: _blue)),
+                ),
               ),
             ),
+
+            // Remaining after payment
+            if (_amount > 0 &&
+                _amount <= widget.debt.remaining) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _blue.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: _blue.withValues(alpha: 0.2)),
+                ),
+                child: Row(children: [
+                  Icon(
+                      Icons.account_balance_wallet_outlined,
+                      color: _blue.withValues(alpha: 0.6),
+                      size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Remaining after payment: ${CurrencyFormatter.format(widget.debt.remaining - _amount)}',
+                    style: TextStyle(
+                        color: _blue,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13),
+                  ),
+                ]),
+              ),
+            ],
+
+            const SizedBox(height: 14),
+
+            // ── Notes ──────────────────────────────────
+            TextField(
+              controller: _notesCtrl,
+              decoration: InputDecoration(
+                labelText: 'Notes (optional)',
+                labelStyle: TextStyle(
+                    color: Colors.grey[600], fontSize: 13),
+                prefixIcon: Icon(Icons.notes_outlined,
+                    color: Colors.grey[500], size: 18),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                        color: Colors.grey.shade300)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                        color: Colors.grey.shade300)),
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // ── Submit ──────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isProcessing ? null : _process,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _blue,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(10)),
+                ),
+                child: _isProcessing
+                    ? const SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2))
+                    : const Text('Record Payment',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600)),
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _row(String label, String value, {Color? color}) =>
+  Widget _row(String label, String value,
+          {Color? color}) =>
       Row(children: [
         Text(label,
-            style: TextStyle(color: Colors.grey[600])),
+            style: TextStyle(
+                color: Colors.grey[600], fontSize: 13)),
         const Spacer(),
         Text(value,
             style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: color,
-                fontSize: 14)),
+                color: color ?? Colors.black87,
+                fontSize: 13)),
       ]);
 
   Future<void> _process() async {
@@ -321,7 +309,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Ilagay ang tamang halaga!'),
+              content: Text('Enter a valid amount.'),
               backgroundColor: Colors.red));
       return;
     }
@@ -329,7 +317,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content:
-                  Text('Hindi pwedeng mas malaki sa utang!'),
+                  Text('Amount cannot exceed balance.'),
               backgroundColor: Colors.red));
       return;
     }
@@ -345,7 +333,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
-            'Natanggap ang bayad na ${CurrencyFormatter.format(amount)}!'),
+            'Payment of ${CurrencyFormatter.format(amount)} recorded!'),
         backgroundColor: Colors.green));
   }
 }

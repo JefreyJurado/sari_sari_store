@@ -14,12 +14,10 @@ const _uuid = Uuid();
 class BarcodeScannerScreen extends StatefulWidget {
   const BarcodeScannerScreen({super.key});
   @override
-  State<BarcodeScannerScreen> createState() =>
-      _BarcodeScannerScreenState();
+  State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
 }
 
-class _BarcodeScannerScreenState
-    extends State<BarcodeScannerScreen>
+class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
     with SingleTickerProviderStateMixin {
   MobileScannerController? _controller;
   bool _isScanning = true;
@@ -55,12 +53,14 @@ class _BarcodeScannerScreenState
     super.dispose();
   }
 
-  void _resume() {
+  void _resume() async {
+    if (!mounted) return;
     setState(() {
       _isScanning = true;
       _lastScanned = null;
     });
     _animCtrl.repeat(reverse: true);
+    await _controller?.start();
   }
 
   Future<void> _triggerFeedback(bool found) async {
@@ -71,8 +71,9 @@ class _BarcodeScannerScreenState
       await Future.delayed(const Duration(milliseconds: 100));
       HapticFeedback.heavyImpact();
     }
+    if (!mounted) return;
     setState(() {
-      _flashColor = found ? Colors.green : Colors.red;
+      _flashColor = found ? const Color(0xFF1E3A8A) : Colors.red;
       _flashOpacity = 0.4;
     });
     await Future.delayed(const Duration(milliseconds: 200));
@@ -91,10 +92,10 @@ class _BarcodeScannerScreenState
       _isScanning = false;
     });
     _animCtrl.stop();
+    await _controller?.stop();
 
     final prov = context.read<AppProvider>();
-    final byBarcode =
-        await DatabaseService.instance.getProductByBarcode(code);
+    final byBarcode = await DatabaseService.instance.getProductByBarcode(code);
 
     if (byBarcode != null) {
       await _triggerFeedback(true);
@@ -104,8 +105,7 @@ class _BarcodeScannerScreenState
     }
 
     final byName = prov.products
-        .where((p) =>
-            p.name.toLowerCase().contains(code.toLowerCase()))
+        .where((p) => p.name.toLowerCase().contains(code.toLowerCase()))
         .toList();
 
     if (byName.isNotEmpty) {
@@ -123,8 +123,7 @@ class _BarcodeScannerScreenState
     if (!mounted) return;
     setState(() {
       _history.insert(0, _ScanRecord(
-          barcode: barcode, name: name,
-          found: found, time: DateTime.now()));
+          barcode: barcode, name: name, found: found, time: DateTime.now()));
       if (_history.length > 10) _history.removeLast();
     });
   }
@@ -134,33 +133,28 @@ class _BarcodeScannerScreenState
       context: context,
       backgroundColor: const Color(0xFFF5F6FA),
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular(24))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
             width: 40, height: 4,
             margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
           ),
           Container(
             width: 56, height: 56,
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
+              color: Colors.green.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle_outline,
-                color: Colors.green, size: 32),
+            child: const Icon(Icons.check_circle_outline, color: Colors.green, size: 32),
           ),
           const SizedBox(height: 12),
           Text(product.name,
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center),
-          Text(product.category,
-              style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+          Text(product.category, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(14),
@@ -168,23 +162,16 @@ class _BarcodeScannerScreenState
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               boxShadow: [BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withOpacity(0.05),
                 blurRadius: 8, offset: const Offset(0, 2),
               )],
             ),
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-              _statCol('Presyo',
-                  CurrencyFormatter.format(product.sellPrice),
-                  const Color(0xFF2E7D32)),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+              _statCol('Presyo', CurrencyFormatter.format(product.sellPrice), const Color(0xFF2E7D32)),
               Container(width: 1, height: 40, color: Colors.grey[200]),
-              _statCol('Stock', '${product.stock}',
-                  product.isOutOfStock ? Colors.red : Colors.blue),
+              _statCol('Stock', '${product.stock}', product.isOutOfStock ? Colors.red : Colors.blue),
               Container(width: 1, height: 40, color: Colors.grey[200]),
-              _statCol('Tubo',
-                  CurrencyFormatter.format(product.profit),
-                  Colors.orange),
+              _statCol('Tubo', CurrencyFormatter.format(product.profit), Colors.orange),
             ]),
           ),
           const SizedBox(height: 20),
@@ -194,17 +181,14 @@ class _BarcodeScannerScreenState
               onPressed: product.isOutOfStock ? null : () {
                 prov.addToCart(product);
                 Navigator.pop(context);
-                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('${product.name} naidagdag sa cart!'),
+                  content: Text('${product.name} added to cart!'),
                   backgroundColor: Colors.green,
                 ));
               },
               icon: const Icon(Icons.add_shopping_cart_outlined, size: 18),
-              label: Text(product.isOutOfStock
-                  ? 'Wala nang Stock' : 'Idagdag sa Cart'),
-              style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 13)),
+              label: Text(product.isOutOfStock ? 'Out of Stock' : 'Add to Cart'),
+              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 13)),
             ),
           ),
           const SizedBox(height: 8),
@@ -218,8 +202,7 @@ class _BarcodeScannerScreenState
                 icon: const Icon(Icons.inventory_2_outlined, size: 18),
                 label: const Text('Adjust Stock'),
                 style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    foregroundColor: Colors.blue),
+                    padding: const EdgeInsets.symmetric(vertical: 13), foregroundColor: Colors.blue),
               ),
             ),
             const SizedBox(width: 8),
@@ -232,8 +215,7 @@ class _BarcodeScannerScreenState
                 icon: const Icon(Icons.edit_outlined, size: 18),
                 label: const Text('I-edit'),
                 style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    foregroundColor: Colors.orange),
+                    padding: const EdgeInsets.symmetric(vertical: 13), foregroundColor: Colors.orange),
               ),
             ),
           ]),
@@ -241,44 +223,11 @@ class _BarcodeScannerScreenState
           SizedBox(
             width: double.infinity,
             child: TextButton.icon(
-              onPressed: () { Navigator.pop(context); _resume(); },
+              onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.qr_code_scanner_outlined, size: 18),
               label: const Text('I-scan Ulit'),
             ),
           ),
-          if (_history.isNotEmpty) ...[
-            const Divider(height: 16),
-            Row(children: [
-              const Icon(Icons.history, size: 13, color: Colors.grey),
-              const SizedBox(width: 4),
-              Text('Mga Na-scan',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500],
-                      fontWeight: FontWeight.w600)),
-              const Spacer(),
-              GestureDetector(
-                onTap: () { Navigator.pop(context); _showHistory(); },
-                child: Text('Lahat',
-                    style: TextStyle(fontSize: 11, color: Colors.blue[400])),
-              ),
-            ]),
-            const SizedBox(height: 6),
-            ..._history.take(2).map((r) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(children: [
-                Icon(r.found
-                    ? Icons.check_circle_outline
-                    : Icons.add_circle_outline,
-                    size: 13,
-                    color: r.found ? Colors.green : Colors.orange),
-                const SizedBox(width: 6),
-                Expanded(child: Text(r.name,
-                    style: const TextStyle(fontSize: 12),
-                    overflow: TextOverflow.ellipsis)),
-                Text('${r.time.hour.toString().padLeft(2, '0')}:${r.time.minute.toString().padLeft(2, '0')}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[400])),
-              ]),
-            )),
-          ],
         ]),
       ),
     ).then((_) => _resume());
@@ -289,25 +238,20 @@ class _BarcodeScannerScreenState
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Adjust Stock'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.08),
+              color: Colors.blue.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(children: [
-              const Icon(Icons.inventory_2_outlined,
-                  color: Colors.blue, size: 20),
-              const SizedBox(width: 8),
-              Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                Text(product.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+              Icon(FilipinoCategories.getIcon(product.category), color: Colors.blue, size: 22),
+              const SizedBox(width: 10),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                 Text('Kasalukuyang stock: ${product.stock} ${product.unit ?? 'pcs'}',
                     style: TextStyle(color: Colors.grey[600], fontSize: 12)),
               ])),
@@ -321,16 +265,13 @@ class _BarcodeScannerScreenState
             decoration: InputDecoration(
               labelText: 'Dagdag/Bawas',
               hintText: 'hal: +10 o -5',
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               filled: true, fillColor: Colors.grey[50],
             ),
           ),
         ]),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Kanselahin')),
+          TextButton(onPressed: () { Navigator.pop(context); _resume(); }, child: const Text('Kanselahin')),
           ElevatedButton(
             onPressed: () {
               final adj = int.tryParse(ctrl.text);
@@ -339,8 +280,7 @@ class _BarcodeScannerScreenState
               prov.updateProduct(product.copyWith(stock: newStock));
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(
-                    'Stock ng ${product.name} updated: $newStock ${product.unit ?? 'pcs'}'),
+                content: Text('Stock ng ${product.name} updated: $newStock ${product.unit ?? 'pcs'}'),
                 backgroundColor: Colors.blue,
               ));
               _resume();
@@ -354,49 +294,35 @@ class _BarcodeScannerScreenState
 
   void _showEditProduct(Product product, AppProvider prov) {
     final nameCtrl = TextEditingController(text: product.name);
-    final buyCtrl = TextEditingController(
-        text: product.buyPrice.toStringAsFixed(2));
-    final sellCtrl = TextEditingController(
-        text: product.sellPrice.toStringAsFixed(2));
-    final stockCtrl = TextEditingController(
-        text: product.stock.toString());
-    final unitCtrl = TextEditingController(
-        text: product.unit ?? 'pcs');
+    final buyCtrl = TextEditingController(text: product.buyPrice.toStringAsFixed(2));
+    final sellCtrl = TextEditingController(text: product.sellPrice.toStringAsFixed(2));
+    final stockCtrl = TextEditingController(text: product.stock.toString());
+    final unitCtrl = TextEditingController(text: product.unit ?? 'pcs');
     String category = product.category;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFFF5F6FA),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Center(child: Container(
-                width: 40, height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2)),
+                width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
               )),
               Row(children: [
                 Container(
                   width: 36, height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.edit_outlined,
-                      color: Colors.orange, size: 20),
+                  decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.edit_outlined, color: Colors.orange, size: 20),
                 ),
                 const SizedBox(width: 10),
-                const Text('I-edit ang Produkto',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('Edit Product', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
               ]),
               const SizedBox(height: 16),
               _field(nameCtrl, 'Pangalan ng Produkto *', Icons.label_outlined),
@@ -405,35 +331,35 @@ class _BarcodeScannerScreenState
                 value: category,
                 decoration: InputDecoration(
                   labelText: 'Kategorya',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   filled: true, fillColor: Colors.white,
                 ),
                 borderRadius: BorderRadius.circular(12),
                 items: FilipinoCategories.productCategories
-                    .map((c) => DropdownMenuItem(value: c,
-                    child: Text('${FilipinoCategories.emoji(c)} $c')))
+                    .map((c) => DropdownMenuItem(
+                          value: c,
+                          child: Row(
+                            children: [
+                              Icon(FilipinoCategories.getIcon(c), size: 18, color: Colors.grey[700]),
+                              const SizedBox(width: 8),
+                              Text(c),
+                            ],
+                          ),
+                        ))
                     .toList(),
                 onChanged: (v) => setS(() => category = v!),
               ),
               const SizedBox(height: 12),
               Row(children: [
-                Expanded(child: _field(buyCtrl, 'Presyo ng Bili',
-                    Icons.arrow_downward_outlined,
-                    keyboardType: TextInputType.number, prefix: '₱ ')),
+                Expanded(child: _field(buyCtrl, 'Presyo ng Bili', Icons.arrow_downward_outlined, keyboardType: TextInputType.number, prefix: '₱ ')),
                 const SizedBox(width: 12),
-                Expanded(child: _field(sellCtrl, 'Presyo ng Benta',
-                    Icons.arrow_upward_outlined,
-                    keyboardType: TextInputType.number, prefix: '₱ ')),
+                Expanded(child: _field(sellCtrl, 'Presyo ng Benta', Icons.arrow_upward_outlined, keyboardType: TextInputType.number, prefix: '₱ ')),
               ]),
               const SizedBox(height: 12),
               Row(children: [
-                Expanded(child: _field(stockCtrl, 'Stock',
-                    Icons.inventory_2_outlined,
-                    keyboardType: TextInputType.number)),
+                Expanded(child: _field(stockCtrl, 'Stock', Icons.inventory_2_outlined, keyboardType: TextInputType.number)),
                 const SizedBox(width: 12),
-                Expanded(child: _field(unitCtrl, 'Unit (pcs, kg...)',
-                    Icons.straighten_outlined)),
+                Expanded(child: _field(unitCtrl, 'Unit (pcs, kg...)', Icons.straighten_outlined)),
               ]),
               const SizedBox(height: 20),
               SizedBox(
@@ -447,8 +373,7 @@ class _BarcodeScannerScreenState
                       buyPrice: double.tryParse(buyCtrl.text) ?? product.buyPrice,
                       sellPrice: double.tryParse(sellCtrl.text) ?? product.sellPrice,
                       stock: int.tryParse(stockCtrl.text) ?? product.stock,
-                      unit: unitCtrl.text.trim().isEmpty
-                          ? 'pcs' : unitCtrl.text.trim(),
+                      unit: unitCtrl.text.trim().isEmpty ? 'pcs' : unitCtrl.text.trim(),
                     );
                     await prov.updateProduct(updated);
                     if (ctx.mounted) {
@@ -460,13 +385,10 @@ class _BarcodeScannerScreenState
                     }
                     _resume();
                   },
-                  style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
-                  child: const Text('I-save ang Changes',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                  child: const Text('Save Changes', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
               ),
-              const SizedBox(height: 20),
             ]),
           ),
         ),
@@ -478,57 +400,37 @@ class _BarcodeScannerScreenState
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFFF5F6FA),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(width: 40, height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2)),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
           ),
-          const Text('Scan History',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('Scan History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
           const SizedBox(height: 16),
           ..._history.map((r) => Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 6, offset: const Offset(0, 2))],
+              color: Colors.white, borderRadius: BorderRadius.circular(12),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
             ),
             child: Row(children: [
               Container(
                 width: 36, height: 36,
                 decoration: BoxDecoration(
-                  color: r.found
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : Colors.orange.withValues(alpha: 0.1),
+                  color: r.found ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  r.found ? Icons.check_circle_outline
-                      : Icons.add_box_outlined,
-                  color: r.found ? Colors.green : Colors.orange,
-                  size: 18,
-                ),
+                child: Icon(r.found ? Icons.check_circle_outline : Icons.add_box_outlined, color: r.found ? Colors.green : Colors.orange, size: 18),
               ),
               const SizedBox(width: 10),
-              Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(r.name, style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 13)),
-                Text(r.barcode,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 11),
-                    overflow: TextOverflow.ellipsis),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(r.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(r.barcode, style: TextStyle(color: Colors.grey[400], fontSize: 11), overflow: TextOverflow.ellipsis),
               ])),
-              Text('${r.time.hour.toString().padLeft(2, '0')}:${r.time.minute.toString().padLeft(2, '0')}',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+              Text('${r.time.hour.toString().padLeft(2, '0')}:${r.time.minute.toString().padLeft(2, '0')}', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
             ]),
           )),
           const SizedBox(height: 8),
@@ -539,7 +441,7 @@ class _BarcodeScannerScreenState
                 setState(() => _history.clear());
                 Navigator.pop(context);
               },
-              child: const Text('I-clear ang History'),
+              child: const Text('Clear History'),
             ),
           ),
         ]),
@@ -559,80 +461,68 @@ class _BarcodeScannerScreenState
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFFF5F6FA),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Center(child: Container(
-                width: 40, height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2)),
+                width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
               )),
-              const Text('Bagong Produkto',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('New Product', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+                  color: const Color(0xFF2E7D32).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: const Color(0xFF2E7D32).withValues(alpha: 0.2)),
+                  border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.2)),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.qr_code_outlined,
-                      size: 16, color: Color(0xFF2E7D32)),
+                  const Icon(Icons.qr_code_outlined, size: 16, color: Color(0xFF2E7D32)),
                   const SizedBox(width: 8),
-                  Expanded(child: Text('Barcode: $barcode',
-                      style: const TextStyle(color: Color(0xFF2E7D32),
-                          fontWeight: FontWeight.w600, fontSize: 13),
-                      overflow: TextOverflow.ellipsis)),
+                  Expanded(child: Text('Barcode: $barcode', style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
                 ]),
               ),
               const SizedBox(height: 16),
-              _field(nameCtrl, 'Pangalan ng Produkto *',
-                  Icons.label_outlined, autofocus: true),
+              _field(nameCtrl, 'Pangalan ng Produkto *', Icons.label_outlined, autofocus: true),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: category,
                 decoration: InputDecoration(
                   labelText: 'Kategorya',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   filled: true, fillColor: Colors.white,
                 ),
                 borderRadius: BorderRadius.circular(12),
                 items: FilipinoCategories.productCategories
-                    .map((c) => DropdownMenuItem(value: c,
-                    child: Text('${FilipinoCategories.emoji(c)} $c')))
+                    .map((c) => DropdownMenuItem(
+                          value: c,
+                          child: Row(
+                            children: [
+                              Icon(FilipinoCategories.getIcon(c), size: 18, color: Colors.grey[700]),
+                              const SizedBox(width: 8),
+                              Text(c),
+                            ],
+                          ),
+                        ))
                     .toList(),
                 onChanged: (v) => setS(() => category = v!),
               ),
               const SizedBox(height: 12),
               Row(children: [
-                Expanded(child: _field(buyCtrl, 'Presyo ng Bili',
-                    Icons.arrow_downward_outlined,
-                    keyboardType: TextInputType.number, prefix: '₱ ')),
+                Expanded(child: _field(buyCtrl, 'Presyo ng Bili', Icons.arrow_downward_outlined, keyboardType: TextInputType.number, prefix: '₱ ')),
                 const SizedBox(width: 12),
-                Expanded(child: _field(sellCtrl, 'Presyo ng Benta',
-                    Icons.arrow_upward_outlined,
-                    keyboardType: TextInputType.number, prefix: '₱ ')),
+                Expanded(child: _field(sellCtrl, 'Presyo ng Benta', Icons.arrow_upward_outlined, keyboardType: TextInputType.number, prefix: '₱ ')),
               ]),
               const SizedBox(height: 12),
               Row(children: [
-                Expanded(child: _field(stockCtrl, 'Stock',
-                    Icons.inventory_2_outlined,
-                    keyboardType: TextInputType.number)),
+                Expanded(child: _field(stockCtrl, 'Stock', Icons.inventory_2_outlined, keyboardType: TextInputType.number)),
                 const SizedBox(width: 12),
-                Expanded(child: _field(unitCtrl, 'Unit (pcs, kg...)',
-                    Icons.straighten_outlined)),
+                Expanded(child: _field(unitCtrl, 'Unit (pcs, kg...)', Icons.straighten_outlined)),
               ]),
               const SizedBox(height: 20),
               SizedBox(
@@ -640,10 +530,7 @@ class _BarcodeScannerScreenState
                 child: ElevatedButton(
                   onPressed: () async {
                     if (nameCtrl.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Lagyan ng pangalan ang produkto!'),
-                        backgroundColor: Colors.red,
-                      ));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lagyan ng pangalan ang produkto!'), backgroundColor: Colors.red));
                       return;
                     }
                     final product = Product(
@@ -653,25 +540,19 @@ class _BarcodeScannerScreenState
                       buyPrice: double.tryParse(buyCtrl.text) ?? 0,
                       sellPrice: double.tryParse(sellCtrl.text) ?? 0,
                       stock: int.tryParse(stockCtrl.text) ?? 0,
-                      unit: unitCtrl.text.trim().isEmpty
-                          ? 'pcs' : unitCtrl.text.trim(),
+                      unit: unitCtrl.text.trim().isEmpty ? 'pcs' : unitCtrl.text.trim(),
                       barcode: barcode,
                       createdAt: DateTime.now(),
                     );
                     await prov.addProduct(product);
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('${product.name} nai-save na!'),
-                        backgroundColor: Colors.green,
-                      ));
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${product.name} nai-save na!'), backgroundColor: Colors.green));
                     }
                     _resume();
                   },
-                  style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
-                  child: const Text('I-save ang Produkto',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                  child: const Text('Save Product', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
               ),
               const SizedBox(height: 8),
@@ -680,12 +561,10 @@ class _BarcodeScannerScreenState
                 child: OutlinedButton.icon(
                   onPressed: () { Navigator.pop(ctx); _resume(); },
                   icon: const Icon(Icons.qr_code_scanner_outlined, size: 18),
-                  label: const Text('I-scan Ulit'),
-                  style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 13)),
+                  label: const Text('Scan Again'),
+                  style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 13)),
                 ),
               ),
-              const SizedBox(height: 20),
             ]),
           ),
         ),
@@ -694,30 +573,24 @@ class _BarcodeScannerScreenState
   }
 
   Widget _field(TextEditingController ctrl, String label, IconData icon, {
-    TextInputType keyboardType = TextInputType.text,
-    String? prefix, bool autofocus = false,
+    TextInputType keyboardType = TextInputType.text, String? prefix, bool autofocus = false,
   }) => TextField(
     controller: ctrl, keyboardType: keyboardType, autofocus: autofocus,
     decoration: InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 20),
-      prefixText: prefix,
+      labelText: label, prefixIcon: Icon(icon, size: 20), prefixText: prefix,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       filled: true, fillColor: Colors.white,
     ),
   );
 
-  Widget _statCol(String label, String value, Color color) =>
-      Column(children: [
-        Text(value, style: TextStyle(fontWeight: FontWeight.bold,
-            fontSize: 16, color: color)),
+  Widget _statCol(String label, String value, Color color) => Column(children: [
+        Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
         Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
       ]);
 
   @override
   Widget build(BuildContext context) {
-    final scanColor = _isScanning
-        ? const Color(0xFF2E7D32) : Colors.orange;
+    final scanColor = _isScanning ? const Color(0xFF1E3A8A) : Colors.orange;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -728,16 +601,11 @@ class _BarcodeScannerScreenState
         actions: [
           if (_history.isNotEmpty)
             IconButton(
-              icon: Badge(
-                label: Text('${_history.length}'),
-                child: const Icon(Icons.history),
-              ),
+              icon: Badge(label: Text('${_history.length}'), child: const Icon(Icons.history)),
               onPressed: _showHistory,
             ),
           IconButton(
-            icon: Icon(_torchOn
-                ? Icons.flash_on : Icons.flash_off_outlined,
-                color: _torchOn ? Colors.yellow : Colors.white),
+            icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off_outlined, color: _torchOn ? Colors.yellow : Colors.white),
             onPressed: () {
               _controller?.toggleTorch();
               setState(() => _torchOn = !_torchOn);
@@ -750,16 +618,9 @@ class _BarcodeScannerScreenState
         ],
       ),
       body: Stack(children: [
-
-        // ── Camera — full screen ────────────────────────
         Positioned.fill(
           child: Stack(children: [
-            MobileScanner(
-              controller: _controller!,
-              onDetect: _onDetect,
-            ),
-
-            // Dark overlays — LayoutBuilder para exact alignment
+            MobileScanner(controller: _controller!, onDetect: _onDetect),
             Positioned.fill(
               child: LayoutBuilder(
                 builder: (ctx, constraints) {
@@ -770,89 +631,38 @@ class _BarcodeScannerScreenState
                   final frameTop = (h - frameSize) / 2 - 40;
 
                   return Stack(children: [
-                    // Top
+                    Positioned(top: 0, left: 0, right: 0, height: frameTop, child: Container(color: Colors.black.withOpacity(0.7))),
+                    Positioned(top: frameTop + frameSize, left: 0, right: 0, bottom: 0, child: Container(color: Colors.black.withOpacity(0.7))),
+                    Positioned(top: frameTop, left: 0, width: frameLeft, height: frameSize, child: Container(color: Colors.black.withOpacity(0.7))),
+                    Positioned(top: frameTop, right: 0, width: frameLeft, height: frameSize, child: Container(color: Colors.black.withOpacity(0.7))),
                     Positioned(
-                      top: 0, left: 0, right: 0,
-                      height: frameTop,
-                      child: Container(
-                          color: Colors.black.withValues(alpha: 0.7)),
-                    ),
-                    // Bottom
-                    Positioned(
-                      top: frameTop + frameSize,
-                      left: 0, right: 0, bottom: 0,
-                      child: Container(
-                          color: Colors.black.withValues(alpha: 0.7)),
-                    ),
-                    // Left
-                    Positioned(
-                      top: frameTop, left: 0,
-                      width: frameLeft, height: frameSize,
-                      child: Container(
-                          color: Colors.black.withValues(alpha: 0.7)),
-                    ),
-                    // Right
-                    Positioned(
-                      top: frameTop, right: 0,
-                      width: frameLeft, height: frameSize,
-                      child: Container(
-                          color: Colors.black.withValues(alpha: 0.7)),
-                    ),
-
-                    // Corner brackets
-                    Positioned(
-                      top: frameTop, left: frameLeft,
-                      width: frameSize, height: frameSize,
+                      top: frameTop, left: frameLeft, width: frameSize, height: frameSize,
                       child: Stack(children: [
-                        ...[
-                          Alignment.topLeft,
-                          Alignment.topRight,
-                          Alignment.bottomLeft,
-                          Alignment.bottomRight,
-                        ].map((align) => Align(
+                        ...[Alignment.topLeft, Alignment.topRight, Alignment.bottomLeft, Alignment.bottomRight].map((align) => Align(
                           alignment: align,
                           child: Container(
                             width: 32, height: 32,
                             decoration: BoxDecoration(
                               border: Border(
-                                top: (align == Alignment.topLeft ||
-                                    align == Alignment.topRight)
-                                    ? BorderSide(color: scanColor, width: 4)
-                                    : BorderSide.none,
-                                bottom: (align == Alignment.bottomLeft ||
-                                    align == Alignment.bottomRight)
-                                    ? BorderSide(color: scanColor, width: 4)
-                                    : BorderSide.none,
-                                left: (align == Alignment.topLeft ||
-                                    align == Alignment.bottomLeft)
-                                    ? BorderSide(color: scanColor, width: 4)
-                                    : BorderSide.none,
-                                right: (align == Alignment.topRight ||
-                                    align == Alignment.bottomRight)
-                                    ? BorderSide(color: scanColor, width: 4)
-                                    : BorderSide.none,
+                                top: (align == Alignment.topLeft || align == Alignment.topRight) ? BorderSide(color: scanColor, width: 4) : BorderSide.none,
+                                bottom: (align == Alignment.bottomLeft || align == Alignment.bottomRight) ? BorderSide(color: scanColor, width: 4) : BorderSide.none,
+                                left: (align == Alignment.topLeft || align == Alignment.bottomLeft) ? BorderSide(color: scanColor, width: 4) : BorderSide.none,
+                                right: (align == Alignment.topRight || align == Alignment.bottomRight) ? BorderSide(color: scanColor, width: 4) : BorderSide.none,
                               ),
                             ),
                           ),
                         )),
-
-                        // Scan line
                         if (_isScanning)
                           AnimatedBuilder(
                             animation: _scanAnim,
                             builder: (_, __) => Positioned(
-                              top: 8 + (_scanAnim.value * 240),
-                              left: 8, right: 8,
+                              top: 8 + (_scanAnim.value * 240), left: 8, right: 8,
                               child: Container(
                                 height: 3,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(2),
                                   gradient: LinearGradient(colors: [
-                                    Colors.transparent,
-                                    scanColor.withValues(alpha: 0.8),
-                                    scanColor,
-                                    scanColor.withValues(alpha: 0.8),
-                                    Colors.transparent,
+                                    Colors.transparent, scanColor.withOpacity(0.8), scanColor, scanColor.withOpacity(0.8), Colors.transparent,
                                   ], stops: const [0.0, 0.2, 0.5, 0.8, 1.0]),
                                 ),
                               ),
@@ -860,92 +670,21 @@ class _BarcodeScannerScreenState
                           ),
                       ]),
                     ),
-
-                    // Instruction text — ilalim ng frame
                     Positioned(
-                      top: frameTop + frameSize + 16,
-                      left: 0, right: 0,
+                      top: frameTop + frameSize + 16, left: 0, right: 0,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
                             margin: const EdgeInsets.symmetric(horizontal: 40),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), borderRadius: BorderRadius.circular(20)),
                             child: Text(
-                              _isScanning
-                                  ? 'Ilagay ang barcode sa loob ng frame'
-                                  : 'Nagpoproseso...',
-                              style: TextStyle(
-                                  color: _isScanning
-                                      ? Colors.white
-                                      : Colors.orange,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600),
+                              _isScanning ? 'Place barcode inside the frame' : 'Processing...',
+                              style: TextStyle(color: _isScanning ? Colors.white : Colors.orange, fontSize: 13, fontWeight: FontWeight.w600),
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          if (_history.isNotEmpty && _isScanning) ...[
-                            const SizedBox(height: 8),
-                            Container(
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 20),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Column(children: [
-                                Row(children: [
-                                  const Icon(Icons.history,
-                                      size: 13, color: Colors.white54),
-                                  const SizedBox(width: 4),
-                                  const Text('Mga Na-scan:',
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.white54,
-                                          fontWeight: FontWeight.w600)),
-                                  const Spacer(),
-                                  GestureDetector(
-                                    onTap: _showHistory,
-                                    child: const Text('Lahat',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.lightBlue)),
-                                  ),
-                                ]),
-                                const SizedBox(height: 4),
-                                ..._history.take(2).map((r) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 3),
-                                  child: Row(children: [
-                                    Container(
-                                      width: 7, height: 7,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: r.found
-                                            ? Colors.green : Colors.orange,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Expanded(child: Text(r.name,
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white70),
-                                        overflow: TextOverflow.ellipsis)),
-                                    Text('${r.time.hour.toString().padLeft(2, '0')}:${r.time.minute.toString().padLeft(2, '0')}',
-                                        style: const TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.white38)),
-                                  ]),
-                                )),
-                              ]),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -955,8 +694,6 @@ class _BarcodeScannerScreenState
             ),
           ]),
         ),
-
-        // Flash overlay
         if (_flashOpacity > 0)
           Positioned.fill(
             child: IgnorePointer(
@@ -977,6 +714,5 @@ class _ScanRecord {
   final String name;
   final bool found;
   final DateTime time;
-  _ScanRecord({required this.barcode, required this.name,
-      required this.found, required this.time});
+  _ScanRecord({required this.barcode, required this.name, required this.found, required this.time});
 }

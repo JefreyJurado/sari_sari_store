@@ -1,0 +1,260 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/app_provider.dart';
+import '../models/product.dart';
+import '../utils/currency_formatter.dart';
+import '../utils/filipino_categories.dart';
+
+const _blue = Color(0xFF1E3A8A);
+
+class StockAlertScreen extends StatelessWidget {
+  const StockAlertScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppProvider>(builder: (context, prov, _) {
+      final outOfStock = prov.outOfStock;
+      final lowStock = prov.lowStock;
+
+      // FIXED: Used DefaultTabController to eliminate manually tracking mixin lifecycles
+      return DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            centerTitle: false,
+            titleSpacing: 16,
+            title: const Text('Stock Alerts',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87)),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(49),
+              child: Column(children: [
+                Divider(height: 1, color: Colors.grey.shade200),
+                const TabBar(
+                  labelColor: _blue,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: _blue,
+                  indicatorWeight: 2,
+                  labelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                  unselectedLabelStyle: TextStyle(fontSize: 12),
+                  tabs: [
+                    Tab(text: 'Out of Stock'),
+                    Tab(text: 'Low Stock'),
+                  ],
+                ),
+              ]),
+            ),
+          ),
+          body: TabBarView(
+            children: [
+              _buildList(context, outOfStock, prov, isOutOfStock: true),
+              _buildList(context, lowStock, prov, isOutOfStock: false),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildList(BuildContext context, List<Product> products, AppProvider prov,
+      {required bool isOutOfStock}) {
+    if (products.isEmpty) {
+      return Center(
+        child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+          Icon(
+            isOutOfStock ? Icons.check_circle_outline : Icons.inventory_2_outlined,
+            size: 48,
+            color: Colors.grey[300],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            isOutOfStock ? 'No out of stock items!' : 'All items have sufficient stock.',
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+          ),
+        ]),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      itemCount: products.length,
+      itemBuilder: (listCtx, i) {
+        final p = products[i];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isOutOfStock ? Colors.red.shade100 : Colors.orange.shade100,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    FilipinoCategories.emoji(p.category),
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(p.name,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: Colors.black87)),
+                  const SizedBox(height: 2),
+                  Text(
+                      '${p.category}  •  ${CurrencyFormatter.format(p.sellPrice)}',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                ]),
+              ),
+              Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isOutOfStock ? Colors.red.shade50 : Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                        color: isOutOfStock ? Colors.red.shade200 : Colors.orange.shade200),
+                  ),
+                  child: Text(
+                    isOutOfStock ? 'Out' : '${p.stock} ${p.unit ?? 'pcs'}',
+                    style: TextStyle(
+                        color: isOutOfStock ? Colors.red.shade600 : Colors.orange.shade700,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: () => _adjustStock(context, prov, p),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _blue.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: _blue.withOpacity(0.2)),
+                    ),
+                    child: const Text('+ Restock',
+                        style: TextStyle(
+                            color: _blue,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11)),
+                  ),
+                ),
+              ]),
+            ]),
+          ),
+        );
+      },
+    );
+  }
+
+  void _adjustStock(BuildContext screenCtx, AppProvider prov, Product product) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: screenCtx,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Restock',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+        content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(children: [
+              Text(FilipinoCategories.emoji(product.category), style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(product.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black87)),
+                  Text('Current: ${product.stock} ${product.unit ?? 'pcs'}',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                ]),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: ctrl,
+            keyboardType: const TextInputType.numberWithOptions(signed: true),
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: 'Add / Remove',
+              labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+              hintText: 'e.g. +10 or -5',
+              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.shade300)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.shade300)),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey[600], fontSize: 13))),
+          TextButton(
+            onPressed: () {
+              final adj = int.tryParse(ctrl.text);
+              if (adj == null) return;
+              
+              final newStock = (product.stock + adj).clamp(0, 99999);
+              prov.updateProduct(product.copyWith(stock: newStock));
+              
+              // FIXED: Use localized dialog context to pop, check screen safety before showing SnackBar
+              Navigator.pop(dialogCtx);
+              
+              if (screenCtx.mounted) {
+                ScaffoldMessenger.of(screenCtx).showSnackBar(SnackBar(
+                  content: Text('${product.name} updated: $newStock ${product.unit ?? 'pcs'}'),
+                  backgroundColor: Colors.green,
+                ));
+              }
+            },
+            child: const Text('Apply',
+                style: TextStyle(color: _blue, fontWeight: FontWeight.w600, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+}

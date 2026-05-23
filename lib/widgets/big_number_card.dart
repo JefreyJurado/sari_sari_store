@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 
+// Your app's signature blue color
+const _blue = Color(0xFF1E3A8A);
+
 class BigNumberCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-  final Color color;
 
   const BigNumberCard({
     super.key,
     required this.label,
     required this.value,
-    required this.icon,
-    required this.color,
+    required this.icon, // Removed color from constructor parameters
   });
 
   @override
@@ -32,29 +33,33 @@ class BigNumberCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Icon wrapper utilizing your theme blue color with light opacity
           Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: _blue.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: const Icon(icon, color: _blue, size: 20),
           ),
           const SizedBox(height: 10),
+          // Main metrics value styled in solid blue
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 17,
-                color: color),
+                color: _blue),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
-          Text(label,
-              style: TextStyle(
-                  color: Colors.grey[500], fontSize: 12)),
+          Text(
+            label,
+            style: TextStyle(
+                color: Colors.grey[500], fontSize: 12),
+          ),
         ],
       ),
     );

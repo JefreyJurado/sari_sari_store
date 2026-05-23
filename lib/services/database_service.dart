@@ -15,7 +15,8 @@ class DatabaseService {
   Future<Database> get database async => _db ??= await _init();
 
   Future<Database> _init() async {
-    final path = join(await getDatabasesPath(), 'sari_store.db');
+    // Translated database storage filename to a standard POS identifier
+    final path = join(await getDatabasesPath(), 'pos_system.db');
     return openDatabase(
       path,
       version: 2,
@@ -251,7 +252,7 @@ class DatabaseService {
         .toList();
   }
 
-    Future<void> clearAllData() async {
+  Future<void> clearAllData() async {
     await clearSales();
     await clearDebts();
     await clearExpenses();

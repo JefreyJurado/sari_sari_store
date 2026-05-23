@@ -8,6 +8,7 @@ import '../models/debt.dart';
 import '../models/payment.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../services/loyalty_service.dart';
 
 const _uuid = Uuid();
 
@@ -120,6 +121,7 @@ class AppProvider extends ChangeNotifier {
     required PaymentType type,
     Customer? customer,
     String? notes,
+    DateTime? dueDate,
   }) async {
     if (cart.isEmpty) return null;
 
@@ -154,6 +156,8 @@ class AppProvider extends ChangeNotifier {
     }
 
     if (creditAmount > 0 && customer != null) {
+      final debtDueDate =
+          dueDate ?? DateTime.now().add(const Duration(days: 30));
       await _db.insertDebt(Debt(
         id: _uuid.v4(),
         customerId: customer.id,
@@ -162,9 +166,24 @@ class AppProvider extends ChangeNotifier {
         originalAmount: creditAmount,
         paidAmount: 0,
         status: DebtStatus.unpaid,
-        dueDate: DateTime.now().add(const Duration(days: 30)),
+        dueDate: debtDueDate,
         createdAt: DateTime.now(),
       ));
+      await NotificationService.instance.scheduleDebtReminder(
+        customerName: customer.name,
+        dueDate: debtDueDate,
+        amount: creditAmount,
+      );
+    }
+
+    // ── Auto-add loyalty points ────────────────────────────
+    if (customer != null) {
+      await LoyaltyService.instance.addPointsFromSale(
+        customerId: customer.id,
+        customerName: customer.name,
+        saleAmount: cartTotal,
+        saleDate: sale.createdAt,
+      );
     }
 
     clearCart();
@@ -179,6 +198,7 @@ class AppProvider extends ChangeNotifier {
     return sale;
   }
 
+  // ── Complete Sale With Items (Credit Order) ────────────────────
   Future<Sale?> completeSaleWithItems({
     required List<dynamic> items,
     required double cashPaid,
@@ -186,6 +206,7 @@ class AppProvider extends ChangeNotifier {
     required dynamic type,
     Customer? customer,
     String? notes,
+    DateTime? dueDate,
   }) async {
     final txItems = items.map((e) {
       final product = e['product'] as Product;
@@ -224,6 +245,8 @@ class AppProvider extends ChangeNotifier {
     }
 
     if (creditAmount > 0 && customer != null) {
+      final debtDueDate =
+          dueDate ?? DateTime.now().add(const Duration(days: 30));
       await _db.insertDebt(Debt(
         id: _uuid.v4(),
         customerId: customer.id,
@@ -232,9 +255,24 @@ class AppProvider extends ChangeNotifier {
         originalAmount: creditAmount,
         paidAmount: 0,
         status: DebtStatus.unpaid,
-        dueDate: DateTime.now().add(const Duration(days: 30)),
+        dueDate: debtDueDate,
         createdAt: DateTime.now(),
       ));
+      await NotificationService.instance.scheduleDebtReminder(
+        customerName: customer.name,
+        dueDate: debtDueDate,
+        amount: creditAmount,
+      );
+    }
+
+    // ── Auto-add loyalty points ────────────────────────────
+    if (customer != null) {
+      await LoyaltyService.instance.addPointsFromSale(
+        customerId: customer.id,
+        customerName: customer.name,
+        saleAmount: total,
+        saleDate: sale.createdAt,
+      );
     }
 
     await _loadAll();
@@ -244,7 +282,8 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> voidSale(Sale sale) async {
     for (final item in sale.items) {
-      final p = products.firstWhere((p) => p.id == item.productId,
+      final p = products.firstWhere(
+          (p) => p.id == item.productId,
           orElse: () => Product(
                 id: item.productId,
                 name: item.productName,

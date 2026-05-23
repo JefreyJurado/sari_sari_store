@@ -38,10 +38,13 @@ class NotificationService {
         priority: Priority.high,
       ),
     );
+    // Translated string concatenation to English format
     final body = productNames.length == 1
         ? productNames.first
-        : '${productNames.take(3).join(', ')}${productNames.length > 3 ? ' at iba pa...' : ''}';
-    await _plugin.show(1, '⚠️ Mababang Stock!', body, details);
+        : '${productNames.take(3).join(', ')}${productNames.length > 3 ? ' and others...' : ''}';
+    
+    // Translated title from '⚠️ Mababang Stock!'
+    await _plugin.show(1, '⚠️ Low Stock!', body, details);
   }
 
   Future<void> showOutOfStockAlert(List<String> productNames) async {
@@ -55,8 +58,10 @@ class NotificationService {
         priority: Priority.max,
       ),
     );
+    
+    // Translated title from '🚨 Ubos na ang Stock!'
     await _plugin.show(
-        2, '🚨 Ubos na ang Stock!', productNames.take(3).join(', '), details);
+        2, '🚨 Out of Stock!', productNames.take(3).join(', '), details);
   }
 
   Future<void> showDailySummary({
@@ -73,10 +78,15 @@ class NotificationService {
         priority: Priority.defaultPriority,
       ),
     );
+    
+    // Pluralization check for English 'transaction/transactions' labels
+    final txLabel = transactions == 1 ? 'transaction' : 'transactions';
+    
+    // Translated title and metrics string content payload
     await _plugin.show(
       3,
-      '📊 Buod ng Benta Ngayon',
-      'Benta: ₱${revenue.toStringAsFixed(2)} | Kita: ₱${profit.toStringAsFixed(2)} | $transactions transaksyon',
+      '📊 Today\'s Sales Summary',
+      'Sales: ₱${revenue.toStringAsFixed(2)} | Profit: ₱${profit.toStringAsFixed(2)} | $transactions $txLabel',
       details,
     );
   }
@@ -88,6 +98,42 @@ class NotificationService {
     } else if (lowStock.isNotEmpty) {
       await showLowStockAlert(lowStock);
     }
+  }
+
+  // ── Balance Reminder — 12 hours before deadline ──────────────
+  Future<void> scheduleDebtReminder({
+    required String customerName,
+    required DateTime dueDate,
+    required double amount,
+  }) async {
+    if (!await isEnabled) return;
+
+    final notifTime = dueDate.subtract(const Duration(hours: 12));
+    if (notifTime.isBefore(DateTime.now())) return;
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'debt_reminder', 'Payment Reminders',
+        channelDescription: 'Reminders for outstanding balances close to their deadline',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    );
+
+    // Unique ID based on customer + due date
+    final id = (customerName + dueDate.toString()).hashCode.abs() % 100000;
+
+    // Translated titles, labels, and contexts from Tagalog structures
+    await _plugin.zonedSchedule(
+      id,
+      '⏰ Payment Reminder',
+      '$customerName has an outstanding balance of ₱${amount.toStringAsFixed(2)} — due tomorrow!',
+      tz.TZDateTime.from(notifTime, tz.local),
+      details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
   }
 
   Future<void> cancelAll() async => _plugin.cancelAll();

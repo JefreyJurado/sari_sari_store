@@ -3,6 +3,9 @@ import '../models/customer.dart';
 import '../models/debt.dart';
 import '../utils/currency_formatter.dart';
 
+// Your app's signature blue color
+const _blue = Color(0xFF1E3A8A);
+
 class CustomerListItem extends StatelessWidget {
   final Customer customer;
   final List<Debt> debts;
@@ -48,13 +51,11 @@ class CustomerListItem extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: hasOverdue
               ? Colors.red.withValues(alpha: 0.12)
-              : const Color(0xFF2E7D32).withValues(alpha: 0.12),
+              : _blue.withValues(alpha: 0.12), // Swapped green for blue
           child: Text(
             customer.name[0].toUpperCase(),
             style: TextStyle(
-              color: hasOverdue
-                  ? Colors.red
-                  : const Color(0xFF2E7D32),
+              color: hasOverdue ? Colors.red : _blue, // Swapped green for blue
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -80,7 +81,7 @@ class CustomerListItem extends StatelessWidget {
             ),
         ]),
         subtitle: Text(
-            customer.phone ?? 'Walang numero',
+            customer.phone ?? 'No phone number', // Translated from 'Walang numero'
             style: TextStyle(
                 color: Colors.grey[500], fontSize: 12)),
         trailing: Column(
@@ -92,12 +93,11 @@ class CustomerListItem extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
-                color: totalOwed > 0
-                    ? Colors.red
-                    : const Color(0xFF2E7D32),
+                color: totalOwed > 0 ? Colors.red : _blue, // Swapped green for blue
               ),
             ),
-            Text('${unpaid.length} utang',
+            // Translated from 'utang' to plural-sensitive English text
+            Text(unpaid.length == 1 ? '1 balance' : '${unpaid.length} balances',
                 style: TextStyle(
                     fontSize: 11, color: Colors.grey[500])),
           ],
