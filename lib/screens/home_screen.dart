@@ -14,6 +14,21 @@ import 'lista_screen.dart';
 import 'payment_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+const _brandBlue = Color(0xFF1E3A8A);
+
+class CrossFadePageRoute<T> extends PageRouteBuilder<T> {
+  final Widget child;
+  CrossFadePageRoute({required this.child})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => child,
+          transitionDuration: const Duration(milliseconds: 200),
+          reverseTransitionDuration: const Duration(milliseconds: 150),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        );
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
@@ -38,50 +53,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        titleSpacing: 16,
-        title: const Text('TindaPH',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87)),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.receipt_long_outlined,
-                  color: Colors.black54, size: 22),
-              tooltip: 'Expenses',
-              onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(
-                      builder: (_) => const ExpensesScreen()))),
-          IconButton(
-              icon: const Icon(Icons.backup_outlined,
-                  color: Colors.black54, size: 22),
-              tooltip: 'Backup',
-              onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(
-                      builder: (_) => const BackupScreen()))),
-          IconButton(
-              icon: const Icon(Icons.settings_outlined,
-                  color: Colors.black54, size: 22),
-              tooltip: 'Settings',
-              onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(
-                      builder: (_) => const SettingsScreen()))),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: Colors.grey.shade200),
-        ),
-      ),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: Consumer<AppProvider>(
         builder: (context, prov, _) {
           if (prov.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(_brandBlue),
+                strokeWidth: 3,
+              ),
+            );
           }
 
           final cashSales = prov.sales
@@ -100,277 +84,312 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return RefreshIndicator(
             onRefresh: prov.reload,
+            color: _brandBlue,
+            backgroundColor: Colors.white,
+            edgeOffset: topPadding + 50,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
-                  // ── Greeting ───────────────────────────
-                  Row(children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  
+                  // ── Custom Non-Sticky Header ──
+                  Container(
+                    color: Colors.white,
+                    padding: EdgeInsets.only(
+                      top: topPadding + 12, 
+                      bottom: 16, 
+                      left: 20, 
+                      right: 8,
+                    ),
+                    child: Row(
                       children: [
-                        Text(DateHelper.todayFormatted(),
-                            style: TextStyle(
-                                color: Colors.grey[500], fontSize: 12)),
-                        const SizedBox(height: 2),
-                        Text(
-                          _userName.isEmpty
-                              ? 'Good ${DateHelper.greeting()} 👋'
-                              : 'Good ${DateHelper.greeting()}, $_userName 👋',
-                          style: const TextStyle(
-                              color: Colors.black87,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600),
+                        const Text(
+                          'TindaPH',
+                          style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: _brandBlue),
+                        ),
+                        const Spacer(),
+                        _appBarButton(
+                          icon: Icons.receipt_long_rounded,
+                          tooltip: 'Expenses',
+                          onPressed: () => Navigator.push(context,
+                              CrossFadePageRoute(child: const ExpensesScreen())),
+                        ),
+                        _appBarButton(
+                          icon: Icons.cloud_upload_rounded,
+                          tooltip: 'Backup',
+                          onPressed: () => Navigator.push(context,
+                              CrossFadePageRoute(child: const BackupScreen())),
+                        ),
+                        _appBarButton(
+                          icon: Icons.settings_rounded,
+                          tooltip: 'Settings',
+                          onPressed: () => Navigator.push(context,
+                              CrossFadePageRoute(child: const SettingsScreen())),
                         ),
                       ],
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E3A8A).withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: const Color(0xFF1E3A8A).withValues(alpha: 0.2)),
-                      ),
-                      child: Row(children: [
-                        Icon(Icons.circle,
-                            size: 8,
-                            color: const Color(0xFF1E3A8A).withValues(alpha: 0.6)),
-                        const SizedBox(width: 6),
-                        Text('TindaPH',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: const Color(0xFF1E3A8A).withValues(alpha: 0.8),
-                                fontWeight: FontWeight.w600)),
-                      ]),
-                    ),
-                  ]),
-                  const SizedBox(height: 16),
+                  ),
 
-                  // ── Stats Grid ─────────────────────────
-                  Row(children: [
-                    _statCard(
-                      "Today's Sales",
-                      CurrencyFormatter.format(prov.todayRevenue),
-                      Icons.shopping_bag_outlined,
-                    ),
-                    const SizedBox(width: 10),
-                    _statCard(
-                      "Today's Profit",
-                      CurrencyFormatter.format(prov.todayProfit),
-                      Icons.trending_up_outlined,
-                    ),
-                  ]),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    _statCard(
-                      'Transactions',
-                      prov.todaySales.length.toString(),
-                      Icons.receipt_outlined,
-                    ),
-                    const SizedBox(width: 10),
-                    _statCard(
-                      'Total Credit',
-                      CurrencyFormatter.format(
-                          prov.totalUnpaidDebt),
-                      Icons.account_balance_wallet_outlined,
-                      isAlert: prov.totalUnpaidDebt > 0,
-                    ),
-                  ]),
-                  const SizedBox(height: 20),
-
-                  // ── Quick Actions ──────────────────────
-                  _sectionHeader('Quick Actions'),
-                  const SizedBox(height: 10),
-                  const QuickActionButtons(),
-                  const SizedBox(height: 20),
-
-                  // ── Alerts ─────────────────────────────
-                  if (prov.outOfStock.isNotEmpty ||
-                      prov.lowStock.isNotEmpty) ...[
-                    _sectionHeader('Alerts'),
-                    const SizedBox(height: 8),
-                    if (prov.outOfStock.isNotEmpty)
-                      _alertCard(
-                        'Out of stock',
-                        prov.outOfStock
-                            .map((p) => p.name)
-                            .take(3)
-                            .join(', '),
-                        Colors.red,
-                        Icons.warning_amber_outlined,
-                      ),
-                    if (prov.lowStock.isNotEmpty)
-                      _alertCard(
-                        'Low stock',
-                        prov.lowStock
-                            .map((p) =>
-                                '${p.name} (${p.stock})')
-                            .take(3)
-                            .join(', '),
-                        Colors.orange,
-                        Icons.info_outline,
-                      ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // ── Credit List ────────────────────────
-                  Row(children: [
-                    _sectionHeader('Credit'),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  const ListaScreen())),
-                      child: Text('View all',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500)),
-                    ),
-                  ]),
-                  const SizedBox(height: 10),
-
-                  if (customersWithDebt.isEmpty)
-                    _emptyCard(
-                        prov.customers.isEmpty
-                            ? 'No customers yet.'
-                            : 'No outstanding credit.',
-                        prov.customers.isEmpty
-                            ? Icons.people_outline
-                            : Icons.check_circle_outline)
-                  else
-                    ...customersWithDebt.take(5).map((c) {
-                      final unpaidDebts = prov
-                          .debtsFor(c.id)
-                          .where(
-                              (d) => d.status != DebtStatus.paid)
-                          .toList();
-                      final totalOwed = unpaidDebts.fold(
-                          0.0, (s, d) => s + d.remaining);
-                      final hasOverdue =
-                          unpaidDebts.any((d) => d.isOverdue);
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius:
-                              BorderRadius.circular(10),
-                          border: Border.all(
-                              color: hasOverdue
-                                  ? Colors.red.shade200
-                                  : Colors.grey.shade200),
-                        ),
-                        child: ListTile(
-                          onTap: () => _showDebtDetails(
-                              context, c, unpaidDebts, prov),
-                          contentPadding:
-                              const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 4),
-                          leading: CircleAvatar(
-                            radius: 18,
-                            backgroundColor: hasOverdue
-                                ? Colors.red.shade50
-                                : Colors.grey.shade100,
-                            child: Text(
-                              c.name[0].toUpperCase(),
-                              style: TextStyle(
-                                color: hasOverdue
-                                    ? Colors.red
-                                    : Colors.black54,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          title: Row(children: [
-                            Expanded(
-                              child: Text(c.name,
+                  // ── Main Content Area ─────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        
+                        // ── Greeting Banner ──
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  DateHelper.todayFormatted().toUpperCase(),
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                      color: Colors.black87)),
+                                      color: Colors.blueGrey,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.8),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _userName.isEmpty
+                                      ? 'Good ${DateHelper.greeting()}'
+                                      : 'Good ${DateHelper.greeting()}, $_userName',
+                                  style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.5),
+                                ),
+                              ],
                             ),
-                            if (hasOverdue)
-                              Container(
-                                padding:
-                                    const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2),
-                                decoration: BoxDecoration(
-                                    color: Colors.red.shade50,
-                                    borderRadius:
-                                        BorderRadius.circular(4),
-                                    border: Border.all(
-                                        color:
-                                            Colors.red.shade200)),
-                                child: Text('Overdue',
-                                    style: TextStyle(
-                                        color: Colors.red.shade400,
-                                        fontSize: 9,
-                                        fontWeight:
-                                            FontWeight.w600)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(30),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  )
+                                ],
+                                border: Border.all(color: Colors.grey.shade200),
                               ),
-                          ]),
-                          subtitle: Text(
-                              '${unpaidDebts.length} unpaid',
-                              style: TextStyle(
-                                  color: Colors.grey[500],
-                                  fontSize: 12)),
-                          trailing: Text(
-                            CurrencyFormatter.format(totalOwed),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                                fontSize: 14),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.storefront_rounded, size: 14, color: _brandBlue),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Live Store',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black87,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // ── Stats Dashboard ───────────────────
+                        Row(children: [
+                          _statCard(
+                            "Today's Sales",
+                            CurrencyFormatter.format(prov.todayRevenue),
+                            Icons.analytics_rounded,
+                            gradient: const LinearGradient(
+                              colors: [_brandBlue, Color(0xFF2563EB)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            isDark: true,
                           ),
-                        ),
-                      );
-                    }),
+                          const SizedBox(width: 12),
+                          _statCard(
+                            "Today's Profit",
+                            CurrencyFormatter.format(prov.todayProfit),
+                            Icons.trending_up_rounded,
+                            iconColor: Colors.green.shade600,
+                          ),
+                        ]),
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          _statCard(
+                            'Transactions',
+                            prov.todaySales.length.toString(),
+                            Icons.receipt_rounded,
+                            iconColor: _brandBlue,
+                          ),
+                          const SizedBox(width: 12),
+                          _statCard(
+                            'Total Credit',
+                            CurrencyFormatter.format(prov.totalUnpaidDebt),
+                            Icons.account_balance_wallet_rounded,
+                            isAlert: prov.totalUnpaidDebt > 0,
+                          ),
+                        ]),
+                        const SizedBox(height: 28),
 
-                  if (customersWithDebt.length > 5)
-                    GestureDetector(
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  const ListaScreen())),
-                      child: Padding(
-                        padding:
-                            const EdgeInsets.only(top: 4, bottom: 8),
-                        child: Text(
-                          '+ ${customersWithDebt.length - 5} more',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500),
+                        // ── Quick Actions ──────────────────────
+                        _sectionHeader(title: 'Quick Actions'),
+                        const SizedBox(height: 12),
+                        const QuickActionButtons(),
+                        const SizedBox(height: 28),
+
+                        // ── Alerts ─────────────────────────────
+                        if (prov.outOfStock.isNotEmpty || prov.lowStock.isNotEmpty) ...[
+                          _sectionHeader(title: 'Critical Alerts'),
+                          const SizedBox(height: 12),
+                          if (prov.outOfStock.isNotEmpty)
+                            _alertCard(
+                              'Out of Stock',
+                              prov.outOfStock.map((p) => p.name).take(3).join(', '),
+                              Colors.red.shade600,
+                              Icons.cancel_rounded,
+                            ),
+                          if (prov.lowStock.isNotEmpty)
+                            _alertCard(
+                              'Low Stock Warning',
+                              prov.lowStock.map((p) => '${p.name} (${p.stock})').take(3).join(', '),
+                              Colors.amber.shade700,
+                              Icons.error_rounded,
+                            ),
+                          const SizedBox(height: 24),
+                        ],
+
+                        // ── Credit List ────────────────────────
+                        _sectionHeader(
+                          title: 'Credit Accounts',
+                          trailingText: 'View Register',
+                          onTrailingTap: () => Navigator.push(
+                              context, CrossFadePageRoute(child: const ListaScreen())),
                         ),
-                      ),
+                        const SizedBox(height: 12),
+
+                        if (customersWithDebt.isEmpty)
+                          _emptyCard(
+                              prov.customers.isEmpty ? 'No registered customer database found.' : 'All customer accounts fully settled.',
+                              prov.customers.isEmpty ? Icons.people_outline_rounded : Icons.verified_rounded)
+                        else
+                          ...customersWithDebt.take(5).map((c) {
+                            final unpaidDebts = prov
+                                .debtsFor(c.id)
+                                .where((d) => d.status != DebtStatus.paid)
+                                .toList();
+                            final totalOwed = unpaidDebts.fold(0.0, (s, d) => s + d.remaining);
+                            final hasOverdue = unpaidDebts.any((d) => d.isOverdue);
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.02),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  )
+                                ],
+                                border: Border.all(
+                                    color: hasOverdue ? Colors.red.shade100 : Colors.grey.shade200),
+                              ),
+                              child: ListTile(
+                                onTap: () => _showDebtDetails(context, c, unpaidDebts, prov),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                leading: CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: hasOverdue ? Colors.red.shade50 : const Color(0xFFF1F5F9),
+                                  child: Text(
+                                    c.name[0].toUpperCase(),
+                                    style: TextStyle(
+                                      color: hasOverdue ? Colors.red.shade700 : _brandBlue,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(c.name,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 15,
+                                              color: Colors.black87)),
+                                    ),
+                                    if (hasOverdue)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                            color: Colors.red.shade50,
+                                            borderRadius: BorderRadius.circular(30),
+                                            border: Border.all(color: Colors.red.shade100)),
+                                        child: Text('OVERDUE',
+                                            style: TextStyle(
+                                                color: Colors.red.shade700,
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: 0.3)),
+                                      ),
+                                  ],
+                                ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    '${unpaidDebts.length} outstanding receipt${unpaidDebts.length > 1 ? 's' : ''}',
+                                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                  ),
+                                ),
+                                trailing: Text(
+                                  CurrencyFormatter.format(totalOwed),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: hasOverdue ? Colors.red.shade700 : Colors.black87,
+                                      fontSize: 15),
+                                ),
+                              ),
+                            );
+                          }),
+
+                        if (customersWithDebt.length > 5)
+                          Center(
+                            child: TextButton.icon(
+                              onPressed: () => Navigator.push(
+                                  context, CrossFadePageRoute(child: const ListaScreen())),
+                              icon: const Icon(Icons.add_rounded, size: 16, color: _brandBlue),
+                              label: Text(
+                                'See ${customersWithDebt.length - 5} more accounts',
+                                style: const TextStyle(
+                                    fontSize: 13, color: _brandBlue, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+
+                        const SizedBox(height: 24),
+
+                        // ── Recent Sales ───────────────────────
+                        _sectionHeader(title: 'Recent Activity Log'),
+                        const SizedBox(height: 12),
+
+                        if (cashSales.isEmpty)
+                          _emptyCard('No finalized counter sales recorded today.', Icons.receipt_long_rounded)
+                        else
+                          ...cashSales.take(10).map((s) => _SaleTile(sale: s)),
+                      ],
                     ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Recent Sales ───────────────────────
-                  _sectionHeader('Recent Sales'),
-                  const SizedBox(height: 10),
-
-                  if (cashSales.isEmpty)
-                    _emptyCard('No sales yet today.',
-                        Icons.receipt_long_outlined)
-                  else
-                    ...cashSales
-                        .take(10)
-                        .map((s) => _SaleTile(sale: s)),
-
-                  const SizedBox(height: 20),
+                  ),
                 ],
               ),
             ),
@@ -380,112 +399,152 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-Widget _statCard(String label, String value, IconData icon,
-      {bool isAlert = false}) =>
-      Expanded(
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-                color: isAlert
-                    ? Colors.red.shade100
-                    : const Color(0xFF1E3A8A).withValues(alpha: 0.15)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Icon(icon,
-                    color: isAlert
-                        ? Colors.red.shade300
-                        : const Color(0xFF1E3A8A).withValues(alpha: 0.5),
-                    size: 16),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(label,
-                      style: TextStyle(
-                          color: Colors.grey[500], fontSize: 11),
-                      overflow: TextOverflow.ellipsis),
-                ),
-              ]),
-              const SizedBox(height: 8),
-              Text(value,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: isAlert
-                          ? Colors.red.shade400
-                          : Colors.black87),
-                  overflow: TextOverflow.ellipsis),
-            ],
-          ),
-        ),
-      );
+  Widget _appBarButton({required IconData icon, required String tooltip, required VoidCallback onPressed}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.blueGrey.shade700, size: 20),
+        tooltip: tooltip,
+        onPressed: onPressed,
+      ),
+    );
+  }
 
-  Widget _sectionHeader(String title) => Text(title,
-      style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87));
+  Widget _statCard(String label, String value, IconData icon,
+      {bool isAlert = false, LinearGradient? gradient, bool isDark = false, Color? iconColor}) {
+    final Color textColor = isDark ? Colors.white : (isAlert ? Colors.red.shade700 : Colors.black87);
+    final Color subtitleColor = isDark ? Colors.white.withValues(alpha: 0.7) : Colors.grey.shade500;
+
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          color: isDark ? null : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+          border: isDark
+              ? null
+              : Border.all(color: isAlert ? Colors.red.shade100 : Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(label,
+                    style: TextStyle(color: subtitleColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                Icon(
+                  icon,
+                  color: isDark 
+                      ? Colors.white.withValues(alpha: 0.6) 
+                      : (isAlert ? Colors.red.shade400 : (iconColor ?? _brandBlue.withValues(alpha: 0.5))),
+                  size: 18,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  letterSpacing: -0.5,
+                  color: textColor),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionHeader({required String title, String? trailingText, VoidCallback? onTrailingTap}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.black87),
+        ),
+        if (trailingText != null && onTrailingTap != null)
+          GestureDetector(
+            onTap: onTrailingTap,
+            child: Text(
+              trailingText,
+              style: const TextStyle(fontSize: 13, color: _brandBlue, fontWeight: FontWeight.w700),
+            ),
+          ),
+      ],
+    );
+  }
 
   Widget _emptyCard(String msg, IconData icon) => Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(10),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.grey.shade200),
         ),
-        child: Row(children: [
-          Icon(icon, color: Colors.grey[400], size: 18),
-          const SizedBox(width: 10),
-          Text(msg,
-              style: TextStyle(
-                  color: Colors.grey[500], fontSize: 13)),
-        ]),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.grey.shade300, size: 28),
+            const SizedBox(height: 8),
+            Text(msg,
+                style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500),
+                textAlign: TextAlign.center),
+          ],
+        ),
       );
 
-  Widget _alertCard(
-          String title, String msg, Color color, IconData icon) =>
-      Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(
-            horizontal: 12, vertical: 10),
+  Widget _alertCard(String title, String msg, Color color, IconData icon) => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: color.withValues(alpha: 0.2), width: 1),
+          color: color.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.15), width: 1),
         ),
-        child: Row(children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              Text(title,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: color,
-                      fontSize: 13)),
-              Text(msg,
-                  style: TextStyle(
-                      color: color.withValues(alpha: 0.8),
-                      fontSize: 12)),
-            ]),
-          ),
-        ]),
+                  Text(title,
+                      style: TextStyle(fontWeight: FontWeight.w800, color: color, fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text(msg,
+                      style: TextStyle(
+                          color: color.withValues(alpha: 0.8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+          ],
+        ),
       );
 
-  void _showDebtDetails(BuildContext context, customer,
-      List<Debt> debts, AppProvider prov) {
+  void _showDebtDetails(BuildContext context, customer, List<Debt> debts, AppProvider prov) {
     final Map<String, Sale?> saleCache = {};
     for (final d in debts) {
-      final sale =
-          prov.sales.where((s) => s.id == d.saleId).firstOrNull;
+      final sale = prov.sales.where((s) => s.id == d.saleId).firstOrNull;
       saleCache[d.id] = sale;
     }
     final totalOwed = debts.fold(0.0, (s, d) => s + d.remaining);
@@ -495,240 +554,193 @@ Widget _statCard(String label, String value, IconData icon,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(16))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.85,
+        maxChildSize: 0.95,
         builder: (_, ctrl) => Column(children: [
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            width: 36, height: 4,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            width: 40, height: 5,
             decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2)),
+                color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
           ),
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(children: [
               CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey.shade100,
+                radius: 22,
+                backgroundColor: const Color(0xFFF1F5F9),
                 child: Text(customer.name[0].toUpperCase(),
-                    style: const TextStyle(
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w600)),
+                    style: const TextStyle(color: _brandBlue, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 12),
               Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                Text(customer.name,
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87)),
-                if (customer.phone != null)
-                  Text(customer.phone,
-                      style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 12)),
-              ]),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(customer.name,
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.black87)),
+                  if (customer.phone != null)
+                    Text(customer.phone,
+                        style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
+                ],
+              ),
               const Spacer(),
               Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.end,
-                  children: [
-                Text(CurrencyFormatter.format(totalOwed),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.black87)),
-                Text('total credit',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[500])),
-              ]),
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(CurrencyFormatter.format(totalOwed),
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Colors.red.shade700)),
+                  const Text('total credit',
+                      style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                ],
+              ),
             ]),
           ),
           const SizedBox(height: 8),
-          Divider(color: Colors.grey.shade200),
+          Divider(color: Colors.grey.shade200, height: 1),
           Expanded(
             child: ListView(
               controller: ctrl,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               children: debts.map((d) {
                 final sale = saleCache[d.id];
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(14),
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: d.isOverdue
-                            ? Colors.red.shade200
-                            : Colors.grey.shade200),
+                        color: d.isOverdue ? Colors.red.shade200 : Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.01),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
                   ),
                   child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                    Row(children: [
-                      Text(
-                        DateHelper.formatDate(d.createdAt),
-                        style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 12),
-                      ),
-                      const Spacer(),
-                      if (d.isOverdue)
-                        Container(
-                          padding:
-                              const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2),
-                          decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              borderRadius:
-                                  BorderRadius.circular(4),
-                              border: Border.all(
-                                  color:
-                                      Colors.red.shade200)),
-                          child: Text('Overdue',
-                              style: TextStyle(
-                                  color:
-                                      Colors.red.shade400,
-                                  fontSize: 10,
-                                  fontWeight:
-                                      FontWeight.w600)),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const Icon(Icons.calendar_today_rounded, size: 12, color: Colors.grey),
+                        const SizedBox(width: 6),
+                        Text(
+                          DateHelper.formatDate(d.createdAt),
+                          style: const TextStyle(color: Colors.blueGrey, fontSize: 12, fontWeight: FontWeight.w600),
                         ),
-                    ]),
-                    if (sale != null &&
-                        sale.items.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      ...sale.items.map((item) => Padding(
-                            padding: const EdgeInsets.only(
-                                bottom: 8),
-                            child: Row(children: [
-                              Expanded(
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment
-                                            .start,
+                        const Spacer(),
+                        if (d.isOverdue)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(color: Colors.red.shade100)),
+                            child: Text('OVERDUE',
+                                style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.3)),
+                          ),
+                      ]),
+                      if (sale != null && sale.items.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        ...sale.items.map((item) => Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Row(children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                  Text(item.productName,
-                                      style: const TextStyle(
-                                          fontWeight:
-                                              FontWeight.w600,
-                                          fontSize: 13,
-                                          color: Colors
-                                              .black87)),
-                                  Text(
-                                      '${CurrencyFormatter.format(item.price)} × ${item.quantity}',
-                                      style: TextStyle(
-                                          color: Colors
-                                              .grey[500],
-                                          fontSize: 12)),
-                                ]),
-                              ),
-                              Text(
-                                CurrencyFormatter.format(
-                                    item.subtotal),
+                                      Text(item.productName,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14,
+                                              color: Colors.black87)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                          '${CurrencyFormatter.format(item.price)} × ${item.quantity}',
+                                          style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500)),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  CurrencyFormatter.format(item.subtotal),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: Colors.black87),
+                                ),
+                              ]),
+                            )),
+                        Divider(height: 20, color: Colors.grey.shade200),
+                      ],
+                      if (d.paidAmount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(children: [
+                            const Text('Partial Payments Made:',
+                                style: TextStyle(color: Colors.blueGrey, fontSize: 13, fontWeight: FontWeight.w500)),
+                            const Spacer(),
+                            Text(CurrencyFormatter.format(d.paidAmount),
                                 style: const TextStyle(
-                                    fontWeight:
-                                        FontWeight.w600,
-                                    fontSize: 13,
-                                    color: Colors.black87),
-                              ),
-                            ]),
-                          )),
-                      Divider(
-                          height: 12,
-                          color: Colors.grey.shade200),
-                    ],
-                    if (d.paidAmount > 0)
-                      Padding(
-                        padding:
-                            const EdgeInsets.only(bottom: 6),
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13)),
+                          ]),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: Row(children: [
-                          Text('Paid:',
+                          const Text('Net Due Balance',
                               style: TextStyle(
-                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
                                   fontSize: 13)),
                           const Spacer(),
                           Text(
-                              CurrencyFormatter.format(
-                                  d.paidAmount),
-                              style: const TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13)),
+                            CurrencyFormatter.format(d.remaining),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                                color: Colors.black87),
+                          ),
                         ]),
                       ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius:
-                            BorderRadius.circular(8),
-                        border: Border.all(
-                            color: Colors.grey.shade200),
-                      ),
-                      child: Row(children: [
-                        Text('Remaining',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey[700],
-                                fontSize: 13)),
-                        const Spacer(),
-                        Text(
-                          CurrencyFormatter.format(
-                              d.remaining),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: Colors.black87),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              CrossFadePageRoute(
+                                  child: PaymentScreen(debt: d, customer: customer)),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _brandBlue,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Accept Settlement Payment',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                         ),
-                      ]),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) =>
-                                    PaymentScreen(
-                                        debt: d,
-                                        customer:
-                                            customer)),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black87,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding:
-                              const EdgeInsets.symmetric(
-                                  vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(8)),
-                        ),
-                        child: const Text('Accept Payment',
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600)),
                       ),
-                    ),
-                  ]),
+                    ],
+                  ),
                 );
               }).toList(),
             ),
@@ -739,7 +751,6 @@ Widget _statCard(String label, String value, IconData icon,
   }
 }
 
-// ── Sale Tile ─────────────────────────────────────────────────
 class _SaleTile extends StatelessWidget {
   final Sale sale;
   const _SaleTile({required this.sale});
@@ -749,55 +760,56 @@ class _SaleTile extends StatelessWidget {
     final isOnline = sale.notes?.contains('Online') ?? false;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.01),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          )
+        ],
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: ListTile(
         onTap: () => _showSaleDetails(context, sale),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         leading: Container(
-          width: 36, height: 36,
+          width: 40, height: 40,
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
+            color: isOnline ? const Color(0xFFEFF6FF) : const Color(0xFFECFDF5),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
-              isOnline
-                  ? Icons.phone_android_outlined
-                  : Icons.payments_outlined,
-              size: 18,
-              color: Colors.black54),
+              isOnline ? Icons.phone_android_rounded : Icons.payments_rounded,
+              size: 20,
+              color: isOnline ? Colors.blue[700] : Colors.green[700]),
         ),
-        title: Row(children: [
-          Expanded(
-            child: Text(
-              isOnline ? 'Online Payment' : 'Cash Sale',
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: Colors.black87),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              isOnline ? 'Online Transfer' : 'Counter Cash Sale',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black87),
             ),
+            Text(
+              DateHelper.formatTime(sale.createdAt),
+              style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            '${sale.items.length} product item${sale.items.length > 1 ? 's' : ''} • ${DateHelper.formatDate(sale.createdAt)}',
+            style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
           ),
-          Text(
-            DateHelper.formatDate(sale.createdAt),
-            style:
-                TextStyle(fontSize: 11, color: Colors.grey[400]),
-          ),
-        ]),
-        subtitle: Text(
-            '${sale.items.length} item${sale.items.length > 1 ? 's' : ''}  •  ${DateHelper.formatTime(sale.createdAt)}',
-            style:
-                TextStyle(fontSize: 11, color: Colors.grey[500])),
+        ),
         trailing: Text(
           CurrencyFormatter.format(sale.totalAmount),
-          style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-              color: Colors.black87),
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black87),
         ),
       ),
     );
@@ -811,159 +823,129 @@ class _SaleTile extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(16))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.65,
+        maxChildSize: 0.90,
         builder: (_, ctrl) => Column(children: [
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            width: 36, height: 4,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            width: 40, height: 5,
             decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2)),
+                color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
           ),
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(children: [
               Container(
-                width: 40, height: 40,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(10),
+                  color: isOnline ? const Color(0xFFEFF6FF) : const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                    isOnline
-                        ? Icons.phone_android_outlined
-                        : Icons.payments_outlined,
-                    color: Colors.black54,
-                    size: 20),
+                    isOnline ? Icons.phone_android_rounded : Icons.payments_rounded,
+                    color: isOnline ? Colors.blue[700] : Colors.green[700],
+                    size: 22),
               ),
               const SizedBox(width: 12),
               Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                Text(
-                    isOnline
-                        ? 'Online Payment'
-                        : 'Cash Sale',
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87)),
-                Text(
-                    '${DateHelper.formatDate(sale.createdAt)}  •  ${DateHelper.formatTime(sale.createdAt)}',
-                    style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 12)),
-              ]),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(isOnline ? 'Online Transfer Details' : 'Counter Cash Sale',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black87)),
+                  Text(
+                      '${DateHelper.formatDate(sale.createdAt)}  •  ${DateHelper.formatTime(sale.createdAt)}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
+                ],
+              ),
               const Spacer(),
               Text(CurrencyFormatter.format(sale.totalAmount),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.black87)),
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black87)),
             ]),
           ),
-          Divider(
-              height: 16, color: Colors.grey.shade200),
+          const SizedBox(height: 8),
+          Divider(color: Colors.grey.shade200, height: 1),
           Expanded(
             child: ListView(
               controller: ctrl,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               children: [
-                Text('Items',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: Colors.grey[700])),
-                const SizedBox(height: 10),
+                const Text('RECEIPT BREAKDOWN',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.grey, letterSpacing: 0.5)),
+                const SizedBox(height: 14),
                 ...sale.items.map((item) => Padding(
-                      padding:
-                          const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: 12),
                       child: Row(children: [
                         Expanded(
                           child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                            Text(item.productName,
-                                style: const TextStyle(
-                                    fontWeight:
-                                        FontWeight.w600,
-                                    fontSize: 13,
-                                    color: Colors.black87)),
-                            Text(
-                                '${CurrencyFormatter.format(item.price)} × ${item.quantity}',
-                                style: TextStyle(
-                                    color: Colors.grey[500],
-                                    fontSize: 12)),
-                          ]),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.productName,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: Colors.black87)),
+                              const SizedBox(height: 2),
+                              Text('${CurrencyFormatter.format(item.price)} × ${item.quantity}',
+                                  style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500)),
+                            ],
+                          ),
                         ),
                         Text(
-                            CurrencyFormatter.format(
-                                item.subtotal),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                                color: Colors.black87)),
+                          CurrencyFormatter.format(item.subtotal),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: Colors.black87),
+                        ),
                       ]),
                     )),
-                Divider(color: Colors.grey.shade200),
-                const SizedBox(height: 4),
+                Divider(color: Colors.grey.shade200, height: 24),
                 if (sale.cashPaid > sale.totalAmount) ...[
-                  _row('Cash received:',
-                      CurrencyFormatter.format(sale.cashPaid)),
-                  _row('Change:',
-                      CurrencyFormatter.format(sale.change)),
+                  _row('Tendered Cash Amount', CurrencyFormatter.format(sale.cashPaid)),
+                  _row('Change Handed Back', CurrencyFormatter.format(sale.change), highlightValueColor: Colors.green[700]),
+                  const SizedBox(height: 6),
                 ],
-                if (isOnline && sale.notes != null)
-                  _row('Payment:', sale.notes!),
-                const SizedBox(height: 8),
+                if (isOnline && sale.notes != null) ...[
+                  _row('Payment Memo Reference', sale.notes!),
+                  const SizedBox(height: 6),
+                ],
                 Row(children: [
-                  Text('Total',
-                      style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 13)),
+                  const Text('Grand Total',
+                      style: TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.w700)),
                   const Spacer(),
                   Text(
-                      CurrencyFormatter.format(
-                          sale.totalAmount),
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: Colors.black87)),
+                    CurrencyFormatter.format(sale.totalAmount),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        letterSpacing: -0.5,
+                        color: Colors.black87),
+                  ),
                 ]),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  height: 48,
+                  child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                ReceiptScreen(sale: sale)),
+                        CrossFadePageRoute(child: ReceiptScreen(sale: sale)),
                       );
                     },
+                    icon: const Icon(Icons.print_rounded, size: 18),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black87,
+                      backgroundColor: Colors.grey.shade900,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('View Receipt',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600)),
+                    label: const Text('Generate Full Audit Receipt',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -975,18 +957,18 @@ class _SaleTile extends StatelessWidget {
     );
   }
 
-  Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
+  Widget _row(String label, String value, {Color? highlightValueColor}) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
         child: Row(children: [
-          Text(label,
-              style: TextStyle(
-                  color: Colors.grey[600], fontSize: 13)),
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
           const Spacer(),
-          Text(value,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                  color: Colors.black87)),
+          Text(
+            value,
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: highlightValueColor ?? Colors.blueGrey.shade700),
+          ),
         ]),
       );
 }
