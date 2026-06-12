@@ -22,7 +22,12 @@ class BackupService {
     await file.writeAsString(json);
 
     // Translated dialog sheet title text from 'Sari Store Backup'
-    await Share.shareXFiles([XFile(file.path)], text: 'POS System Backup');
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        text: 'POS System Backup',
+      ),
+    );
     return filename;
   }
 

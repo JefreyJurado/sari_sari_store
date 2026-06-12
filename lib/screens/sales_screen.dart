@@ -875,7 +875,7 @@ class _CartSheetState extends State<_CartSheet> {
                   ),
                   const SizedBox(height: 10),
                   Row(children: [
-                    Icon(Icons.info_outline,
+                    const Icon(Icons.info_outline,
                         color: _blue, size: 14),
                     const SizedBox(width: 8),
                     Text(

@@ -64,10 +64,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       final file = File(
           '${dir.path}/receipt_${widget.sale.id.substring(0, 8)}.png');
       await file.writeAsBytes(bytes);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text:
-            'Receipt from $_storeName\n${DateHelper.formatDate(widget.sale.createdAt)}',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: 'Receipt from $_storeName\n${DateHelper.formatDate(widget.sale.createdAt)}',
+        ),
       );
     } catch (e) {
       if (mounted) {
@@ -448,7 +449,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                 _blue.withValues(alpha: 0.2)),
                       ),
                       child: Row(children: [
-                        Text('TOTAL',
+                        const Text('TOTAL',
                             style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -457,7 +458,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         Text(
                           CurrencyFormatter.format(
                               sale.totalAmount),
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 22,
                               color: _blue),

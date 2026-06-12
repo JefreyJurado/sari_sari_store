@@ -24,37 +24,80 @@ class StockAlertScreen extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
-            centerTitle: false,
-            titleSpacing: 16,
-            title: const Text('Stock Alerts',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87)),
+            automaticallyImplyLeading: false,
+            toolbarHeight: 0,
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(49),
-              child: Column(children: [
-                Divider(height: 1, color: Colors.grey.shade200),
-                const TabBar(
+              preferredSize: const Size.fromHeight(1),
+              child: Divider(
+                  height: 1, color: Colors.grey.shade200),
+            ),
+          ),
+          body: SafeArea(
+            child: Column(children: [
+
+              // ── Non-sticky Header ────────────────
+              SizedBox(
+                width: double.infinity,
+                child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    16, 20, 16, 12),
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    const Text('Stock Alerts',
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                            letterSpacing: -0.5)),
+                    const SizedBox(height: 4),
+                    Text('Monitor inventory levels',
+                        style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 13)),
+                  ],
+                ),
+                ),
+              ),
+
+              // ── Tab Bar ──────────────────────────
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                      bottom: BorderSide(
+                          color: Colors.grey.shade200,
+                          width: 1)),
+                ),
+                child: const TabBar(
                   labelColor: _blue,
                   unselectedLabelColor: Colors.grey,
                   indicatorColor: _blue,
                   indicatorWeight: 2,
-                  labelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                  unselectedLabelStyle: TextStyle(fontSize: 12),
+                  labelStyle: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12),
+                  unselectedLabelStyle:
+                      TextStyle(fontSize: 12),
                   tabs: [
                     Tab(text: 'Out of Stock'),
                     Tab(text: 'Low Stock'),
                   ],
                 ),
-              ]),
-            ),
-          ),
-          body: TabBarView(
-            children: [
-              _buildList(context, outOfStock, prov, isOutOfStock: true),
-              _buildList(context, lowStock, prov, isOutOfStock: false),
-            ],
+              ),
+
+              // ── Tab Content ──────────────────────
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildList(context, outOfStock, prov,
+                        isOutOfStock: true),
+                    _buildList(context, lowStock, prov,
+                        isOutOfStock: false),
+                  ],
+                ),
+              ),
+            ]),
           ),
         ),
       );
@@ -154,9 +197,9 @@ class StockAlertScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _blue.withOpacity(0.08),
+                      color: _blue.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: _blue.withOpacity(0.2)),
+                      border: Border.all(color: _blue.withValues(alpha: 0.2)),
                     ),
                     child: const Text('+ Restock',
                         style: TextStyle(

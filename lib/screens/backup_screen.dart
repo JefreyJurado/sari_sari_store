@@ -19,29 +19,27 @@ class _BackupScreenState extends State<BackupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        titleSpacing: 16,
-        title: const Text('Backup & Restore',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87)),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child:
-              Divider(height: 1, color: Colors.grey.shade200),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
 
-            // ── Info Card ──────────────────────────────
+              // ── Non-sticky Header ──────────────────
+              const Text('Backup & Restore',
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      letterSpacing: -0.5)),
+              const SizedBox(height: 4),
+              Text('Keep your data safe',
+                  style: TextStyle(
+                      color: Colors.grey[500], fontSize: 13)),
+              const SizedBox(height: 20),
+
+              // ── Info Card ──────────────────────────
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -58,7 +56,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child:
-                      Icon(Icons.backup_outlined, color: _blue, size: 22),
+                      const Icon(Icons.backup_outlined, color: _blue, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -286,6 +284,7 @@ class _BackupScreenState extends State<BackupScreen> {
             ),
             const SizedBox(height: 20),
           ],
+        ),
         ),
       ),
     );

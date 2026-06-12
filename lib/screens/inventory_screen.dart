@@ -226,7 +226,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               _field(nameCtrl, 'Product name *', Icons.label_outline),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: category,
+                initialValue: category,
                 decoration: InputDecoration(
                   labelText: 'Category',
                   labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
@@ -441,9 +441,11 @@ class _ProductTile extends StatelessWidget {
             itemBuilder: (_) => [
               PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_outlined, size: 16, color: Colors.grey[600]), const SizedBox(width: 8), Text('Edit', style: TextStyle(fontSize: 13, color: Colors.grey[700]))])),
               PopupMenuItem(value: 'stock', child: Row(children: [Icon(Icons.inventory_2_outlined, size: 16, color: Colors.grey[600]), const SizedBox(width: 8), Text('Adjust Stock', style: TextStyle(fontSize: 13, color: Colors.grey[700]))])),
-              PopupMenuItem(value: 'archive', child: Row(children: [const Icon(Icons.archive_outlined, size: 16, color: Colors.red), const SizedBox(width: 8), const Text('Archive', style: TextStyle(fontSize: 13, color: Colors.red))])),
+              const PopupMenuItem(value: 'archive', child: Row(children: [Icon(Icons.archive_outlined, size: 16, color: Colors.red), SizedBox(width: 8), Text('Archive', style: TextStyle(fontSize: 13, color: Colors.red))])),
             ],
-            onSelected: (v) { if (v == 'edit') onEdit(); else if (v == 'stock') onAdjust(); else if (v == 'archive') onArchive(); },
+            onSelected: (v) { if (v == 'edit') {
+              onEdit();
+            } else if (v == 'stock') onAdjust(); else if (v == 'archive') onArchive(); },
           ),
         ]),
       ),

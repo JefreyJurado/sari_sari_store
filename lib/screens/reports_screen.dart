@@ -86,7 +86,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       'May', 'June', 'July', 'August',
       'September', 'October', 'November', 'December'
     ];
-
     switch (_days) {
       case 1:
         return 'Today — ${months[now.month - 1]} ${now.day}, ${now.year}';
@@ -121,378 +120,377 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        titleSpacing: 16,
-        title: const Text('Reports',
-            style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-                letterSpacing: -0.5)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_outlined,
-                color: Colors.black54, size: 22),
-            onPressed: () => _load(force: true),
-            tooltip: 'Refresh',
-          ),
-          const SizedBox(width: 4),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(
-              height: 1, color: Colors.grey.shade200),
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => _load(force: true),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding:
-              const EdgeInsets.fromLTRB(16, 16, 16, 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () => _load(force: true),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
 
-              // ── Subtitle ──────────────────────────────
-              Text(
-                  'Analyze business performance trends',
-                  style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 13)),
-              const SizedBox(height: 16),
-
-              // ── Period Selector ───────────────────────
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: Colors.grey.shade200),
-                ),
-                child: Row(children: [
-                  const Text('Analysis Period',
-                      style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500)),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(8),
-                      border: Border.all(
-                          color: Colors.grey.shade300),
-                    ),
-                    child: DropdownButton<int>(
-                      value: _days,
-                      isDense: true,
-                      underline: const SizedBox(),
-                      style: const TextStyle(
-                          color: _blue,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold),
-                      icon: const Icon(
-                          Icons.keyboard_arrow_down,
-                          color: _blue,
-                          size: 18),
-                      items: const [
-                        DropdownMenuItem(
-                            value: 1,
-                            child: Text('Today')),
-                        DropdownMenuItem(
-                            value: 7,
-                            child: Text('7 Days')),
-                        DropdownMenuItem(
-                            value: 14,
-                            child: Text('14 Days')),
-                        DropdownMenuItem(
-                            value: 30,
-                            child: Text('1 Month')),
-                        DropdownMenuItem(
-                            value: 60,
-                            child: Text('2 Months')),
-                        DropdownMenuItem(
-                            value: 90,
-                            child: Text('3 Months')),
-                        DropdownMenuItem(
-                            value: 365,
-                            child: Text('1 Year')),
-                      ],
-                      onChanged: (v) {
-                        if (v != null) {
-                          setState(() => _days = v);
-                          _load();
-                        }
-                      },
-                    ),
-                  ),
-                ]),
-              ),
-              const SizedBox(height: 12),
-
-              // ── Export PDF Button ─────────────────────
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed:
-                      _report == null || _isPrinting
-                          ? null
-                          : () => _printReport(
-                              context.read<AppProvider>()),
-                  icon: _isPrinting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2))
-                      : const Icon(
-                          Icons.picture_as_pdf_outlined,
-                          size: 16),
-                  label: Text(
-                      _isPrinting
-                          ? 'Generating PDF...'
-                          : 'Export PDF Report',
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _blue,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(10)),
-                    disabledBackgroundColor:
-                        Colors.grey.shade300,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // ── Data ──────────────────────────────────
-              if (_loading && _report == null)
-                const Center(
-                    child: Padding(
-                        padding:
-                            EdgeInsets.only(top: 60),
-                        child:
-                            CircularProgressIndicator()))
-              else if (_report == null)
-                Center(
-                    child: Padding(
-                        padding:
-                            const EdgeInsets.only(top: 60),
-                        child: Text('No data available',
-                            style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 14))))
-              else ...[
-                Row(children: [
-                  _statCard(
-                      'Total Sales',
-                      CurrencyFormatter.format(
-                          _report!.totalRevenue),
-                      Icons.shopping_bag_outlined),
-                  const SizedBox(width: 10),
-                  _statCard(
-                      'Total Profit',
-                      CurrencyFormatter.format(
-                          _report!.totalProfit),
-                      Icons.trending_up_outlined),
-                ]),
-                const SizedBox(height: 10),
-                Row(children: [
-                  _statCard(
-                      'Expenses',
-                      CurrencyFormatter.format(
-                          _report!.totalExpenses),
-                      Icons.receipt_outlined,
-                      isAlert:
-                          _report!.totalExpenses > 0),
-                  const SizedBox(width: 10),
-                  _statCard(
-                      'Net Income',
-                      CurrencyFormatter.format(
-                          _report!.netIncome),
-                      Icons.account_balance_wallet_outlined,
-                      isAlert: _report!.netIncome < 0),
-                ]),
-                const SizedBox(height: 12),
-
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(12),
-                      border: Border.all(
-                          color: Colors.grey.shade200)),
-                  child: Row(children: [
-                    Icon(Icons.assignment_outlined,
-                        color: Colors.grey[400], size: 18),
-                    const SizedBox(width: 10),
-                    Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                      const Text('Transactions Volume',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: Colors.black87)),
-                      Text(
-                          'Processed within $_periodLabel',
-                          style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 11)),
-                    ]),
-                    const Spacer(),
-                    Text('${_report!.transactionCount}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                // ── Non-sticky Header ─────────────────
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Reports',
+                        style: TextStyle(
                             fontSize: 24,
-                            color: Colors.black87)),
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                            letterSpacing: -0.5)),
+                    IconButton(
+                      icon: const Icon(
+                          Icons.refresh_outlined,
+                          color: Colors.black54,
+                          size: 22),
+                      onPressed: () => _load(force: true),
+                      tooltip: 'Refresh',
+                    ),
+                  ],
+                ),
+                Text(
+                    'Analyze business performance trends',
+                    style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 13)),
+                const SizedBox(height: 16),
+
+                // ── Period Selector ───────────────────
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.grey.shade200),
+                  ),
+                  child: Row(children: [
+                    const Text('Analysis Period',
+                        style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500)),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius:
+                            BorderRadius.circular(8),
+                        border: Border.all(
+                            color: Colors.grey.shade300),
+                      ),
+                      child: DropdownButton<int>(
+                        value: _days,
+                        isDense: true,
+                        underline: const SizedBox(),
+                        style: const TextStyle(
+                            color: _blue,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold),
+                        icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: _blue,
+                            size: 18),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 1,
+                              child: Text('Today')),
+                          DropdownMenuItem(
+                              value: 7,
+                              child: Text('7 Days')),
+                          DropdownMenuItem(
+                              value: 14,
+                              child: Text('14 Days')),
+                          DropdownMenuItem(
+                              value: 30,
+                              child: Text('1 Month')),
+                          DropdownMenuItem(
+                              value: 60,
+                              child: Text('2 Months')),
+                          DropdownMenuItem(
+                              value: 90,
+                              child: Text('3 Months')),
+                          DropdownMenuItem(
+                              value: 365,
+                              child: Text('1 Year')),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() => _days = v);
+                            _load();
+                          }
+                        },
+                      ),
+                    ),
                   ]),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
 
-                _sectionHeader(
-                    'Sales Performance Trend'),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(12),
-                      border: Border.all(
-                          color: Colors.grey.shade200)),
-                  child: ProfitChart(
-                      dailyData: _report!.dailyRevenue),
+                // ── Export PDF Button ─────────────────
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        _report == null || _isPrinting
+                            ? null
+                            : () => _printReport(
+                                context.read<AppProvider>()),
+                    icon: _isPrinting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2))
+                        : const Icon(
+                            Icons.picture_as_pdf_outlined,
+                            size: 16),
+                    label: Text(
+                        _isPrinting
+                            ? 'Generating PDF...'
+                            : 'Export PDF Report',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _blue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(10)),
+                      disabledBackgroundColor:
+                          Colors.grey.shade300,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
-                _sectionHeader('Top Selling Products'),
-                const SizedBox(height: 10),
+                // ── Data ──────────────────────────────
+                if (_loading && _report == null)
+                  const Center(
+                      child: Padding(
+                          padding: EdgeInsets.only(top: 60),
+                          child: CircularProgressIndicator()))
+                else if (_report == null)
+                  Center(
+                      child: Padding(
+                          padding: const EdgeInsets.only(
+                              top: 60),
+                          child: Text('No data available',
+                              style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 14))))
+                else ...[
+                  Row(children: [
+                    _statCard(
+                        'Total Sales',
+                        CurrencyFormatter.format(
+                            _report!.totalRevenue),
+                        Icons.shopping_bag_outlined),
+                    const SizedBox(width: 10),
+                    _statCard(
+                        'Total Profit',
+                        CurrencyFormatter.format(
+                            _report!.totalProfit),
+                        Icons.trending_up_outlined),
+                  ]),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    _statCard(
+                        'Expenses',
+                        CurrencyFormatter.format(
+                            _report!.totalExpenses),
+                        Icons.receipt_outlined,
+                        isAlert:
+                            _report!.totalExpenses > 0),
+                    const SizedBox(width: 10),
+                    _statCard(
+                        'Net Income',
+                        CurrencyFormatter.format(
+                            _report!.netIncome),
+                        Icons
+                            .account_balance_wallet_outlined,
+                        isAlert: _report!.netIncome < 0),
+                  ]),
+                  const SizedBox(height: 12),
 
-                if (_report!.topProducts.isEmpty)
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: Colors.white,
                         borderRadius:
                             BorderRadius.circular(12),
                         border: Border.all(
                             color: Colors.grey.shade200)),
-                    child: Center(
-                        child: Text(
-                            'No product metrics yet',
+                    child: Row(children: [
+                      Icon(Icons.assignment_outlined,
+                          color: Colors.grey[400],
+                          size: 18),
+                      const SizedBox(width: 10),
+                      Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                        const Text('Transactions Volume',
                             style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 13))),
-                  )
-                else
-                  ..._report!.topProducts
-                      .asMap()
-                      .entries
-                      .map((e) => Container(
-                            margin: const EdgeInsets.only(
-                                bottom: 8),
-                            padding:
-                                const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius:
-                                    BorderRadius.circular(
-                                        12),
-                                border: Border.all(
-                                    color: Colors
-                                        .grey.shade200)),
-                            child: Row(children: [
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                    color:
-                                        Colors.grey.shade100,
-                                    borderRadius:
-                                        BorderRadius.circular(
-                                            6)),
-                                child: Center(
-                                    child: Text(
-                                        '${e.key + 1}',
-                                        style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: Colors.black87)),
+                        Text(
+                            'Processed within $_periodLabel',
+                            style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 11)),
+                      ]),
+                      const Spacer(),
+                      Text(
+                          '${_report!.transactionCount}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                              color: Colors.black87)),
+                    ]),
+                  ),
+                  const SizedBox(height: 24),
+
+                  _sectionHeader('Sales Performance Trend'),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius:
+                            BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Colors.grey.shade200)),
+                    child: ProfitChart(
+                        dailyData: _report!.dailyRevenue),
+                  ),
+                  const SizedBox(height: 24),
+
+                  _sectionHeader('Top Selling Products'),
+                  const SizedBox(height: 10),
+
+                  if (_report!.topProducts.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius:
+                              BorderRadius.circular(12),
+                          border: Border.all(
+                              color: Colors.grey.shade200)),
+                      child: Center(
+                          child: Text(
+                              'No product metrics yet',
+                              style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 13))),
+                    )
+                  else
+                    ..._report!.topProducts
+                        .asMap()
+                        .entries
+                        .map((e) => Container(
+                              margin: const EdgeInsets.only(
+                                  bottom: 8),
+                              padding:
+                                  const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                          12),
+                                  border: Border.all(
+                                      color: Colors
+                                          .grey.shade200)),
+                              child: Row(children: [
+                                Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                      color: Colors
+                                          .grey.shade100,
+                                      borderRadius:
+                                          BorderRadius
+                                              .circular(6)),
+                                  child: Center(
+                                      child: Text(
+                                          '${e.key + 1}',
+                                          style: TextStyle(
+                                              fontWeight:
+                                                  FontWeight
+                                                      .bold,
+                                              color: Colors
+                                                  .grey[600],
+                                              fontSize:
+                                                  12))),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment
+                                              .start,
+                                      children: [
+                                    Text(
+                                        e.value[
+                                                'productName'] ??
+                                            '',
+                                        style: const TextStyle(
                                             fontWeight:
                                                 FontWeight
-                                                    .bold,
+                                                    .w600,
+                                            fontSize: 13,
                                             color: Colors
-                                                .grey[600],
-                                            fontSize: 12))),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
+                                                .black87)),
+                                    Text(
+                                        '${e.value['totalQty']} units sold',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors
+                                                .grey[500])),
+                                  ]),
+                                ),
+                                Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment
-                                            .start,
+                                            .end,
                                     children: [
                                   Text(
-                                      e.value[
-                                              'productName'] ??
-                                          '',
+                                      CurrencyFormatter
+                                          .format((e.value[
+                                                      'totalRevenue']
+                                                  as num?)
+                                              ?.toDouble() ??
+                                          0),
                                       style: const TextStyle(
                                           fontWeight:
-                                              FontWeight.w600,
+                                              FontWeight.bold,
                                           fontSize: 13,
                                           color:
                                               Colors.black87)),
                                   Text(
-                                      '${e.value['totalQty']} units sold',
+                                      'profit: ${CurrencyFormatter.format((e.value['totalProfit'] as num?)?.toDouble() ?? 0)}',
                                       style: TextStyle(
-                                          fontSize: 11,
+                                          fontSize: 10,
                                           color: Colors
                                               .grey[500])),
                                 ]),
-                              ),
-                              Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.end,
-                                  children: [
-                                Text(
-                                    CurrencyFormatter.format(
-                                        (e.value['totalRevenue']
-                                                    as num?)
-                                                ?.toDouble() ??
-                                            0),
-                                    style: const TextStyle(
-                                        fontWeight:
-                                            FontWeight.bold,
-                                        fontSize: 13,
-                                        color:
-                                            Colors.black87)),
-                                Text(
-                                    'profit: ${CurrencyFormatter.format((e.value['totalProfit'] as num?)?.toDouble() ?? 0)}',
-                                    style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors
-                                            .grey[500])),
                               ]),
-                            ]),
-                          )),
-              ]
-            ],
+                            )),
+                ],
+              ],
+            ),
           ),
         ),
       ),

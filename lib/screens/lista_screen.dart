@@ -98,7 +98,7 @@ class _ListaScreenState extends State<ListaScreen>
                                         color: _blue.withValues(alpha: 0.1)),
                                   ),
                                   child: Row(children: [
-                                    Icon(Icons.people_outline,
+                                    const Icon(Icons.people_outline,
                                         color: _blue, size: 18),
                                     const SizedBox(width: 10),
                                     Text('${unpaidCustomers.length} active balances',

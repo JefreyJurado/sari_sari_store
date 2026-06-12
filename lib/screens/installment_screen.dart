@@ -61,47 +61,92 @@ class _InstallmentScreenState extends State<InstallmentScreen>
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          centerTitle: false,
-          titleSpacing: 16,
-          title: const Text('Installment',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87)),
+          automaticallyImplyLeading: false,
+          toolbarHeight: 0,
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(49),
-            child: Column(children: [
-              Divider(height: 1, color: Colors.grey.shade200),
-              TabBar(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(
+                height: 1, color: Colors.grey.shade200),
+          ),
+        ),
+        body: SafeArea(
+          child: Column(children: [
+
+            // ── Non-sticky Header ──────────────────
+            SizedBox(
+              width: double.infinity,
+              child: Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(16, 20, 16, 12),
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  const Text('Installment',
+                      style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                          letterSpacing: -0.5)),
+                  const SizedBox(height: 4),
+                  Text('Manage payment plans',
+                      style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 13)),
+                ],
+              ),
+              ),
+            ),
+
+            // ── Tab Bar ────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 1)),
+              ),
+              child: TabBar(
                 controller: _tabCtrl,
                 labelColor: _blue,
-                unselectedLabelColor: Colors.grey,
+                unselectedLabelColor: Colors.grey[500],
                 indicatorColor: _blue,
                 indicatorWeight: 2,
                 labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 12),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12),
                 unselectedLabelStyle:
                     const TextStyle(fontSize: 12),
                 tabs: [
-                  Tab(text: 'Ongoing (${_ongoing.length})'),
-                  Tab(text: 'Overdue (${_overdue.length})'),
                   Tab(
-                      text: 'Completed (${_completed.length})'),
+                      text:
+                          'Ongoing (${_ongoing.length})'),
+                  Tab(
+                      text:
+                          'Overdue (${_overdue.length})'),
+                  Tab(
+                      text:
+                          'Completed (${_completed.length})'),
                 ],
               ),
-            ]),
-          ),
+            ),
+
+            // ── Tab Content ────────────────────────
+            Expanded(
+              child: _loading
+                  ? const Center(
+                      child: CircularProgressIndicator())
+                  : TabBarView(
+                      controller: _tabCtrl,
+                      children: [
+                        _buildList(_ongoing, prov),
+                        _buildList(_overdue, prov),
+                        _buildList(_completed, prov),
+                      ],
+                    ),
+            ),
+          ]),
         ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
-                controller: _tabCtrl,
-                children: [
-                  _buildList(_ongoing, prov),
-                  _buildList(_overdue, prov),
-                  _buildList(_completed, prov),
-                ],
-              ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => _showAddForm(prov),
           backgroundColor: _blue,
@@ -207,13 +252,13 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                       borderRadius:
                           BorderRadius.circular(10)),
                   itemBuilder: (_) => [
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: 'delete',
                       child: Row(children: [
-                        const Icon(Icons.delete_outline,
+                        Icon(Icons.delete_outline,
                             size: 16, color: Colors.red),
-                        const SizedBox(width: 8),
-                        const Text('Delete',
+                        SizedBox(width: 8),
+                        Text('Delete',
                             style: TextStyle(
                                 color: Colors.red,
                                 fontSize: 13)),
@@ -221,8 +266,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                     ),
                   ],
                   onSelected: (v) {
-                    if (v == 'delete')
+                    if (v == 'delete') {
                       _confirmDelete(inst);
+                    }
                   },
                 ),
               ]),
@@ -704,7 +750,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                                               CurrencyFormatter
                                                   .format(p
                                                       .sellPrice),
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                   color: _blue,
                                                   fontWeight:
                                                       FontWeight
@@ -877,7 +923,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                           selectedProducts.isEmpty
                               ? 'Select Products'
                               : 'Edit Products',
-                          style: TextStyle(
+                          style: const TextStyle(
                               color: _blue,
                               fontWeight: FontWeight.w600,
                               fontSize: 13),
@@ -932,7 +978,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                     onChanged: (_) => setS(() {})),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<int>(
-                  value: selectedMonths,
+                  initialValue: selectedMonths,
                   decoration: InputDecoration(
                     labelText: 'Number of months',
                     labelStyle: TextStyle(
@@ -991,7 +1037,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                       Text(
                           CurrencyFormatter.format(
                               monthly < 0 ? 0 : monthly),
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
                               color: _blue)),
@@ -1131,7 +1177,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
       Row(children: [
         Container(
           width: 22, height: 22,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
               color: _blue, shape: BoxShape.circle),
           child: Center(
             child: Text(num,
@@ -1241,7 +1287,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
               value: inst.progressPercent,
               backgroundColor:
                   Colors.grey.withValues(alpha: 0.12),
-              valueColor: AlwaysStoppedAnimation(_blue),
+              valueColor: const AlwaysStoppedAnimation(_blue),
               minHeight: 8,
             ),
           ),
@@ -1291,7 +1337,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
             },
             child: Text(
                 'Pay ${CurrencyFormatter.format(inst.monthlyPayment)}',
-                style: TextStyle(
+                style: const TextStyle(
                     color: _blue,
                     fontWeight: FontWeight.w600,
                     fontSize: 13)),

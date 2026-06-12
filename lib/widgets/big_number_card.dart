@@ -41,7 +41,7 @@ class BigNumberCard extends StatelessWidget {
               color: _blue.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(icon, color: _blue, size: 20),
+            child: Icon(icon, color: _blue, size: 20),
           ),
           const SizedBox(height: 10),
           // Main metrics value styled in solid blue

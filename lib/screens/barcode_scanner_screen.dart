@@ -145,7 +145,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
           Container(
             width: 56, height: 56,
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: Colors.green.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.check_circle_outline, color: Colors.green, size: 32),
@@ -162,7 +162,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               boxShadow: [BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 8, offset: const Offset(0, 2),
               )],
             ),
@@ -244,7 +244,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.08),
+              color: Colors.blue.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(children: [
@@ -318,7 +318,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
               Row(children: [
                 Container(
                   width: 36, height: 36,
-                  decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                   child: const Icon(Icons.edit_outlined, color: Colors.orange, size: 20),
                 ),
                 const SizedBox(width: 10),
@@ -328,7 +328,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
               _field(nameCtrl, 'Pangalan ng Produkto *', Icons.label_outlined),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: category,
+                initialValue: category,
                 decoration: InputDecoration(
                   labelText: 'Kategorya',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -414,13 +414,13 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white, borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))],
             ),
             child: Row(children: [
               Container(
                 width: 36, height: 36,
                 decoration: BoxDecoration(
-                  color: r.found ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                  color: r.found ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(r.found ? Icons.check_circle_outline : Icons.add_box_outlined, color: r.found ? Colors.green : Colors.orange, size: 18),
@@ -477,9 +477,9 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2E7D32).withOpacity(0.08),
+                  color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.2)),
+                  border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.2)),
                 ),
                 child: Row(children: [
                   const Icon(Icons.qr_code_outlined, size: 16, color: Color(0xFF2E7D32)),
@@ -491,7 +491,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
               _field(nameCtrl, 'Pangalan ng Produkto *', Icons.label_outlined, autofocus: true),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: category,
+                initialValue: category,
                 decoration: InputDecoration(
                   labelText: 'Kategorya',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -631,10 +631,10 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                   final frameTop = (h - frameSize) / 2 - 40;
 
                   return Stack(children: [
-                    Positioned(top: 0, left: 0, right: 0, height: frameTop, child: Container(color: Colors.black.withOpacity(0.7))),
-                    Positioned(top: frameTop + frameSize, left: 0, right: 0, bottom: 0, child: Container(color: Colors.black.withOpacity(0.7))),
-                    Positioned(top: frameTop, left: 0, width: frameLeft, height: frameSize, child: Container(color: Colors.black.withOpacity(0.7))),
-                    Positioned(top: frameTop, right: 0, width: frameLeft, height: frameSize, child: Container(color: Colors.black.withOpacity(0.7))),
+                    Positioned(top: 0, left: 0, right: 0, height: frameTop, child: Container(color: Colors.black.withValues(alpha: 0.7))),
+                    Positioned(top: frameTop + frameSize, left: 0, right: 0, bottom: 0, child: Container(color: Colors.black.withValues(alpha: 0.7))),
+                    Positioned(top: frameTop, left: 0, width: frameLeft, height: frameSize, child: Container(color: Colors.black.withValues(alpha: 0.7))),
+                    Positioned(top: frameTop, right: 0, width: frameLeft, height: frameSize, child: Container(color: Colors.black.withValues(alpha: 0.7))),
                     Positioned(
                       top: frameTop, left: frameLeft, width: frameSize, height: frameSize,
                       child: Stack(children: [
@@ -662,7 +662,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(2),
                                   gradient: LinearGradient(colors: [
-                                    Colors.transparent, scanColor.withOpacity(0.8), scanColor, scanColor.withOpacity(0.8), Colors.transparent,
+                                    Colors.transparent, scanColor.withValues(alpha: 0.8), scanColor, scanColor.withValues(alpha: 0.8), Colors.transparent,
                                   ], stops: const [0.0, 0.2, 0.5, 0.8, 1.0]),
                                 ),
                               ),
@@ -678,7 +678,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                           Container(
                             margin: const EdgeInsets.symmetric(horizontal: 40),
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), borderRadius: BorderRadius.circular(20)),
+                            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(20)),
                             child: Text(
                               _isScanning ? 'Place barcode inside the frame' : 'Processing...',
                               style: TextStyle(color: _isScanning ? Colors.white : Colors.orange, fontSize: 13, fontWeight: FontWeight.w600),

@@ -1,5 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest.dart' as tzData;
+import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,7 +10,7 @@ class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
-    tzData.initializeTimeZones();
+    tz_data.initializeTimeZones();
     try {
       tz.setLocalLocation(tz.getLocation('Asia/Manila'));
     } catch (_) {}

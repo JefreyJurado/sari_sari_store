@@ -80,7 +80,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   radius: 22,
                   child: Text(
                     widget.customer.name[0].toUpperCase(),
-                    style: TextStyle(
+                    style: const TextStyle(
                         color: _blue,
                         fontWeight: FontWeight.bold,
                         fontSize: 16),
@@ -191,7 +191,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     _amountCtrl.text = widget.debt.remaining
                         .toStringAsFixed(2);
                   }),
-                  child: Text('FULL\nPAY',
+                  child: const Text('FULL\nPAY',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           fontSize: 10,
@@ -222,7 +222,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(width: 8),
                   Text(
                     'Remaining after payment: ${CurrencyFormatter.format(widget.debt.remaining - _amount)}',
-                    style: TextStyle(
+                    style: const TextStyle(
                         color: _blue,
                         fontWeight: FontWeight.w500,
                         fontSize: 13),

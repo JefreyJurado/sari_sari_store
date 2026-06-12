@@ -43,7 +43,7 @@ class PdfReportService {
     required ReportData report,
   }) async {
     final pdf = pw.Document();
-    final pageFormat = PdfPageFormat.legal;
+    const pageFormat = PdfPageFormat.legal;
 
     final fontData = await rootBundle
         .load('assets/fonts/Poppins-Regular.ttf');
@@ -108,9 +108,9 @@ class PdfReportService {
     return pw.Column(children: [
       pw.Container(
         padding: const pw.EdgeInsets.all(14),
-        decoration: pw.BoxDecoration(
+        decoration: const pw.BoxDecoration(
           color: _blue,
-          borderRadius: const pw.BorderRadius.all(
+          borderRadius: pw.BorderRadius.all(
               pw.Radius.circular(6)),
         ),
         child: pw.Row(
@@ -387,9 +387,9 @@ class PdfReportService {
           pw.Container(
             padding: const pw.EdgeInsets.symmetric(
                 horizontal: 10, vertical: 6),
-            decoration: pw.BoxDecoration(
+            decoration: const pw.BoxDecoration(
               color: _blue,
-              borderRadius: const pw.BorderRadius.only(
+              borderRadius: pw.BorderRadius.only(
                 topLeft: pw.Radius.circular(6),
                 topRight: pw.Radius.circular(6),
               ),
@@ -444,7 +444,7 @@ class PdfReportService {
                 color: isEven
                     ? PdfColors.white
                     : _lightGrey,
-                border: pw.Border(
+                border: const pw.Border(
                     bottom: pw.BorderSide(
                         color: _border, width: 0.5)),
               ),
@@ -585,9 +585,9 @@ class PdfReportService {
           pw.Container(
             padding: const pw.EdgeInsets.symmetric(
                 horizontal: 10, vertical: 6),
-            decoration: pw.BoxDecoration(
+            decoration: const pw.BoxDecoration(
               color: _blue,
-              borderRadius: const pw.BorderRadius.only(
+              borderRadius: pw.BorderRadius.only(
                 topLeft: pw.Radius.circular(6),
                 topRight: pw.Radius.circular(6),
               ),
@@ -635,7 +635,7 @@ class PdfReportService {
                 color: isEven
                     ? PdfColors.white
                     : _lightGrey,
-                border: pw.Border(
+                border: const pw.Border(
                     bottom: pw.BorderSide(
                         color: _border, width: 0.5)),
               ),
@@ -704,11 +704,11 @@ class PdfReportService {
           pw.Container(
             padding: const pw.EdgeInsets.all(10),
             decoration: pw.BoxDecoration(
-              color: PdfColor.fromInt(0xFFFEF2F2),
+              color: const PdfColor.fromInt(0xFFFEF2F2),
               borderRadius: const pw.BorderRadius.all(
                   pw.Radius.circular(6)),
               border: pw.Border.all(
-                  color: PdfColor.fromInt(0xFFFECACA),
+                  color: const PdfColor.fromInt(0xFFFECACA),
                   width: 0.5),
             ),
             child: pw.Row(children: [
@@ -729,9 +729,9 @@ class PdfReportService {
           pw.Container(
             padding: const pw.EdgeInsets.symmetric(
                 horizontal: 10, vertical: 6),
-            decoration: pw.BoxDecoration(
+            decoration: const pw.BoxDecoration(
               color: _blue,
-              borderRadius: const pw.BorderRadius.only(
+              borderRadius: pw.BorderRadius.only(
                 topLeft: pw.Radius.circular(6),
                 topRight: pw.Radius.circular(6),
               ),
@@ -796,11 +796,11 @@ class PdfReportService {
                   horizontal: 10, vertical: 5),
               decoration: pw.BoxDecoration(
                 color: isOverdue
-                    ? PdfColor.fromInt(0xFFFFF5F5)
+                    ? const PdfColor.fromInt(0xFFFFF5F5)
                     : (isEven
                         ? PdfColors.white
                         : _lightGrey),
-                border: pw.Border(
+                border: const pw.Border(
                     bottom: pw.BorderSide(
                         color: _border, width: 0.5)),
               ),
@@ -896,9 +896,9 @@ class PdfReportService {
         pw.Container(
           padding: const pw.EdgeInsets.symmetric(
               horizontal: 10, vertical: 6),
-          decoration: pw.BoxDecoration(
+          decoration: const pw.BoxDecoration(
             color: _blue,
-            borderRadius: const pw.BorderRadius.only(
+            borderRadius: pw.BorderRadius.only(
               topLeft: pw.Radius.circular(6),
               topRight: pw.Radius.circular(6),
             ),
@@ -938,7 +938,7 @@ class PdfReportService {
             decoration: pw.BoxDecoration(
               color:
                   isEven ? PdfColors.white : _lightGrey,
-              border: pw.Border(
+              border: const pw.Border(
                   bottom: pw.BorderSide(
                       color: _border, width: 0.5)),
             ),
@@ -976,9 +976,9 @@ class PdfReportService {
         pw.Container(
           padding: const pw.EdgeInsets.symmetric(
               horizontal: 10, vertical: 8),
-          decoration: pw.BoxDecoration(
+          decoration: const pw.BoxDecoration(
             color: _blue,
-            borderRadius: const pw.BorderRadius.only(
+            borderRadius: pw.BorderRadius.only(
               bottomLeft: pw.Radius.circular(6),
               bottomRight: pw.Radius.circular(6),
             ),

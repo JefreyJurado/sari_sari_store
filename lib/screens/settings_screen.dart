@@ -61,10 +61,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Settings saved!'),
-              backgroundColor: Colors.green));
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                vertical: 32, horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64, height: 64,
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.check_rounded,
+                      color: Colors.green.shade600,
+                      size: 36),
+                ),
+                const SizedBox(height: 16),
+                const Text('Settings Saved!',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87)),
+                const SizedBox(height: 8),
+                Text(
+                    'Your changes have been saved successfully.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 13)),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () =>
+                        Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _blue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding:
+                          const EdgeInsets.symmetric(
+                              vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Done',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight:
+                                FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
   }
 
@@ -402,14 +463,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final appPin = prefs.getString('app_pin');
     final notifications = prefs.getBool('notifications');
     await prefs.clear();
-    if (storeName != null)
+    if (storeName != null) {
       await prefs.setString('store_name', storeName);
-    if (pinEnabled != null)
+    }
+    if (pinEnabled != null) {
       await prefs.setBool('pin_enabled', pinEnabled);
-    if (appPin != null)
+    }
+    if (appPin != null) {
       await prefs.setString('app_pin', appPin);
-    if (notifications != null)
+    }
+    if (notifications != null) {
       await prefs.setBool('notifications', notifications);
+    }
   }
 
   Widget _checkItem(String title, String subtitle,
@@ -486,27 +551,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        titleSpacing: 16,
-        title: const Text('Settings',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87)),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(
-              height: 1, color: Colors.grey.shade200),
-        ),
-      ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
+          : SafeArea(
+              child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
               children: [
+
+                // ── Non-sticky Header ────────────────────
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Settings',
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                            letterSpacing: -0.5)),
+                    Icon(Icons.settings_outlined,
+                        color: Colors.grey[400], size: 22),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text('Configure your store',
+                    style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 13)),
+                const SizedBox(height: 20),
 
                 // ── Store info card ──────────────────────
                 Container(
@@ -525,7 +597,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         borderRadius:
                             BorderRadius.circular(10),
                       ),
-                      child: Icon(Icons.store_outlined,
+                      child: const Icon(Icons.store_outlined,
                           color: _blue, size: 22),
                     ),
                     const SizedBox(width: 12),
@@ -562,10 +634,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               color: _blue
                                   .withValues(alpha: 0.2)),
                         ),
-                        child: Row(children: [
+                        child: const Row(children: [
                           Icon(Icons.lock_outline,
                               color: _blue, size: 12),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Text('PIN',
                               style: TextStyle(
                                   color: _blue,
@@ -635,12 +707,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
                     children: [
-                      Row(children: [
+                      const Row(children: [
                         Icon(
                             Icons.account_balance_outlined,
                             color: _blue, size: 16),
-                        const SizedBox(width: 8),
-                        const Text('Initial Investment',
+                        SizedBox(width: 8),
+                        Text('Initial Investment',
                             style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -722,7 +794,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Icons.notifications_outlined,
                         color: Colors.grey[500], size: 20),
                     value: _notif,
-                    activeColor: _blue,
+                    activeThumbColor: _blue,
                     onChanged: (v) =>
                         setState(() => _notif = v),
                   ),
@@ -762,7 +834,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       size: 20,
                     ),
                     value: _pinEnabled,
-                    activeColor: _blue,
+                    activeThumbColor: _blue,
                     onChanged: _togglePin,
                   ),
                 ),
@@ -777,7 +849,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           color: Colors.grey.shade200),
                     ),
                     child: ListTile(
-                      leading: Icon(
+                      leading: const Icon(
                           Icons.password_outlined,
                           color: _blue, size: 20),
                       title: const Text('Change PIN',
@@ -919,7 +991,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // ── Save Button ──────────────────────────
+                // Save button
                 ElevatedButton(
                   onPressed: _save,
                   style: ElevatedButton.styleFrom(
@@ -937,9 +1009,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fontSize: 14,
                           fontWeight: FontWeight.w600)),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 40),
               ],
             ),
+          ),
     );
   }
 

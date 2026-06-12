@@ -644,7 +644,7 @@ class _CreditProductScreenState
                                     alpha: 0.2)),
                           ),
                           child: Row(children: [
-                            Icon(
+                            const Icon(
                                 Icons.calendar_today_outlined,
                                 color: _blue, size: 16),
                             const SizedBox(width: 10),
@@ -663,7 +663,7 @@ class _CreditProductScreenState
                                 Text(
                                   DateHelper.formatDate(
                                       _dueDate),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       color: _blue,
                                       fontWeight:
                                           FontWeight.bold,
@@ -818,9 +818,12 @@ class _CreditSummaryScreenState
       final file = File(
           '${dir.path}/credit_${widget.customerName}_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(bytes);
-      await Share.shareXFiles([XFile(file.path)],
-          text:
-              'Credit Record — ${widget.customerName}\n${DateHelper.formatDate(DateTime.now())}');
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: 'Credit Record — ${widget.customerName}\n${DateHelper.formatDate(DateTime.now())}',
+        ),
+      );
     } catch (_) {}
     if (mounted) setState(() => _sharing = false);
   }
@@ -990,7 +993,7 @@ class _CreditSummaryScreenState
                             child: Text(
                               widget.customerName[0]
                                   .toUpperCase(),
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: _blue,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16),
@@ -1121,7 +1124,7 @@ class _CreditSummaryScreenState
                                   _blue.withValues(alpha: 0.2)),
                         ),
                         child: Row(children: [
-                          Text('TOTAL CREDIT',
+                          const Text('TOTAL CREDIT',
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
@@ -1129,7 +1132,7 @@ class _CreditSummaryScreenState
                           const Spacer(),
                           Text(
                             CurrencyFormatter.format(_total),
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 22,
                                 color: _blue),

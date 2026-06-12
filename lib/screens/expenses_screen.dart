@@ -19,191 +19,225 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProvider>(builder: (context, prov, _) {
+    return Consumer<AppProvider>(
+        builder: (context, prov, _) {
       var expenses = prov.expenses;
       if (_filterCat != 'All') {
         expenses = expenses
             .where((e) => e.category == _filterCat)
             .toList();
       }
-      final total = expenses.fold(0.0, (s, e) => s + e.amount);
+      final total =
+          expenses.fold(0.0, (s, e) => s + e.amount);
 
       return Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: false,
-          titleSpacing: 16,
-          title: const Text('Expenses',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87)),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(1),
-            child:
-                Divider(height: 1, color: Colors.grey.shade200),
-          ),
-        ),
-        body: Column(children: [
+        body: SafeArea(
+          child: Column(children: [
 
-          // ── Summary + Filter ───────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Column(children: [
-
-              // Summary card
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: _blue.withValues(alpha: 0.15)),
-                ),
-                child: Row(children: [
-                  Icon(Icons.receipt_long_outlined,
-                      color: _blue.withValues(alpha: 0.5),
-                      size: 18),
-                  const SizedBox(width: 10),
-                  Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                    Text('Total Expenses',
+            // ── Non-sticky Header ──────────────────
+            SizedBox(
+              width: double.infinity,
+              child: Padding(
+                padding:
+                    const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    const Text('Expenses',
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                            letterSpacing: -0.5)),
+                    const SizedBox(height: 4),
+                    Text('Track your business expenses',
                         style: TextStyle(
                             color: Colors.grey[500],
-                            fontSize: 11)),
-                    Text(CurrencyFormatter.format(total),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.black87)),
-                  ]),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _blue.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: _blue.withValues(alpha: 0.2)),
-                    ),
-                    child: Text('${expenses.length} records',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: _blue.withValues(alpha: 0.8),
-                            fontWeight: FontWeight.w500)),
-                  ),
-                ]),
-              ),
-              const SizedBox(height: 10),
-
-              // Category filter chips
-              SizedBox(
-                height: 32,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    'All',
-                    ...FilipinoCategories.expenseCategories
-                  ].map((cat) {
-                    final sel = _filterCat == cat;
-                    return GestureDetector(
-                      onTap: () =>
-                          setState(() => _filterCat = cat),
-                      child: AnimatedContainer(
-                        duration:
-                            const Duration(milliseconds: 150),
-                        margin: const EdgeInsets.only(right: 6),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: sel
-                              ? _blue
-                              : Colors.grey.shade100,
-                          borderRadius:
-                              BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          cat,
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: sel
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              color: sel
-                                  ? Colors.white
-                                  : Colors.grey[600]),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                            fontSize: 13)),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-            ]),
-          ),
+            ),
 
-          Divider(height: 1, color: Colors.grey.shade100),
+            // ── Summary + Filter ───────────────────
+            Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              child: Column(children: [
 
-          // ── Expense List ───────────────────────────────
-          Expanded(
-            child: expenses.isEmpty
-                ? Center(
-                    child: Column(
-                        mainAxisAlignment:
-                            MainAxisAlignment.center,
-                        children: [
-                      Icon(Icons.receipt_long_outlined,
-                          size: 48, color: Colors.grey[300]),
-                      const SizedBox(height: 12),
-                      Text('No expenses yet',
-                          style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 14)),
-                    ]))
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(
-                        16, 8, 16, 16),
-                    itemCount: expenses.length,
-                    itemBuilder: (_, i) => _ExpenseTile(
-                      expense: expenses[i],
-                      onDelete: () => _confirmDelete(
-                          context, prov, expenses[i]),
-                      onEdit: () => _showForm(
-                          context, prov, expenses[i]),
-                    ),
+                // Summary card
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color:
+                            _blue.withValues(alpha: 0.15)),
                   ),
-          ),
-        ]),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _showForm(context, prov, null),
+                  child: Row(children: [
+                    Icon(Icons.receipt_long_outlined,
+                        color: _blue.withValues(alpha: 0.5),
+                        size: 18),
+                    const SizedBox(width: 10),
+                    Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                      Text('Total Expenses',
+                          style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 11)),
+                      Text(
+                          CurrencyFormatter.format(total),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.black87)),
+                    ]),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color:
+                            _blue.withValues(alpha: 0.08),
+                        borderRadius:
+                            BorderRadius.circular(8),
+                        border: Border.all(
+                            color: _blue
+                                .withValues(alpha: 0.2)),
+                      ),
+                      child: Text(
+                          '${expenses.length} records',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: _blue
+                                  .withValues(alpha: 0.8),
+                              fontWeight:
+                                  FontWeight.w500)),
+                    ),
+                  ]),
+                ),
+                const SizedBox(height: 10),
+
+                // Category filter chips
+                SizedBox(
+                  height: 32,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      'All',
+                      ...FilipinoCategories
+                          .expenseCategories
+                    ].map((cat) {
+                      final sel = _filterCat == cat;
+                      return GestureDetector(
+                        onTap: () => setState(
+                            () => _filterCat = cat),
+                        child: AnimatedContainer(
+                          duration: const Duration(
+                              milliseconds: 150),
+                          margin: const EdgeInsets.only(
+                              right: 6),
+                          padding:
+                              const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6),
+                          decoration: BoxDecoration(
+                            color: sel
+                                ? _blue
+                                : Colors.grey.shade100,
+                            borderRadius:
+                                BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            cat,
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: sel
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                color: sel
+                                    ? Colors.white
+                                    : Colors.grey[600]),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ]),
+            ),
+
+            Divider(
+                height: 1, color: Colors.grey.shade100),
+
+            // ── Expense List ───────────────────────
+            Expanded(
+              child: expenses.isEmpty
+                  ? Center(
+                      child: Column(
+                          mainAxisAlignment:
+                              MainAxisAlignment.center,
+                          children: [
+                        Icon(
+                            Icons.receipt_long_outlined,
+                            size: 48,
+                            color: Colors.grey[300]),
+                        const SizedBox(height: 12),
+                        Text('No expenses yet',
+                            style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 14)),
+                      ]))
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(
+                          16, 8, 16, 16),
+                      itemCount: expenses.length,
+                      itemBuilder: (_, i) => _ExpenseTile(
+                        expense: expenses[i],
+                        onDelete: () => _confirmDelete(
+                            context, prov, expenses[i]),
+                        onEdit: () => _showForm(
+                            context, prov, expenses[i]),
+                      ),
+                    ),
+            ),
+          ]),
+        ),
+        floatingActionButton:
+            FloatingActionButton.extended(
+          onPressed: () =>
+              _showForm(context, prov, null),
           backgroundColor: _blue,
           foregroundColor: Colors.white,
           elevation: 0,
           icon: const Icon(Icons.add, size: 18),
           label: const Text('Add Expense',
               style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600)),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600)),
         ),
       );
     });
   }
 
-  void _showForm(
-      BuildContext context, AppProvider prov, Expense? existing) {
-    final descCtrl =
-        TextEditingController(text: existing?.description ?? '');
+  void _showForm(BuildContext context, AppProvider prov,
+      Expense? existing) {
+    final descCtrl = TextEditingController(
+        text: existing?.description ?? '');
     final amountCtrl = TextEditingController(
         text: existing != null
             ? existing.amount.toStringAsFixed(2)
             : '');
-    final notesCtrl =
-        TextEditingController(text: existing?.notes ?? '');
+    final notesCtrl = TextEditingController(
+        text: existing?.notes ?? '');
     String category = existing?.category ??
         FilipinoCategories.expenseCategories.first;
 
@@ -212,12 +246,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(16))),
+          borderRadius: BorderRadius.vertical(
+              top: Radius.circular(16))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
           padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+              bottom:
+                  MediaQuery.of(context).viewInsets.bottom,
               left: 20,
               right: 20,
               top: 20),
@@ -225,7 +260,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
             Container(
-              width: 36, height: 4,
+              width: 36,
+              height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
                   color: Colors.grey[300],
@@ -241,13 +277,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   color: Colors.black87),
             ),
             const SizedBox(height: 16),
-
             _field(descCtrl, 'Description *',
                 Icons.description_outlined),
             const SizedBox(height: 12),
-
             DropdownButtonFormField<String>(
-              value: category,
+              initialValue: category,
               decoration: InputDecoration(
                 labelText: 'Category',
                 labelStyle: TextStyle(
@@ -268,13 +302,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   .map((c) => DropdownMenuItem(
                       value: c,
                       child: Text(c,
-                          style:
-                              const TextStyle(fontSize: 13))))
+                          style: const TextStyle(
+                              fontSize: 13))))
                   .toList(),
-              onChanged: (v) => setS(() => category = v!),
+              onChanged: (v) =>
+                  setS(() => category = v!),
             ),
             const SizedBox(height: 12),
-
             TextField(
               controller: amountCtrl,
               keyboardType: TextInputType.number,
@@ -300,11 +334,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
             _field(notesCtrl, 'Notes (optional)',
                 Icons.notes_outlined),
             const SizedBox(height: 20),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -312,8 +344,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   if (descCtrl.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context)
                         .showSnackBar(const SnackBar(
-                            content:
-                                Text('Description required.'),
+                            content: Text(
+                                'Description required.'),
                             backgroundColor: Colors.red));
                     return;
                   }
@@ -322,7 +354,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   if (amount == null || amount <= 0) {
                     ScaffoldMessenger.of(context)
                         .showSnackBar(const SnackBar(
-                            content: Text('Enter a valid amount.'),
+                            content: Text(
+                                'Enter a valid amount.'),
                             backgroundColor: Colors.red));
                     return;
                   }
@@ -365,7 +398,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   padding: const EdgeInsets.symmetric(
                       vertical: 14),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                      borderRadius:
+                          BorderRadius.circular(10)),
                 ),
                 child: Text(
                   existing == null
@@ -390,8 +424,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         controller: ctrl,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle:
-              TextStyle(color: Colors.grey[600], fontSize: 13),
+          labelStyle: TextStyle(
+              color: Colors.grey[600], fontSize: 13),
           prefixIcon:
               Icon(icon, size: 18, color: Colors.grey[500]),
           filled: true,
@@ -407,8 +441,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         ),
       );
 
-  void _confirmDelete(
-      BuildContext context, AppProvider prov, Expense expense) {
+  void _confirmDelete(BuildContext context,
+      AppProvider prov, Expense expense) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -445,7 +479,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               onPressed: () => Navigator.pop(context),
               child: Text('Cancel',
                   style: TextStyle(
-                      color: Colors.grey[600], fontSize: 13))),
+                      color: Colors.grey[600],
+                      fontSize: 13))),
           TextButton(
             onPressed: () async {
               await prov.deleteExpense(expense.id);
@@ -489,13 +524,14 @@ class _ExpenseTile extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(
             horizontal: 14, vertical: 6),
         leading: Container(
-          width: 38, height: 38,
+          width: 38,
+          height: 38,
           decoration: BoxDecoration(
               color: _blue.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                   color: _blue.withValues(alpha: 0.15))),
-          child: Icon(Icons.receipt_long_outlined,
+          child: const Icon(Icons.receipt_long_outlined,
               color: _blue, size: 18),
         ),
         title: Text(expense.description,
@@ -506,9 +542,10 @@ class _ExpenseTile extends StatelessWidget {
         subtitle: Text(
             '${expense.category}  •  ${DateHelper.formatDate(expense.date)}'
             '${expense.notes != null ? '\n${expense.notes}' : ''}',
-            style:
-                TextStyle(color: Colors.grey[500], fontSize: 11)),
-        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+            style: TextStyle(
+                color: Colors.grey[500], fontSize: 11)),
+        trailing:
+            Row(mainAxisSize: MainAxisSize.min, children: [
           Text(CurrencyFormatter.format(expense.amount),
               style: const TextStyle(
                   fontWeight: FontWeight.bold,
@@ -531,15 +568,16 @@ class _ExpenseTile extends StatelessWidget {
                             fontSize: 13,
                             color: Colors.grey[700])),
                   ])),
-              PopupMenuItem(
+              const PopupMenuItem(
                   value: 'delete',
                   child: Row(children: [
-                    const Icon(Icons.delete_outline,
+                    Icon(Icons.delete_outline,
                         size: 16, color: Colors.red),
-                    const SizedBox(width: 8),
-                    const Text('Delete',
+                    SizedBox(width: 8),
+                    Text('Delete',
                         style: TextStyle(
-                            fontSize: 13, color: Colors.red)),
+                            fontSize: 13,
+                            color: Colors.red)),
                   ])),
             ],
             onSelected: (v) {
