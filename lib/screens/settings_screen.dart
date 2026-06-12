@@ -957,7 +957,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       leading: Icon(
                           Icons.phone_android_outlined,
                           color: Colors.grey[500], size: 20),
-                      title: const Text('TindaPH',
+                      title: const Text('StorePH',
                           style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
@@ -976,7 +976,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           color: Colors.red.shade300,
                           size: 20),
                       title: const Text(
-                          'Made for Filipino store owners',
+                          'Made for Filipino Store Owners',
                           style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,

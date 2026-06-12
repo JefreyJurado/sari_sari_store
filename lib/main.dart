@@ -23,18 +23,18 @@ void main() async {
   await DatabaseService.instance.database;
   await NotificationService.instance.initialize();
   await DefaultProducts.seedIfEmpty();
-  runApp(const TindaPHApp());
+  runApp(const StorePHApp());
 }
 
-class TindaPHApp extends StatelessWidget {
-  const TindaPHApp({super.key});
+class StorePHApp extends StatelessWidget {
+  const StorePHApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => AppProvider()..initialize(),
       child: MaterialApp(
-        title: 'TindaPH',
+        title: 'StorePH',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,

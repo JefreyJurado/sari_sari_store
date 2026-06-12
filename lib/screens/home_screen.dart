@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Row(children: [
                       const Text(
-                        'TindaPH',
+                        'StorePH',
                         style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,

@@ -179,7 +179,7 @@ class PdfReportService {
         mainAxisAlignment:
             pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text('Powered by TindaPH',
+          pw.Text('Powered by StorePH',
               style: pw.TextStyle(
                   font: font,
                   fontSize: 8,
