@@ -6,6 +6,7 @@ import '../models/transaction.dart';
 import '../models/expense.dart';
 import '../models/debt.dart';
 import '../models/payment.dart';
+import '../models/capital_entry.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../services/loyalty_service.dart';
@@ -21,6 +22,7 @@ class AppProvider extends ChangeNotifier {
   List<Expense> expenses = [];
   List<Debt> debts = [];
   List<DebtPayment> payments = [];
+  CapitalEntry? capital;
   bool isLoading = false;
 
   final Map<Product, int> cart = {};
@@ -56,6 +58,29 @@ class AppProvider extends ChangeNotifier {
   List<Product> get outOfStock =>
       products.where((p) => p.isOutOfStock && p.isActive).toList();
 
+  // ── Capital Computed ───────────────────────────────────────────
+  double get totalInvestment =>
+      capital?.totalInvestment ?? 0;
+
+  double get totalSalesProfit => sales
+      .where((s) => s.status == TxStatus.completed)
+      .fold(0.0, (s, t) => s + t.totalProfit);
+
+  double get totalExpensesAmount =>
+      expenses.fold(0.0, (s, e) => s + e.amount);
+
+  // Current Capital = Investment + All Sales Profit - All Expenses
+  double get currentCapital =>
+      totalInvestment + totalSalesProfit - totalExpensesAmount;
+
+  double get netGainLoss =>
+      currentCapital - totalInvestment;
+
+  double get roiPercent {
+    if (totalInvestment <= 0) return 0;
+    return (netGainLoss / totalInvestment) * 100;
+  }
+
   // ── Init ───────────────────────────────────────────────────────
   Future<void> initialize() async {
     isLoading = true;
@@ -80,6 +105,7 @@ class AppProvider extends ChangeNotifier {
     expenses = results[3] as List<Expense>;
     debts = results[4] as List<Debt>;
     payments = results[5] as List<DebtPayment>;
+    capital = await _db.getCapital();
   }
 
   Future<void> reload() async {
@@ -176,7 +202,6 @@ class AppProvider extends ChangeNotifier {
       );
     }
 
-    // ── Auto-add loyalty points ────────────────────────────
     if (customer != null) {
       await LoyaltyService.instance.addPointsFromSale(
         customerId: customer.id,
@@ -265,7 +290,6 @@ class AppProvider extends ChangeNotifier {
       );
     }
 
-    // ── Auto-add loyalty points ────────────────────────────
     if (customer != null) {
       await LoyaltyService.instance.addPointsFromSale(
         customerId: customer.id,
@@ -339,6 +363,23 @@ class AppProvider extends ChangeNotifier {
   Future<void> archiveProduct(String id) async {
     await _db.archiveProduct(id);
     await reload();
+  }
+
+  // ── Capital ────────────────────────────────────────────────────
+  Future<void> saveCapital({
+    required double setupCosts,
+    required double inventoryValue,
+  }) async {
+    final entry = CapitalEntry(
+      id: capital?.id ?? _uuid.v4(),
+      setupCosts: setupCosts,
+      inventoryValue: inventoryValue,
+      createdAt: capital?.createdAt ?? DateTime.now(),
+      updatedAt: capital != null ? DateTime.now() : null,
+    );
+    await _db.upsertCapital(entry);
+    capital = entry;
+    notifyListeners();
   }
 
   // ── Expenses ───────────────────────────────────────────────────

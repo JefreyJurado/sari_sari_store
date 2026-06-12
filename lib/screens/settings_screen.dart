@@ -15,6 +15,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _nameCtrl = TextEditingController();
+  final _setupCtrl = TextEditingController();
+  final _inventoryCtrl = TextEditingController();
   bool _notif = true;
   bool _pinEnabled = false;
   bool _loaded = false;
@@ -27,11 +29,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    final prov = context.read<AppProvider>();
     setState(() {
       _nameCtrl.text =
           prefs.getString('store_name') ?? 'My Sari-Sari Store';
       _notif = prefs.getBool('notifications') ?? true;
       _pinEnabled = prefs.getBool('pin_enabled') ?? false;
+      final cap = prov.capital;
+      if (cap != null) {
+        _setupCtrl.text =
+            cap.setupCosts.toStringAsFixed(2);
+        _inventoryCtrl.text =
+            cap.inventoryValue.toStringAsFixed(2);
+      }
       _loaded = true;
     });
   }
@@ -41,6 +51,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString(
         'store_name', _nameCtrl.text.trim());
     await prefs.setBool('notifications', _notif);
+
+    final prov = context.read<AppProvider>();
+    await prov.saveCapital(
+      setupCosts:
+          double.tryParse(_setupCtrl.text) ?? 0,
+      inventoryValue:
+          double.tryParse(_inventoryCtrl.text) ?? 0,
+    );
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -136,8 +155,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         fontSize: 12,
                         color: Colors.grey[500])),
                 const SizedBox(height: 12),
-                _checkItem('Sales',
-                    'All sales history', clearSales,
+                _checkItem('Sales', 'All sales history',
+                    clearSales,
                     (v) => setS(
                         () => clearSales = v ?? false)),
                 const SizedBox(height: 8),
@@ -197,8 +216,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     !clearCustomers) {
                   ScaffoldMessenger.of(ctx)
                       .showSnackBar(const SnackBar(
-                          content: Text(
-                              'Select at least one.'),
+                          content:
+                              Text('Select at least one.'),
                           backgroundColor: Colors.red));
                   return;
                 }
@@ -231,8 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (clearCustomers) cleared.add('Customers');
       await context.read<AppProvider>().reload();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:
-            Text('Cleared: ${cleared.join(', ')}'),
+        content: Text('Cleared: ${cleared.join(', ')}'),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 3),
       ));
@@ -272,26 +290,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           color: Colors.red.shade700,
                           fontSize: 13)),
                   const SizedBox(height: 8),
-                  ...['Sales history', 'Credit / Debts',
-                          'Expenses', 'Customers',
-                          'Loyalty Points']
-                      .map((t) => Padding(
-                            padding:
-                                const EdgeInsets.only(
-                                    bottom: 3),
-                            child: Row(children: [
-                              Icon(Icons.remove,
-                                  size: 12,
-                                  color: Colors
-                                      .red.shade400),
-                              const SizedBox(width: 6),
-                              Text(t,
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors
-                                          .grey[700])),
-                            ]),
-                          )),
+                  ...[
+                    'Sales history',
+                    'Credit / Debts',
+                    'Expenses',
+                    'Customers',
+                    'Loyalty Points'
+                  ].map((t) => Padding(
+                        padding:
+                            const EdgeInsets.only(bottom: 3),
+                        child: Row(children: [
+                          Icon(Icons.remove,
+                              size: 12,
+                              color: Colors.red.shade400),
+                          const SizedBox(width: 6),
+                          Text(t,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[700])),
+                        ]),
+                      )),
                 ],
               ),
             ),
@@ -369,8 +387,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await context.read<AppProvider>().reload();
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-        content: Text(
-            'All data cleared. Products are kept.'),
+        content:
+            Text('All data cleared. Products are kept.'),
         backgroundColor: Colors.green,
         duration: Duration(seconds: 3),
       ));
@@ -423,9 +441,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
 
+  Widget _capitalField(
+    TextEditingController ctrl,
+    String label,
+    String hint,
+    IconData icon,
+  ) =>
+      TextField(
+        controller: ctrl,
+        keyboardType: const TextInputType.numberWithOptions(
+            decimal: true),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+              color: Colors.grey[600], fontSize: 13),
+          hintText: hint,
+          hintStyle: TextStyle(
+              color: Colors.grey[400], fontSize: 11),
+          prefixText: '₱ ',
+          prefixIcon: Icon(icon,
+              size: 18, color: Colors.grey[500]),
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+                  BorderSide(color: Colors.grey.shade300)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+                  BorderSide(color: Colors.grey.shade300)),
+        ),
+      );
+
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _setupCtrl.dispose();
+    _inventoryCtrl.dispose();
     super.dispose();
   }
 
@@ -455,7 +508,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.all(16),
               children: [
 
-                // Store info card
+                // ── Store info card ──────────────────────
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -501,7 +554,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _blue.withValues(alpha: 0.1),
+                          color:
+                              _blue.withValues(alpha: 0.1),
                           borderRadius:
                               BorderRadius.circular(8),
                           border: Border.all(
@@ -524,7 +578,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Store Name
+                // ── Store Name ───────────────────────────
                 _label('STORE'),
                 Container(
                   decoration: BoxDecoration(
@@ -553,19 +607,97 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             borderRadius:
                                 BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                color: Colors.grey.shade300)),
+                                color:
+                                    Colors.grey.shade300)),
                         enabledBorder: OutlineInputBorder(
                             borderRadius:
                                 BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                color: Colors.grey.shade300)),
+                                color:
+                                    Colors.grey.shade300)),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // Notifications
+                // ── Beginning Balance ────────────────────
+                _label('BEGINNING BALANCE'),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: Colors.grey.shade200),
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Icon(
+                            Icons.account_balance_outlined,
+                            color: _blue, size: 16),
+                        const SizedBox(width: 8),
+                        const Text('Initial Investment',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87)),
+                      ]),
+                      Text(
+                          'Set once when starting your business. Used to track ROI and capital growth.',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[500])),
+                      const SizedBox(height: 14),
+                      _capitalField(
+                        _setupCtrl,
+                        'Business Setup Costs',
+                        'DTI, permits, equipment, renovation',
+                        Icons.store_mall_directory_outlined,
+                      ),
+                      const SizedBox(height: 10),
+                      _capitalField(
+                        _inventoryCtrl,
+                        'Starting Inventory Value',
+                        'Actual products bought to sell',
+                        Icons.inventory_2_outlined,
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _blue.withValues(alpha: 0.04),
+                          borderRadius:
+                              BorderRadius.circular(8),
+                          border: Border.all(
+                              color:
+                                  _blue.withValues(alpha: 0.12)),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.info_outline,
+                              size: 13,
+                              color:
+                                  _blue.withValues(alpha: 0.6)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Monthly operating costs (salary, rent, utilities) are tracked automatically via the Expenses screen.',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600]),
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // ── Notifications ────────────────────────
                 _label('NOTIFICATIONS'),
                 Container(
                   decoration: BoxDecoration(
@@ -575,7 +707,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         color: Colors.grey.shade200),
                   ),
                   child: SwitchListTile(
-                    title: const Text('Enable Notifications',
+                    title: const Text(
+                        'Enable Notifications',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -596,7 +729,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Security
+                // ── Security ─────────────────────────────
                 _label('SECURITY'),
                 Container(
                   decoration: BoxDecoration(
@@ -638,7 +771,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius:
+                          BorderRadius.circular(12),
                       border: Border.all(
                           color: Colors.grey.shade200),
                     ),
@@ -662,14 +796,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             await Navigator.push<bool>(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const PinScreen(
-                                  isSetup: true)),
+                              builder: (_) =>
+                                  const PinScreen(
+                                      isSetup: true)),
                         );
                         if (result == true && mounted) {
                           ScaffoldMessenger.of(context)
                               .showSnackBar(const SnackBar(
-                                  content: Text(
-                                      'PIN updated!'),
+                                  content:
+                                      Text('PIN updated!'),
                                   backgroundColor:
                                       Colors.green));
                         }
@@ -679,7 +814,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
                 const SizedBox(height: 16),
 
-                // Danger Zone
+                // ── Danger Zone ──────────────────────────
                 _label('DANGER ZONE'),
                 Container(
                   decoration: BoxDecoration(
@@ -698,8 +833,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: Colors.black87,
                             fontWeight: FontWeight.w500,
                             fontSize: 13)),
-                    subtitle: Text(
-                        'Choose what to erase',
+                    subtitle: Text('Choose what to erase',
                         style: TextStyle(
                             color: Colors.grey[500],
                             fontSize: 11)),
@@ -737,7 +871,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // About
+                // ── About ────────────────────────────────
                 _label('ABOUT'),
                 Container(
                   decoration: BoxDecoration(
@@ -765,7 +899,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         height: 1,
                         color: Colors.grey.shade100),
                     ListTile(
-                      leading: Icon(Icons.favorite_outline,
+                      leading: Icon(
+                          Icons.favorite_outline,
                           color: Colors.red.shade300,
                           size: 20),
                       title: const Text(
@@ -784,7 +919,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Save button
+                // ── Save Button ──────────────────────────
                 ElevatedButton(
                   onPressed: _save,
                   style: ElevatedButton.styleFrom(
