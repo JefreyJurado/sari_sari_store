@@ -717,301 +717,258 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
   void _showDebtDetails(BuildContext context, customer,
-      List<Debt> debts, AppProvider prov) {
-    final Map<String, Sale?> saleCache = {};
-    for (final d in debts) {
-      final sale = prov.sales
-          .where((s) => s.id == d.saleId)
-          .firstOrNull;
-      saleCache[d.id] = sale;
-    }
-    final totalOwed =
-        debts.fold(0.0, (s, d) => s + d.remaining);
+    List<Debt> debts, AppProvider prov) {
+  final Map<String, Sale?> saleCache = {};
+  for (final d in debts) {
+    final sale = prov.sales
+        .where((s) => s.id == d.saleId)
+        .firstOrNull;
+    saleCache[d.id] = sale;
+  }
+  final totalOwed = debts.fold(0.0, (s, d) => s + d.remaining);
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.85,
-        maxChildSize: 0.95,
-        builder: (_, ctrl) => Column(children: [
-          Container(
-            margin:
-                const EdgeInsets.symmetric(vertical: 12),
-            width: 40, height: 5,
-            decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(10)),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 20, vertical: 8),
-            child: Row(children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor:
-                    const Color(0xFFF1F5F9),
-                child: Text(
-                    customer.name[0].toUpperCase(),
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (sheetCtx) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      builder: (_, ctrl) => Column(children: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          width: 40, height: 5,
+          decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(10)),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: 20, vertical: 8),
+          child: Row(children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: const Color(0xFFF1F5F9),
+              child: Text(
+                  customer.name[0].toUpperCase(),
+                  style: const TextStyle(
+                      color: _brandBlue,
+                      fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(customer.name,
                     style: const TextStyle(
-                        color: _brandBlue,
-                        fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Text(customer.name,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87)),
+                if (customer.phone != null)
+                  Text(customer.phone,
                       style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black87)),
-                  if (customer.phone != null)
-                    Text(customer.phone,
-                        style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500)),
-                ],
-              ),
-              const Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                      CurrencyFormatter.format(totalOwed),
-                      style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 20,
-                          color: Colors.red.shade700)),
-                  const Text('total credit',
-                      style: TextStyle(
-                          fontSize: 11,
                           color: Colors.grey,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ]),
-          ),
-          const SizedBox(height: 8),
-          Divider(color: Colors.grey.shade200, height: 1),
-          Expanded(
-            child: ListView(
-              controller: ctrl,
-              padding: const EdgeInsets.all(20),
-              children: debts.map((d) {
-                final sale = saleCache[d.id];
-                return Container(
-                  margin:
-                      const EdgeInsets.only(bottom: 14),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                        BorderRadius.circular(16),
-                    border: Border.all(
-                        color: d.isOverdue
-                            ? Colors.red.shade200
-                            : Colors.grey.shade200),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black
-                            .withValues(alpha: 0.01),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        const Icon(
-                            Icons.calendar_today_rounded,
-                            size: 12,
-                            color: Colors.grey),
-                        const SizedBox(width: 6),
-                        Text(
-                          DateHelper.formatDate(
-                              d.createdAt),
-                          style: const TextStyle(
-                              color: Colors.blueGrey,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600),
-                        ),
-                        const Spacer(),
-                        if (d.isOverdue)
-                          Container(
-                            padding:
-                                const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3),
-                            decoration: BoxDecoration(
-                                color: Colors.red.shade50,
-                                borderRadius:
-                                    BorderRadius.circular(
-                                        30),
-                                border: Border.all(
-                                    color:
-                                        Colors.red.shade100)),
-                            child: Text('OVERDUE',
-                                style: TextStyle(
-                                    color:
-                                        Colors.red.shade700,
-                                    fontSize: 9,
-                                    fontWeight:
-                                        FontWeight.w800,
-                                    letterSpacing: 0.3)),
-                          ),
-                      ]),
-                      if (sale != null &&
-                          sale.items.isNotEmpty) ...[
-                        const SizedBox(height: 14),
-                        ...sale.items.map((item) => Padding(
-                              padding: const EdgeInsets.only(
-                                  bottom: 10),
-                              child: Row(children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment
-                                            .start,
-                                    children: [
-                                      Text(item.productName,
-                                          style: const TextStyle(
-                                              fontWeight:
-                                                  FontWeight
-                                                      .w700,
-                                              fontSize: 14,
-                                              color: Colors
-                                                  .black87)),
-                                      const SizedBox(
-                                          height: 2),
-                                      Text(
-                                          '${CurrencyFormatter.format(item.price)} × ${item.quantity}',
-                                          style: const TextStyle(
-                                              color:
-                                                  Colors.grey,
-                                              fontSize: 12,
-                                              fontWeight:
-                                                  FontWeight
-                                                      .w500)),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  CurrencyFormatter.format(
-                                      item.subtotal),
-                                  style: const TextStyle(
-                                      fontWeight:
-                                          FontWeight.w700,
-                                      fontSize: 14,
-                                      color: Colors.black87),
-                                ),
-                              ]),
-                            )),
-                        Divider(
-                            height: 20,
-                            color: Colors.grey.shade200),
-                      ],
-                      if (d.paidAmount > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                              bottom: 8),
-                          child: Row(children: [
-                            const Text(
-                                'Partial Payments Made:',
-                                style: TextStyle(
-                                    color: Colors.blueGrey,
-                                    fontSize: 13,
-                                    fontWeight:
-                                        FontWeight.w500)),
-                            const Spacer(),
-                            Text(
-                                CurrencyFormatter.format(
-                                    d.paidAmount),
-                                style: const TextStyle(
-                                    color: Colors.green,
-                                    fontWeight:
-                                        FontWeight.w700,
-                                    fontSize: 13)),
-                          ]),
-                        ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius:
-                              BorderRadius.circular(12),
-                        ),
-                        child: Row(children: [
-                          const Text('Net Due Balance',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500)),
+              ],
+            ),
+            const Spacer(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                    CurrencyFormatter.format(totalOwed),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 20,
+                        color: Colors.red.shade700)),
+                const Text('total credit',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ]),
+        ),
+        const SizedBox(height: 8),
+        Divider(color: Colors.grey.shade200, height: 1),
+        Expanded(
+          child: ListView(
+            controller: ctrl,
+            padding: const EdgeInsets.all(20),
+            children: debts.map((d) {
+              final sale = saleCache[d.id];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                      color: d.isOverdue
+                          ? Colors.red.shade200
+                          : Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.01),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      const Icon(Icons.calendar_today_rounded,
+                          size: 12, color: Colors.grey),
+                      const SizedBox(width: 6),
+                      Text(
+                        DateHelper.formatDate(d.createdAt),
+                        style: const TextStyle(
+                            color: Colors.blueGrey,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const Spacer(),
+                      if (d.isOverdue)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(color: Colors.red.shade100)),
+                          child: Text('OVERDUE',
                               style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black87,
-                                  fontSize: 13)),
+                                  color: Colors.red.shade700,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.3)),
+                        ),
+                    ]),
+                    if (sale != null && sale.items.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      ...sale.items.map((item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(item.productName,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 14,
+                                            color: Colors.black87)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                        '${CurrencyFormatter.format(item.price)} × ${item.quantity}',
+                                        style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500)),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                CurrencyFormatter.format(item.subtotal),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: Colors.black87),
+                              ),
+                            ]),
+                          )),
+                      Divider(height: 20, color: Colors.grey.shade200),
+                    ],
+                    if (d.paidAmount > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(children: [
+                          const Text('Partial Payments Made:',
+                              style: TextStyle(
+                                  color: Colors.blueGrey,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500)),
                           const Spacer(),
                           Text(
-                            CurrencyFormatter.format(
-                                d.remaining),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 18,
-                                color: Colors.black87),
-                          ),
+                              CurrencyFormatter.format(d.paidAmount),
+                              style: const TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13)),
                         ]),
                       ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 46,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              CrossFadePageRoute(
-                                  child: PaymentScreen(
-                                      debt: d,
-                                      customer: customer)),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _brandBlue,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(
-                                        12)),
-                          ),
-                          child: const Text(
-                              'Accept Settlement Payment',
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight:
-                                      FontWeight.w700)),
-                        ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+                      child: Row(children: [
+                        const Text('Net Due Balance',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
+                                fontSize: 13)),
+                        const Spacer(),
+                        Text(
+                          CurrencyFormatter.format(d.remaining),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              color: Colors.black87),
+                        ),
+                      ]),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 46,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(sheetCtx);
+                          Navigator.push(
+                            context,
+                            CrossFadePageRoute(
+                                child: PaymentScreen(
+                                    debt: d,
+                                    customer: customer)),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _brandBlue,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text(
+                            'Accept Settlement Payment',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
-        ]),
-      ),
-    );
-  }
+        ),
+      ]),
+    ),
+  );
 }
+
+} // ← closing ng _HomeScreenState
 
 // ── Capital Overview Card ──────────────────────────────────────
 class _CapitalCard extends StatelessWidget {

@@ -62,7 +62,7 @@ class PdfReportService {
 
     final prefs = await SharedPreferences.getInstance();
     final storeName =
-        prefs.getString('store_name') ?? 'TindaPH';
+        prefs.getString('store_name') ?? 'StorePH';
 
     pdf.addPage(
       pw.MultiPage(
