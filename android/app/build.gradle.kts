@@ -52,6 +52,12 @@ android {
             isShrinkResources = false
         }
     }
+
+    bundle {
+        language { enableSplit = false }
+        density { enableSplit = false }
+        abi { enableSplit = true }
+    }
 }
 
 flutter {

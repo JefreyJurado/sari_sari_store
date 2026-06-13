@@ -1,4 +1,4 @@
-package com.yourbrand.sari_sari_store
+package com.storeph.pos
 
 import io.flutter.embedding.android.FlutterActivity
 
