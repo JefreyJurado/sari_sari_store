@@ -21,8 +21,12 @@ void main() async {
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp]);
   await DatabaseService.instance.database;
-  await NotificationService.instance.initialize();
-  await DefaultProducts.seedIfEmpty();
+  try {
+    await NotificationService.instance.initialize();
+  } catch (_) {}
+  try {
+    await DefaultProducts.seedIfEmpty();
+  } catch (_) {}
   runApp(const StorePHApp());
 }
 
