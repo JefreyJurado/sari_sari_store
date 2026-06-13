@@ -22,7 +22,7 @@ class ReceiptScreen extends StatefulWidget {
 
 class _ReceiptScreenState extends State<ReceiptScreen> {
   final _receiptKey = GlobalKey();
-  String _storeName = 'TindaPH';
+  String _storeName = 'StorePH';
   String _storeAddress = '';
   bool _saving = false;
   bool _sharing = false;
@@ -36,7 +36,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _storeName = prefs.getString('store_name') ?? 'TindaPH';
+      _storeName = prefs.getString('store_name') ?? 'StorePH';
       _storeAddress = prefs.getString('store_address') ?? '';
     });
   }
@@ -103,7 +103,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           'receipt_${widget.sale.id.substring(0, 8)}_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File('${dir.path}/$filename');
       await file.writeAsBytes(bytes);
-      await Gal.putImage(file.path, album: 'TindaPH Receipts');
+      await Gal.putImage(file.path, album: 'StorePH Receipts');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -530,7 +530,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                 fontSize: 12)),
                         const SizedBox(height: 10),
                         Text(
-                          'Powered by TindaPH',
+                          'Powered by StorePH',
                           style: TextStyle(
                               color: Colors.grey[400],
                               fontSize: 10),

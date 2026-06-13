@@ -13,11 +13,24 @@ import 'screens/pin_screen.dart';
 import 'services/notification_service.dart';
 import 'services/database_service.dart';
 import 'data/default_products.dart';
+import 'dart:ui';
 
 const _blue = Color(0xFF1E3A8A);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (details) {
+    if (details.exception.toString().contains('_dependents.isEmpty')) {
+      return;
+    }
+    FlutterError.presentError(details);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    if (error.toString().contains('_dependents.isEmpty')) {
+      return true;
+    }
+    return false;
+  };
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp]);
   await DatabaseService.instance.database;

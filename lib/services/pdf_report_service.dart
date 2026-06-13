@@ -91,7 +91,7 @@ class PdfReportService {
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
       name:
-          'TindaPH_Report_${periodLabel.replaceAll(' ', '_')}_$dateStr.pdf',
+          'StorePH_Report_${periodLabel.replaceAll(' ', '_')}_$dateStr.pdf',
     );
   }
 

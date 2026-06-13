@@ -351,14 +351,16 @@ class AppProvider extends ChangeNotifier {
 
   // ── Products ───────────────────────────────────────────────────
   Future<void> addProduct(Product p) async {
-    await _db.insertProduct(p);
-    await reload();
-  }
+  await _db.insertProduct(p);
+  products = await _db.getProducts();
+  notifyListeners();
+}
 
   Future<void> updateProduct(Product p) async {
-    await _db.updateProduct(p);
-    await reload();
-  }
+  await _db.updateProduct(p);
+  products = await _db.getProducts();
+  notifyListeners();
+}
 
   Future<void> archiveProduct(String id) async {
     await _db.archiveProduct(id);
