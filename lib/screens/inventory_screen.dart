@@ -50,11 +50,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Selector<AppProvider, List<Product>>(
-  selector: (_, prov) => prov.products,
-  builder: (context, productList, _) {
-    final prov = context.read<AppProvider>();
-    final products = _getFilteredAndSortedProducts(productList);
+        // FIXED: The Selector safely isolates the collections to prevent mid-rebuild collision crashes
+        child: Selector<AppProvider, ({ List<Product> list, int lowCount, int outCount })>(
+          selector: (_, prov) => (
+            list: prov.products,
+            lowCount: prov.lowStock.length,
+            outCount: prov.outOfStock.length,
+          ),
+          builder: (context, data, _) {
+            final products = _getFilteredAndSortedProducts(data.list);
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 80),
@@ -104,9 +108,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     child: Row(children: [
                       _statChip('${products.length}', 'Products'),
                       const SizedBox(width: 8),
-                      _statChip('${prov.lowStock.length}', 'Low Stock'),
+                      _statChip('${data.lowCount}', 'Low Stock'),
                       const SizedBox(width: 8),
-                      _statChip('${prov.outOfStock.length}', 'Out of Stock'),
+                      _statChip('${data.outCount}', 'Out of Stock'),
                     ]),
                   ),
                   const SizedBox(height: 14),
@@ -143,12 +147,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: products.length,
-                      itemBuilder: (listCtx, i) => _ProductTile(
-                        product: products[i],
-                        onEdit: () => _showForm(context, prov, products[i]),
-                        onArchive: () => _confirmArchive(context, prov, products[i]),
-                        onAdjust: () => _adjustStock(context, prov, products[i]),
-                      ),
+                      itemBuilder: (listCtx, i) {
+                        final item = products[i];
+                        return _ProductTile(
+                          product: item,
+                          onEdit: () => _showForm(context, context.read<AppProvider>(), item),
+                          onArchive: () => _confirmArchive(context, context.read<AppProvider>(), item),
+                          onAdjust: () => _adjustStock(context, context.read<AppProvider>(), item),
+                        );
+                      },
                     ),
                 ],
               ),
@@ -202,7 +209,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => _ProductFormSheet(
         existing: existing,
-        prov: prov,
+        prov: prov, // Passed down securely
         nameCtrl: nameCtrl,
         buyCtrl: buyCtrl,
         sellCtrl: sellCtrl,
@@ -217,6 +224,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
       sellCtrl.dispose();
       stockCtrl.dispose();
       unitCtrl.dispose();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Product saved successfully!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     });
   }
 
@@ -244,6 +261,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
             onPressed: () {
               prov.archiveProduct(product.id);
               Navigator.pop(dialogCtx);
+              
+              ScaffoldMessenger.of(screenCtx).showSnackBar(
+                SnackBar(
+                  content: Text('"${product.name}" archived successfully.'),
+                  backgroundColor: Colors.grey[800],
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
             },
             child: const Text('Archive',
                 style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600, fontSize: 13)),
@@ -354,28 +379,29 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-             onPressed: () {
-            if (widget.nameCtrl.text.trim().isEmpty) return;
-            final p = Product(
-              id: widget.existing?.id ?? _uuid.v4(),
-              name: widget.nameCtrl.text.trim(),
-              category: _category,
-              buyPrice: double.tryParse(widget.buyCtrl.text) ?? 0,
-              sellPrice: double.tryParse(widget.sellCtrl.text) ?? 0,
-              stock: int.tryParse(widget.stockCtrl.text) ?? 0,
-              unit: widget.unitCtrl.text.trim().isEmpty ? 'pcs' : widget.unitCtrl.text.trim(),
-              createdAt: widget.existing?.createdAt ?? DateTime.now(),
-            );
-            final prov = widget.prov;
-            final isNew = widget.existing == null;
-            if (isNew) {
-              prov.addProduct(p);
-            } else {
-              prov.updateProduct(p);
-            }
-
-            Navigator.of(context, rootNavigator: true).pop();
-          },
+              onPressed: () {
+                if (widget.nameCtrl.text.trim().isEmpty) return;
+                
+                final p = Product(
+                  id: widget.existing?.id ?? _uuid.v4(),
+                  name: widget.nameCtrl.text.trim(),
+                  category: _category,
+                  buyPrice: double.tryParse(widget.buyCtrl.text) ?? 0,
+                  sellPrice: double.tryParse(widget.sellCtrl.text) ?? 0,
+                  stock: int.tryParse(widget.stockCtrl.text) ?? 0,
+                  unit: widget.unitCtrl.text.trim().isEmpty ? 'pcs' : widget.unitCtrl.text.trim(),
+                  createdAt: widget.existing?.createdAt ?? DateTime.now(),
+                );
+                
+                final isNew = widget.existing == null;
+                
+                Navigator.of(context, rootNavigator: true).pop();
+                if (isNew) {
+                  widget.prov.addProduct(p);
+                } else {
+                  widget.prov.updateProduct(p);
+                }
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _blue,
                 foregroundColor: Colors.white,
@@ -497,6 +523,14 @@ class _StockAdjustDialogState extends State<_StockAdjustDialog> {
             final newStock = (widget.product.stock + adj).clamp(0, 99999);
             widget.prov.updateProduct(widget.product.copyWith(stock: newStock));
             Navigator.pop(context);
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Stock adjusted to $newStock for "${widget.product.name}".'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
           },
           child: const Text('Apply',
               style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600, fontSize: 13)),

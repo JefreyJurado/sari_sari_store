@@ -123,6 +123,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     if (mounted) setState(() => _saving = false);
   }
 
+  String _getReceiptNumber() {
+    final dt = widget.sale.createdAt;
+    return '${dt.year.toString().substring(2)}${dt.month.toString().padLeft(2, '0')}${dt.day.toString().padLeft(2, '0')}-${dt.hour.toString().padLeft(2, '0')}${dt.minute.toString().padLeft(2, '0')}${dt.second.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final sale = widget.sale;
@@ -246,7 +251,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                             BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '#${sale.id.substring(0, 8).toUpperCase()}',
+                        'OR-${_getReceiptNumber()}',
                         style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 11,

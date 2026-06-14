@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'pin_screen.dart';
 import '../services/database_service.dart';
 import '../providers/app_provider.dart';
+import '../models/capital_entry.dart';
 
 const _blue = Color(0xFF1E3A8A);
 
@@ -15,11 +16,10 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _nameCtrl = TextEditingController();
-  final _setupCtrl = TextEditingController();
-  final _inventoryCtrl = TextEditingController();
   bool _notif = true;
   bool _pinEnabled = false;
   bool _loaded = false;
+  List<Map<String, dynamic>> _setupItems = [];
 
   @override
   void initState() {
@@ -37,10 +37,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _pinEnabled = prefs.getBool('pin_enabled') ?? false;
       final cap = prov.capital;
       if (cap != null) {
-        _setupCtrl.text =
-            cap.setupCosts.toStringAsFixed(2);
-        _inventoryCtrl.text =
-            cap.inventoryValue.toStringAsFixed(2);
+        _setupItems = cap.setupItems
+            .map((i) => {
+                  'label': i.label,
+                  'amount': i.amount.toStringAsFixed(2),
+                  'ctrl': TextEditingController(text: i.label),
+                  'amtCtrl': TextEditingController(
+                      text: i.amount.toStringAsFixed(2)),
+                })
+            .toList();
       }
       _loaded = true;
     });
@@ -53,11 +58,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool('notifications', _notif);
 
     final prov = context.read<AppProvider>();
+    final inventoryValue = prov.inventoryValue;
+    final setupItems = _setupItems
+        .map((i) => SetupCostItem(
+              label: (i['ctrl'] as TextEditingController).text.trim(),
+              amount: double.tryParse(
+                      (i['amtCtrl'] as TextEditingController).text) ??
+                  0,
+            ))
+        .where((i) => i.label.isNotEmpty)
+        .toList();
+    final totalSetup = setupItems.fold(0.0, (s, i) => s + i.amount);
     await prov.saveCapital(
-      setupCosts:
-          double.tryParse(_setupCtrl.text) ?? 0,
-      inventoryValue:
-          double.tryParse(_inventoryCtrl.text) ?? 0,
+      setupCosts: totalSetup,
+      inventoryValue: inventoryValue,
+      setupItems: setupItems,
     );
 
     if (mounted) {
@@ -542,8 +557,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _setupCtrl.dispose();
-    _inventoryCtrl.dispose();
+    for (final item in _setupItems) {
+      (item['ctrl'] as TextEditingController).dispose();
+      (item['amtCtrl'] as TextEditingController).dispose();
+    }
     super.dispose();
   }
 
@@ -699,17 +716,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.grey.shade200),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
                   padding: const EdgeInsets.all(14),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Row(children: [
-                        Icon(
-                            Icons.account_balance_outlined,
+                        Icon(Icons.account_balance_outlined,
                             color: _blue, size: 16),
                         SizedBox(width: 8),
                         Text('Initial Investment',
@@ -721,45 +735,224 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                           'Set once when starting your business. Used to track ROI and capital growth.',
                           style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[500])),
+                              fontSize: 11, color: Colors.grey[500])),
+                      const SizedBox(height: 16),
+
+                      // ── Setup Cost Items ──
+                      Row(children: [
+                        const Text('Business Setup Costs',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87)),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _setupItems.add({
+                                'label': '',
+                                'amount': '0',
+                                'ctrl': TextEditingController(),
+                                'amtCtrl': TextEditingController(),
+                              });
+                            });
+                          },
+                          icon: const Icon(Icons.add, size: 16, color: _blue),
+                          label: const Text('Add Item',
+                              style: TextStyle(fontSize: 12, color: _blue)),
+                          style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero),
+                        ),
+                      ]),
+                      const SizedBox(height: 8),
+
+                      if (_setupItems.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Row(children: [
+                            Icon(Icons.info_outline,
+                                size: 14, color: Colors.grey[400]),
+                            const SizedBox(width: 8),
+                            Text('Tap "Add Item" to add setup cost details',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey[500])),
+                          ]),
+                        )
+                      else
+                        ...List.generate(_setupItems.length, (i) {
+                          final item = _setupItems[i];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(children: [
+                              Expanded(
+                                flex: 3,
+                                child: TextField(
+                                  controller: item['ctrl'] as TextEditingController,
+                                  decoration: InputDecoration(
+                                    hintText: 'e.g. DTI, Equipment...',
+                                    hintStyle: TextStyle(
+                                        color: Colors.grey[400], fontSize: 12),
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey.shade300)),
+                                    enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey.shade300)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: TextField(
+                                  controller: item['amtCtrl'] as TextEditingController,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  decoration: InputDecoration(
+                                    prefixText: '₱ ',
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey.shade300)),
+                                    enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey.shade300)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                onPressed: () {
+                                  final item = _setupItems[i];
+                                  (item['ctrl'] as TextEditingController).dispose();
+                                  (item['amtCtrl'] as TextEditingController).dispose();
+                                  setState(() => _setupItems.removeAt(i));
+                                },
+                                icon: Icon(Icons.close,
+                                    size: 18, color: Colors.red.shade300),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                            ]),
+                          );
+                        }),
+
+                      if (_setupItems.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _blue.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: _blue.withValues(alpha: 0.15)),
+                          ),
+                          child: Row(children: [
+                            const Text('Total Setup Cost',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87)),
+                            const Spacer(),
+                            StatefulBuilder(
+                              builder: (context, _) {
+                                final total = _setupItems.fold(0.0, (s, item) =>
+                                    s + (double.tryParse(
+                                        (item['amtCtrl'] as TextEditingController).text) ?? 0));
+                                return Text(
+                                  '₱${total.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: _blue),
+                                );
+                              },
+                            ),
+                          ]),
+                        ),
+                      ],
+
                       const SizedBox(height: 14),
-                      _capitalField(
-                        _setupCtrl,
-                        'Business Setup Costs',
-                        'DTI, permits, equipment, renovation',
-                        Icons.store_mall_directory_outlined,
-                      ),
-                      const SizedBox(height: 10),
-                      _capitalField(
-                        _inventoryCtrl,
-                        'Starting Inventory Value',
-                        'Actual products bought to sell',
-                        Icons.inventory_2_outlined,
+
+                      // ── Auto Inventory ──
+                      Consumer<AppProvider>(
+                        builder: (context, prov, _) {
+                          final autoValue = prov.inventoryValue;
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _blue.withValues(alpha: 0.04),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: _blue.withValues(alpha: 0.15)),
+                            ),
+                            child: Row(children: [
+                              Icon(Icons.inventory_2_outlined,
+                                  color: Colors.grey[500], size: 18),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Starting Inventory Value',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.w500)),
+                                    Text('Auto-computed from your products',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey[500])),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                '₱${autoValue.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: _blue),
+                              ),
+                            ]),
+                          );
+                        },
                       ),
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: _blue.withValues(alpha: 0.04),
-                          borderRadius:
-                              BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color:
-                                  _blue.withValues(alpha: 0.12)),
+                              color: _blue.withValues(alpha: 0.12)),
                         ),
                         child: Row(children: [
                           Icon(Icons.info_outline,
                               size: 13,
-                              color:
-                                  _blue.withValues(alpha: 0.6)),
+                              color: _blue.withValues(alpha: 0.6)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Monthly operating costs (salary, rent, utilities) are tracked automatically via the Expenses screen.',
                               style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey[600]),
+                                  fontSize: 11, color: Colors.grey[600]),
                             ),
                           ),
                         ]),

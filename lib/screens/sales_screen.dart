@@ -1059,12 +1059,13 @@ class _CartSheetState extends State<_CartSheet> {
 
     if (sale != null) {
       final ctx = context;
+      final rootNav = Navigator.of(ctx, rootNavigator: true);
       final paymentType = _paymentType;
       final refText = _refCtrl.text;
       final customerName = customer?.name;
       final saleChange = sale.change;
 
-      Navigator.of(ctx).pop();
+      rootNav.pop();
 
       showDialog(
         context: ctx,
@@ -1175,12 +1176,14 @@ class _CartSheetState extends State<_CartSheet> {
             ),
             ElevatedButton(
               onPressed: () {
+                final saleCopy = sale;
                 Navigator.of(dialogCtx).pop();
-                Navigator.of(ctx).push(
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          ReceiptScreen(sale: sale)),
-                );
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  rootNav.push(
+                    MaterialPageRoute(
+                        builder: (_) => ReceiptScreen(sale: saleCopy)),
+                  );
+                });
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _blue,

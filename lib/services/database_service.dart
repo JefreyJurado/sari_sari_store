@@ -21,7 +21,7 @@ class DatabaseService {
         join(await getDatabasesPath(), 'pos_system.db');
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -86,6 +86,12 @@ class DatabaseService {
       overheadMonths INTEGER NOT NULL DEFAULT 1,
       createdAt TEXT NOT NULL,
       updatedAt TEXT)''');
+
+    await db.execute('''CREATE TABLE setup_cost_items(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      capitalId TEXT NOT NULL,
+      label TEXT NOT NULL,
+      amount REAL NOT NULL)''');
   }
 
   Future<void> _onUpgrade(Database db, int oldV,
@@ -112,6 +118,13 @@ class DatabaseService {
         await db.execute(
             'ALTER TABLE capital ADD COLUMN overheadMonths INTEGER NOT NULL DEFAULT 1');
       } catch (_) {}
+    }
+    if (oldV < 5) {
+      await db.execute('''CREATE TABLE IF NOT EXISTS setup_cost_items(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        capitalId TEXT NOT NULL,
+        label TEXT NOT NULL,
+        amount REAL NOT NULL)''');
     }
   }
 
@@ -333,15 +346,31 @@ class DatabaseService {
   }
 
   // ── CAPITAL ────────────────────────────────────────────
-  Future<void> upsertCapital(CapitalEntry c) async =>
-      (await database).insert('capital', c.toMap(),
-          conflictAlgorithm: ConflictAlgorithm.replace);
+  Future<void> upsertCapital(CapitalEntry c) async {
+    final db = await database;
+    await db.insert('capital', c.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.delete('setup_cost_items',
+        where: 'capitalId=?', whereArgs: [c.id]);
+    for (final item in c.setupItems) {
+      await db.insert('setup_cost_items', {
+        'capitalId': c.id,
+        'label': item.label,
+        'amount': item.amount,
+      });
+    }
+  }
 
   Future<CapitalEntry?> getCapital() async {
-    final maps = await (await database).query('capital',
+    final db = await database;
+    final maps = await db.query('capital',
         orderBy: 'createdAt DESC', limit: 1);
     if (maps.isEmpty) return null;
-    return CapitalEntry.fromMap(maps.first);
+    final capitalId = maps.first['id'] as String;
+    final itemMaps = await db.query('setup_cost_items',
+        where: 'capitalId=?', whereArgs: [capitalId]);
+    final items = itemMaps.map(SetupCostItem.fromMap).toList();
+    return CapitalEntry.fromMap(maps.first, items);
   }
 
   // ── BACKUP ─────────────────────────────────────────────

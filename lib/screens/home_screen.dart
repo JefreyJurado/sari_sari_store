@@ -1124,14 +1124,14 @@ class _CapitalCard extends StatelessWidget {
           _detailRow(
               'Business Setup Costs',
               CurrencyFormatter.format(
-                  prov.capital!.setupCosts),
+                  prov.capital?.setupCosts ?? 0),
               Icons.store_mall_directory_outlined,
               Colors.blue.shade600),
           const SizedBox(height: 10),
           _detailRow(
               'Starting Inventory',
               CurrencyFormatter.format(
-                  prov.capital!.inventoryValue),
+                  prov.inventoryValue),
               Icons.inventory_2_outlined,
               Colors.purple.shade600),
           const SizedBox(height: 10),

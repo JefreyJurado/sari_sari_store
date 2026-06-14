@@ -33,10 +33,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final prov = context.read<AppProvider>();
+    final prov = context.watch<AppProvider>();
     final currentSalesHash = Object.hashAll(prov.sales);
-    final currentExpensesHash =
-        Object.hashAll(prov.expenses);
+    final currentExpensesHash = Object.hashAll(prov.expenses);
     if (!_loading &&
         (currentSalesHash != _lastSalesHash ||
             currentExpensesHash != _lastExpensesHash)) {

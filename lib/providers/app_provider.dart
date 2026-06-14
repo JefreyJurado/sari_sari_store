@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:uuid/uuid.dart';
 import '../models/customer.dart';
 import '../models/product.dart';
@@ -10,6 +11,8 @@ import '../models/capital_entry.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../services/loyalty_service.dart';
+import '../models/capital_entry.dart';
+
 
 const _uuid = Uuid();
 
@@ -26,6 +29,16 @@ class AppProvider extends ChangeNotifier {
   bool isLoading = false;
 
   final Map<Product, int> cart = {};
+
+  // FIXED: A completely safe layout update pipeline that prevents '_dependents.isEmpty' frame-clash assertions
+  void _safeNotifyListeners() {
+    final binding = WidgetsBinding.instance;
+    if (binding.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      binding.addPostFrameCallback((_) => notifyListeners());
+    } else {
+      notifyListeners();
+    }
+  }
 
   // ── Computed ───────────────────────────────────────────────────
   double get cartTotal =>
@@ -60,7 +73,10 @@ class AppProvider extends ChangeNotifier {
 
   // ── Capital Computed ───────────────────────────────────────────
   double get totalInvestment =>
-      capital?.totalInvestment ?? 0;
+      (capital?.setupCosts ?? 0) + inventoryValue;
+
+  double get inventoryValue =>
+      products.fold(0.0, (s, p) => s + (p.buyPrice * p.stock));
 
   double get totalSalesProfit => sales
       .where((s) => s.status == TxStatus.completed)
@@ -69,7 +85,6 @@ class AppProvider extends ChangeNotifier {
   double get totalExpensesAmount =>
       expenses.fold(0.0, (s, e) => s + e.amount);
 
-  // Current Capital = Investment + All Sales Profit - All Expenses
   double get currentCapital =>
       totalInvestment + totalSalesProfit - totalExpensesAmount;
 
@@ -84,10 +99,10 @@ class AppProvider extends ChangeNotifier {
   // ── Init ───────────────────────────────────────────────────────
   Future<void> initialize() async {
     isLoading = true;
-    notifyListeners();
+    _safeNotifyListeners();
     await _loadAll();
     isLoading = false;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   Future<void> _loadAll() async {
@@ -110,7 +125,7 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> reload() async {
     await _loadAll();
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   // ── Cart ───────────────────────────────────────────────────────
@@ -118,7 +133,7 @@ class AppProvider extends ChangeNotifier {
     final qty = cart[product] ?? 0;
     if (qty >= product.stock) return;
     cart[product] = qty + 1;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void setCartQty(Product product, int qty) {
@@ -127,17 +142,17 @@ class AppProvider extends ChangeNotifier {
     } else if (qty <= product.stock) {
       cart[product] = qty;
     }
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void removeFromCart(Product product) {
     cart.remove(product);
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void clearCart() {
     cart.clear();
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   // ── Sales ──────────────────────────────────────────────────────
@@ -213,7 +228,7 @@ class AppProvider extends ChangeNotifier {
 
     clearCart();
     await _loadAll();
-    notifyListeners();
+    _safeNotifyListeners();
 
     final lowStockNames = lowStock.map((p) => p.name).toList();
     final outOfStockNames = outOfStock.map((p) => p.name).toList();
@@ -223,7 +238,6 @@ class AppProvider extends ChangeNotifier {
     return sale;
   }
 
-  // ── Complete Sale With Items (Credit Order) ────────────────────
   Future<Sale?> completeSaleWithItems({
     required List<dynamic> items,
     required double cashPaid,
@@ -300,7 +314,7 @@ class AppProvider extends ChangeNotifier {
     }
 
     await _loadAll();
-    notifyListeners();
+    _safeNotifyListeners();
     return sale;
   }
 
@@ -351,16 +365,16 @@ class AppProvider extends ChangeNotifier {
 
   // ── Products ───────────────────────────────────────────────────
   Future<void> addProduct(Product p) async {
-  await _db.insertProduct(p);
-  products = await _db.getProducts();
-  notifyListeners();
-}
+    await _db.insertProduct(p);
+    products = await _db.getProducts();
+    _safeNotifyListeners(); // FIXED: Protected from frame collisons
+  }
 
   Future<void> updateProduct(Product p) async {
-  await _db.updateProduct(p);
-  products = await _db.getProducts();
-  notifyListeners();
-}
+    await _db.updateProduct(p);
+    products = await _db.getProducts();
+    _safeNotifyListeners(); // FIXED: Protected from frame collisons
+  }
 
   Future<void> archiveProduct(String id) async {
     await _db.archiveProduct(id);
@@ -371,17 +385,19 @@ class AppProvider extends ChangeNotifier {
   Future<void> saveCapital({
     required double setupCosts,
     required double inventoryValue,
+    List<SetupCostItem>? setupItems,
   }) async {
     final entry = CapitalEntry(
       id: capital?.id ?? _uuid.v4(),
       setupCosts: setupCosts,
       inventoryValue: inventoryValue,
+      setupItems: setupItems ?? capital?.setupItems ?? [],
       createdAt: capital?.createdAt ?? DateTime.now(),
       updatedAt: capital != null ? DateTime.now() : null,
     );
     await _db.upsertCapital(entry);
     capital = entry;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   // ── Expenses ───────────────────────────────────────────────────
