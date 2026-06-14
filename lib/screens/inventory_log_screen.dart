@@ -210,7 +210,8 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
                             ]),
                           );
                         },
-                     ),
+                        );
+                      }),
           ),
         ],
       ),
