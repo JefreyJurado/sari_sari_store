@@ -127,92 +127,118 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Products',
-                              style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                  letterSpacing: -0.5)),
-                          const SizedBox(height: 4),
-                          Text('Manage store items and real-time stock',
-                              style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Products',
+                                style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                    letterSpacing: -0.5)),
+                            const SizedBox(height: 4),
+                            Text('Manage store items and real-time stock',
+                                style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 12),
                       Row(children: [
-                        IconButton(
-                          icon: const Icon(Icons.qr_code_scanner_outlined,
-                              color: Colors.black54, size: 22),
+                        _iconBtn(
+                          icon: Icons.qr_code_scanner_outlined,
                           onPressed: () => Navigator.push(context,
                               MaterialPageRoute(builder: (_) => const BarcodeScannerScreen())),
                         ),
+                        const SizedBox(width: 8),
                         PopupMenuButton<String>(
                           onSelected: (v) => setState(() => _sortBy = v),
-                          icon: const Icon(Icons.sort_outlined, color: Colors.black54, size: 22),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          offset: const Offset(0, 40),
                           itemBuilder: (_) => const [
                             PopupMenuItem(value: 'name', child: Text('Sort by Name', style: TextStyle(fontSize: 13))),
                             PopupMenuItem(value: 'stock', child: Text('Sort by Stock', style: TextStyle(fontSize: 13))),
                             PopupMenuItem(value: 'price', child: Text('Sort by Price', style: TextStyle(fontSize: 13))),
                           ],
+                          child: _labelBtn(Icons.sort_outlined, 'Sort'),
                         ),
                       ]),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // ── More Options ──
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      PopupMenuButton<String>(
-                          icon: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(10),
+                  // ── Tools Row ──────────────────────────
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => const InventoryLogScreen())),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                              decoration: BoxDecoration(
+                                color: _blue.withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: _blue.withValues(alpha: 0.2)),
+                              ),
+                              child: const Row(children: [
+                                Icon(Icons.table_chart_outlined, size: 18, color: _blue),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('Inventory Log',
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
+                                      Text('Monthly stock tracking',
+                                          style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                    ],
+                                  ),
+                                ),
+                                Icon(Icons.chevron_right, size: 16, color: _blue),
+                              ]),
                             ),
-                            child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(Icons.more_horiz_rounded, color: _blue, size: 18),
-                              SizedBox(width: 4),
-                              Text('More', style: TextStyle(fontSize: 12, color: _blue, fontWeight: FontWeight.w600)),
-                            ]),
                           ),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          offset: const Offset(0, 40),
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(
-                              value: 'inventory_log',
-                              child: Row(children: [
-                                Icon(Icons.table_chart_outlined, size: 16, color: _blue),
-                                SizedBox(width: 8),
-                                Text('Inventory Control Log', style: TextStyle(fontSize: 13, color: _blue)),
-                              ]),
-                            ),
-                            PopupMenuItem(
-                              value: 'clear_defaults',
-                              child: Row(children: [
-                                Icon(Icons.delete_sweep_outlined, size: 16, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Clear Default Products', style: TextStyle(fontSize: 13, color: Colors.red)),
-                              ]),
-                            ),
-                          ],
-                          onSelected: (v) {
-                            if (v == 'clear_defaults') {
-                              _confirmClearDefaults(context, context.read<AppProvider>());
-                            } else if (v == 'inventory_log') {
-                              Navigator.push(context,
-                                  MaterialPageRoute(builder: (_) => const InventoryLogScreen()));
-                            }
-                          },
                         ),
-                    ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _confirmClearDefaults(context, context.read<AppProvider>()),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.red.shade200),
+                              ),
+                              child: Row(children: [
+                                Icon(Icons.delete_sweep_outlined, size: 18, color: Colors.red.shade600),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('Clear Products',
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.red.shade600)),
+                                      const Text('Archive all items',
+                                          style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                    ],
+                                  ),
+                                ),
+                                Icon(Icons.chevron_right, size: 16, color: Colors.red.shade400),
+                              ]),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(children: [
@@ -353,6 +379,36 @@ class _InventoryScreenState extends State<InventoryScreen> {
         context: screenCtx,
         builder: (dialogCtx) => _StockAdjustDialog(product: product, prov: prov));
   }
+
+  Widget _iconBtn({required IconData icon, required VoidCallback onPressed}) =>
+      GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: Colors.black54, size: 20),
+        ),
+      );
+
+  Widget _labelBtn(IconData icon, String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: _blue, size: 16),
+          const SizedBox(width: 4),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 12,
+                  color: _blue,
+                  fontWeight: FontWeight.w600)),
+        ]),
+      );
 
   void _confirmArchive(BuildContext screenCtx, AppProvider prov, Product product) {
     showDialog(

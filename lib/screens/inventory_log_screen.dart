@@ -19,9 +19,8 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
   static List<String> _generateMonths() {
     final now = DateTime.now();
     final months = <String>[];
-    for (int i = 0; i < 12; i++) {
-      final d = DateTime(now.year, now.month - i, 1);
-      months.add('${d.year}-${d.month.toString().padLeft(2, '0')}');
+    for (int i = 1; i <= 12; i++) {
+      months.add('${now.year}-${i.toString().padLeft(2, '0')}');
     }
     return months;
   }
@@ -29,7 +28,8 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedMonth = _months.first;
+    final now = DateTime.now();
+    _selectedMonth = '${now.year}-${now.month.toString().padLeft(2, '0')}';
     _loadSnapshot();
   }
 
@@ -153,11 +153,14 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
                           Text('No inventory data', style: TextStyle(color: Colors.grey[400], fontSize: 14)),
                         ]),
                       )
-                    : ListView.builder(
+                    : Builder(builder: (_) {
+                        final sorted = List<Map<String, dynamic>>.from(_snapshot)
+                          ..sort((a, b) => (b['stockSold'] as num).compareTo(a['stockSold'] as num));
+                        return ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        itemCount: _snapshot.length,
+                        itemCount: sorted.length,
                         itemBuilder: (_, i) {
-                          final p = _snapshot[i];
+                          final p = sorted[i];
                           final endingStock = (p['endingStock'] as num).toInt();
                           final stockSold = (p['stockSold'] as num).toInt();
                           final beginningStock = (p['beginningStock'] as num).toInt();
@@ -207,7 +210,7 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
                             ]),
                           );
                         },
-                      ),
+                     ),
           ),
         ],
       ),

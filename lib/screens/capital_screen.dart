@@ -238,8 +238,9 @@ class _CapitalScreenState extends State<CapitalScreen> {
                               )
                             else
                               ...List.generate(_setupItems.length, (i) {
-                                final item = _setupItems[i];
-                                final itemDate = item['date'] as DateTime? ?? DateTime.now();
+                                final itemDate = _setupItems[i]['date'] as DateTime? ?? DateTime.now();
+                                final currentCategory = _setupItems[i]['category'] as String? ?? 'Equipment';
+                                final currentPayment = _setupItems[i]['paymentMethod'] as String? ?? 'Cash';
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(12),
@@ -253,7 +254,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
                                       Expanded(
                                         flex: 3,
                                         child: TextField(
-                                          controller: item['ctrl'] as TextEditingController,
+                                          controller: _setupItems[i]['ctrl'] as TextEditingController,
                                           decoration: InputDecoration(
                                             hintText: 'e.g. DTI, Equipment...',
                                             labelText: 'Description',
@@ -271,7 +272,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
                                       Expanded(
                                         flex: 2,
                                         child: TextField(
-                                          controller: item['amtCtrl'] as TextEditingController,
+                                          controller: _setupItems[i]['amtCtrl'] as TextEditingController,
                                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                           decoration: InputDecoration(
                                             prefixText: '₱ ',
@@ -307,7 +308,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
                                     Row(children: [
                                       Expanded(
                                         child: TextField(
-                                          controller: item['vendorCtrl'] as TextEditingController,
+                                          controller: _setupItems[i]['vendorCtrl'] as TextEditingController,
                                           decoration: InputDecoration(
                                             hintText: 'Vendor (optional)',
                                             labelText: 'Vendor',
@@ -336,7 +337,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
                                           ),
                                           child: DropdownButtonHideUnderline(
                                             child: DropdownButton<String>(
-                                              value: (item['category'] as String?)?.isEmpty == true ? 'Equipment' : (item['category'] as String? ?? 'Equipment'),
+                                              value: (_setupItems[i]['category'] as String?)?.isEmpty == true ? 'Equipment' : (_setupItems[i]['category'] as String? ?? 'Equipment'),
                                               isDense: true,
                                               items: SetupCostItem.categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 12)))).toList(),
                                               onChanged: (v) {
@@ -364,7 +365,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
                                           ),
                                           child: DropdownButtonHideUnderline(
                                             child: DropdownButton<String>(
-                                              value: (item['paymentMethod'] as String?)?.isEmpty == true ? 'Cash' : (item['paymentMethod'] as String? ?? 'Cash'),
+                                              value: (_setupItems[i]['paymentMethod'] as String?)?.isEmpty == true ? 'Cash' : (_setupItems[i]['paymentMethod'] as String? ?? 'Cash'),
                                               isDense: true,
                                               items: SetupCostItem.paymentMethods.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 12)))).toList(),
                                               onChanged: (v) {

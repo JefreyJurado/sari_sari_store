@@ -462,6 +462,10 @@ class DatabaseService {
         'capitalId': c.id,
         'label': item.label,
         'amount': item.amount,
+        'category': item.category,
+        'vendor': item.vendor,
+        'paymentMethod': item.paymentMethod,
+        'date': item.date.toIso8601String(),
       });
     }
   }
