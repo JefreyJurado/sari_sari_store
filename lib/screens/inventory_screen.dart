@@ -160,9 +160,29 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             PopupMenuItem(value: 'price', child: Text('Sort by Price', style: TextStyle(fontSize: 13))),
                           ],
                         ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert_outlined, color: Colors.black54, size: 22),
+                      ]),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // ── More Options ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      PopupMenuButton<String>(
+                          icon: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.more_horiz_rounded, color: _blue, size: 18),
+                              SizedBox(width: 4),
+                              Text('More', style: TextStyle(fontSize: 12, color: _blue, fontWeight: FontWeight.w600)),
+                            ]),
+                          ),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          offset: const Offset(0, 40),
                           itemBuilder: (_) => const [
                             PopupMenuItem(
                               value: 'inventory_log',
@@ -190,10 +210,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             }
                           },
                         ),
-                      ])
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(children: [

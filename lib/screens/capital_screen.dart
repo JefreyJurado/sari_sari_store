@@ -59,8 +59,12 @@ class _CapitalScreenState extends State<CapitalScreen> {
     final setupItems = _setupItems
         .map((item) {
           // Explicitly cast and default check safely
-          final selectedCategory = item['category'] as String? ?? '';
-          final selectedPayment = item['paymentMethod'] as String? ?? '';
+          final selectedCategory = (item['category'] as String?)?.isNotEmpty == true 
+              ? item['category'] as String 
+              : 'Equipment';
+          final selectedPayment = (item['paymentMethod'] as String?)?.isNotEmpty == true 
+              ? item['paymentMethod'] as String 
+              : 'Cash';
           
           return SetupCostItem(
             label: (item['ctrl'] as TextEditingController).text.trim(),
@@ -320,54 +324,60 @@ class _CapitalScreenState extends State<CapitalScreen> {
                                     const SizedBox(height: 8),
                                     Row(children: [
                                       Expanded(
-                                        child: DropdownButtonFormField<String>(
-                                            key: ValueKey('cat_$i'),
-                                            initialValue: (item['category'] as String?)?.isEmpty == true ? 'Equipment' : (item['category'] as String? ?? 'Equipment'),
-                                            hint: const Text('Select Category', style: TextStyle(fontSize: 12)),
-                                            decoration: InputDecoration(
+                                        child: InputDecorator(
+                                          decoration: InputDecoration(
                                             labelText: 'Category',
                                             labelStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
                                             filled: true,
                                             fillColor: Colors.white,
-                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
                                             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                          ),
+                                          child: DropdownButtonHideUnderline(
+                                            child: DropdownButton<String>(
+                                              value: (item['category'] as String?)?.isEmpty == true ? 'Equipment' : (item['category'] as String? ?? 'Equipment'),
+                                              isDense: true,
+                                              items: SetupCostItem.categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 12)))).toList(),
+                                              onChanged: (v) {
+                                                if (v != null) {
+                                                  setState(() {
+                                                    _setupItems[i]['category'] = v;
+                                                  });
+                                                }
+                                              },
                                             ),
-                                            items: SetupCostItem.categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 12)))).toList(),
-                                            onChanged: (v) {
-                                            if (v != null) {
-                                                setState(() {
-                                                _setupItems[i]['category'] = v;
-                                                });
-                                            }
-                                            },
+                                          ),
                                         ),
-                                        ),
+                                      ),
                                       const SizedBox(width: 8),
                                       Expanded(
-                                        child: DropdownButtonFormField<String>(
-                                            key: ValueKey('pay_$i'),
-                                            initialValue: (item['paymentMethod'] as String?)?.isEmpty == true ? 'Cash' : (item['paymentMethod'] as String? ?? 'Cash'),
-                                            hint: const Text('Select Payment', style: TextStyle(fontSize: 12)),
-                                            decoration: InputDecoration(
+                                        child: InputDecorator(
+                                          decoration: InputDecoration(
                                             labelText: 'Payment',
                                             labelStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
                                             filled: true,
                                             fillColor: Colors.white,
-                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
                                             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                          ),
+                                          child: DropdownButtonHideUnderline(
+                                            child: DropdownButton<String>(
+                                              value: (item['paymentMethod'] as String?)?.isEmpty == true ? 'Cash' : (item['paymentMethod'] as String? ?? 'Cash'),
+                                              isDense: true,
+                                              items: SetupCostItem.paymentMethods.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 12)))).toList(),
+                                              onChanged: (v) {
+                                                if (v != null) {
+                                                  setState(() {
+                                                    _setupItems[i]['paymentMethod'] = v;
+                                                  });
+                                                }
+                                              },
                                             ),
-                                            items: SetupCostItem.paymentMethods.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 12)))).toList(),
-                                            onChanged: (v) {
-                                            if (v != null) {
-                                                setState(() {
-                                                _setupItems[i]['paymentMethod'] = v;
-                                                });
-                                            }
-                                            },
+                                          ),
                                         ),
-                                        ),
+                                      ),
                                     ]),
                                     const SizedBox(height: 8),
                                     GestureDetector(
