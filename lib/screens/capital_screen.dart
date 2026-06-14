@@ -62,7 +62,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
     final totalSetup = setupItems.fold(0.0, (s, i) => s + i.amount);
     await prov.saveCapital(
       setupCosts: totalSetup,
-      inventoryValue: 0,
+      inventoryValue: prov.currentInventoryValue,
       setupItems: setupItems,
     );
     if (mounted) {

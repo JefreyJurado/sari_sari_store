@@ -70,20 +70,18 @@ class AppProvider extends ChangeNotifier {
 
   // ── Capital Computed ───────────────────────────────────────────
   
-  // 1. Locked baseline snapshot of starting inventory (defaults to 0 if empty)
-  double get startingInventoryValue => inventoryValue;
-
-  // 2. Business setup costs extracted directly from capital database entry records
-  double get businessSetupCosts => capital?.setupCosts ?? 0.0;
-
-  // 3. FIXED: Total investment now cleanly sums up initial frozen capital configurations
-  double get totalInvestment => businessSetupCosts + inventoryValue;
-
-  // 4. Live total item valuation across your database shelves (Kept independent)
-  double get inventoryValue =>
+  // 1. Current Inventory Value — live, mula sa inventory screen
+  double get currentInventoryValue =>
       products.fold(0.0, (s, p) => s + (p.buyPrice * p.stock));
 
-  double get currentInventoryValue => inventoryValue;
+  // 2. Business setup costs — manually added
+  double get businessSetupCosts => capital?.setupCosts ?? 0.0;
+
+  // 3. Total Investment = Current Inventory + Setup Costs
+  double get totalInvestment => businessSetupCosts + currentInventoryValue;
+
+  // 4. Alias para sa compatibility
+  double get inventoryValue => currentInventoryValue;
 
   double get totalSalesProfit => sales
       .where((s) => s.status == TxStatus.completed)
