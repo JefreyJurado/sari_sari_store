@@ -19,7 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notif = true;
   bool _pinEnabled = false;
   bool _loaded = false;
-  List<Map<String, dynamic>> _setupItems = [];
+  List<Map<String, Object>> _setupItems = [];
 
   @override
   void initState() {
@@ -38,13 +38,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final cap = prov.capital;
       if (cap != null) {
         _setupItems = cap.setupItems
-            .map((i) => {
-                  'label': i.label,
-                  'amount': i.amount.toStringAsFixed(2),
-                  'ctrl': TextEditingController(text: i.label),
-                  'amtCtrl': TextEditingController(
-                      text: i.amount.toStringAsFixed(2)),
-                })
+            .map<Map<String, Object>>((i) {
+              final amtCtrl = TextEditingController(text: i.amount.toStringAsFixed(2));
+              amtCtrl.addListener(() => setState(() {}));
+              return {
+                'label': i.label,
+                'amount': i.amount.toStringAsFixed(2),
+                'ctrl': TextEditingController(text: i.label),
+                'amtCtrl': amtCtrl,
+              };
+            })
             .toList();
       }
       _loaded = true;
@@ -53,25 +56,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-        'store_name', _nameCtrl.text.trim());
+    await prefs.setString('store_name', _nameCtrl.text.trim());
     await prefs.setBool('notifications', _notif);
 
     final prov = context.read<AppProvider>();
-    final inventoryValue = prov.inventoryValue;
+    
     final setupItems = _setupItems
         .map((i) => SetupCostItem(
               label: (i['ctrl'] as TextEditingController).text.trim(),
-              amount: double.tryParse(
-                      (i['amtCtrl'] as TextEditingController).text) ??
-                  0,
+              amount: double.tryParse((i['amtCtrl'] as TextEditingController).text) ?? 0,
             ))
         .where((i) => i.label.isNotEmpty)
         .toList();
+        
     final totalSetup = setupItems.fold(0.0, (s, i) => s + i.amount);
+    
+    // The provider maintains the baseline inventory value snapshot 
+    // instead of allowing live fluctuations to disrupt it.
     await prov.saveCapital(
       setupCosts: totalSetup,
-      inventoryValue: inventoryValue,
+      inventoryValue: prov.inventoryValue,
       setupItems: setupItems,
     );
 
@@ -81,11 +85,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         barrierDismissible: false,
         builder: (_) => Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-                vertical: 32, horizontal: 24),
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -95,45 +97,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: Colors.green.shade50,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.check_rounded,
-                      color: Colors.green.shade600,
-                      size: 36),
+                  child: Icon(Icons.check_rounded, color: Colors.green.shade600, size: 36),
                 ),
                 const SizedBox(height: 16),
                 const Text('Settings Saved!',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87)),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                 const SizedBox(height: 8),
-                Text(
-                    'Your changes have been saved successfully.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 13)),
+                Text('Your changes have been saved successfully.',
+                    textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () =>
-                        Navigator.pop(context),
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      
+                      // Forces state data re-hydration to prevent out-of-sync form manipulation layout crashes
+                      await prov.reload(); 
+                      await _load();
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _blue,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding:
-                          const EdgeInsets.symmetric(
-                              vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text('Done',
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight:
-                                FontWeight.w600)),
+                    child: const Text('Done', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -521,45 +511,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
 
-  Widget _capitalField(
-    TextEditingController ctrl,
-    String label,
-    String hint,
-    IconData icon,
-  ) =>
-      TextField(
-        controller: ctrl,
-        keyboardType: const TextInputType.numberWithOptions(
-            decimal: true),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(
-              color: Colors.grey[600], fontSize: 13),
-          hintText: hint,
-          hintStyle: TextStyle(
-              color: Colors.grey[400], fontSize: 11),
-          prefixText: '₱ ',
-          prefixIcon: Icon(icon,
-              size: 18, color: Colors.grey[500]),
-          filled: true,
-          fillColor: Colors.grey.shade50,
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  BorderSide(color: Colors.grey.shade300)),
-          enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  BorderSide(color: Colors.grey.shade300)),
-        ),
-      );
-
   @override
   void dispose() {
     _nameCtrl.dispose();
-    for (final item in _setupItems) {
-      (item['ctrl'] as TextEditingController).dispose();
-      (item['amtCtrl'] as TextEditingController).dispose();
+    if (_setupItems.isNotEmpty) {
+      for (final item in _setupItems) {
+        if (item['ctrl'] is TextEditingController) {
+          (item['ctrl'] as TextEditingController).dispose();
+        }
+        if (item['amtCtrl'] is TextEditingController) {
+          (item['amtCtrl'] as TextEditingController).dispose();
+        }
+      }
     }
     super.dispose();
   }
@@ -574,8 +537,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
               children: [
-
-                // ── Non-sticky Header ────────────────────
                 Row(
                   mainAxisAlignment:
                       MainAxisAlignment.spaceBetween,
@@ -597,7 +558,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         fontSize: 13)),
                 const SizedBox(height: 20),
 
-                // ── Store info card ──────────────────────
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -667,7 +627,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // ── Store Name ───────────────────────────
                 _label('STORE'),
                 Container(
                   decoration: BoxDecoration(
@@ -710,259 +669,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // ── Beginning Balance ────────────────────
-                _label('BEGINNING BALANCE'),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(children: [
-                        Icon(Icons.account_balance_outlined,
-                            color: _blue, size: 16),
-                        SizedBox(width: 8),
-                        Text('Initial Investment',
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87)),
-                      ]),
-                      Text(
-                          'Set once when starting your business. Used to track ROI and capital growth.',
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey[500])),
-                      const SizedBox(height: 16),
-
-                      // ── Setup Cost Items ──
-                      Row(children: [
-                        const Text('Business Setup Costs',
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87)),
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _setupItems.add({
-                                'label': '',
-                                'amount': '0',
-                                'ctrl': TextEditingController(),
-                                'amtCtrl': TextEditingController(),
-                              });
-                            });
-                          },
-                          icon: const Icon(Icons.add, size: 16, color: _blue),
-                          label: const Text('Add Item',
-                              style: TextStyle(fontSize: 12, color: _blue)),
-                          style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero),
-                        ),
-                      ]),
-                      const SizedBox(height: 8),
-
-                      if (_setupItems.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: Row(children: [
-                            Icon(Icons.info_outline,
-                                size: 14, color: Colors.grey[400]),
-                            const SizedBox(width: 8),
-                            Text('Tap "Add Item" to add setup cost details',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey[500])),
-                          ]),
-                        )
-                      else
-                        ...List.generate(_setupItems.length, (i) {
-                          final item = _setupItems[i];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(children: [
-                              Expanded(
-                                flex: 3,
-                                child: TextField(
-                                  controller: item['ctrl'] as TextEditingController,
-                                  decoration: InputDecoration(
-                                    hintText: 'e.g. DTI, Equipment...',
-                                    hintStyle: TextStyle(
-                                        color: Colors.grey[400], fontSize: 12),
-                                    filled: true,
-                                    fillColor: Colors.grey.shade50,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 10),
-                                    border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide(
-                                            color: Colors.grey.shade300)),
-                                    enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide(
-                                            color: Colors.grey.shade300)),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                flex: 2,
-                                child: TextField(
-                                  controller: item['amtCtrl'] as TextEditingController,
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  decoration: InputDecoration(
-                                    prefixText: '₱ ',
-                                    filled: true,
-                                    fillColor: Colors.grey.shade50,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 10),
-                                    border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide(
-                                            color: Colors.grey.shade300)),
-                                    enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide(
-                                            color: Colors.grey.shade300)),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              IconButton(
-                                onPressed: () {
-                                  final item = _setupItems[i];
-                                  (item['ctrl'] as TextEditingController).dispose();
-                                  (item['amtCtrl'] as TextEditingController).dispose();
-                                  setState(() => _setupItems.removeAt(i));
-                                },
-                                icon: Icon(Icons.close,
-                                    size: 18, color: Colors.red.shade300),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ]),
-                          );
-                        }),
-
-                      if (_setupItems.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _blue.withValues(alpha: 0.04),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: _blue.withValues(alpha: 0.15)),
-                          ),
-                          child: Row(children: [
-                            const Text('Total Setup Cost',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87)),
-                            const Spacer(),
-                            StatefulBuilder(
-                              builder: (context, _) {
-                                final total = _setupItems.fold(0.0, (s, item) =>
-                                    s + (double.tryParse(
-                                        (item['amtCtrl'] as TextEditingController).text) ?? 0));
-                                return Text(
-                                  '₱${total.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      color: _blue),
-                                );
-                              },
-                            ),
-                          ]),
-                        ),
-                      ],
-
-                      const SizedBox(height: 14),
-
-                      // ── Auto Inventory ──
-                      Consumer<AppProvider>(
-                        builder: (context, prov, _) {
-                          final autoValue = prov.inventoryValue;
-                          return Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: _blue.withValues(alpha: 0.04),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                  color: _blue.withValues(alpha: 0.15)),
-                            ),
-                            child: Row(children: [
-                              Icon(Icons.inventory_2_outlined,
-                                  color: Colors.grey[500], size: 18),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Starting Inventory Value',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.black87,
-                                            fontWeight: FontWeight.w500)),
-                                    Text('Auto-computed from your products',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[500])),
-                                  ],
-                                ),
-                              ),
-                              Text(
-                                '₱${autoValue.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    color: _blue),
-                              ),
-                            ]),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: _blue.withValues(alpha: 0.04),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: _blue.withValues(alpha: 0.12)),
-                        ),
-                        child: Row(children: [
-                          Icon(Icons.info_outline,
-                              size: 13,
-                              color: _blue.withValues(alpha: 0.6)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Monthly operating costs (salary, rent, utilities) are tracked automatically via the Expenses screen.',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey[600]),
-                            ),
-                          ),
-                        ]),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // ── Notifications ────────────────────────
                 _label('NOTIFICATIONS'),
                 Container(
                   decoration: BoxDecoration(
@@ -994,7 +700,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // ── Security ─────────────────────────────
                 _label('SECURITY'),
                 Container(
                   decoration: BoxDecoration(
@@ -1079,7 +784,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
                 const SizedBox(height: 16),
 
-                // ── Danger Zone ──────────────────────────
                 _label('DANGER ZONE'),
                 Container(
                   decoration: BoxDecoration(
@@ -1136,7 +840,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // ── About ────────────────────────────────
                 _label('ABOUT'),
                 Container(
                   decoration: BoxDecoration(
@@ -1184,7 +887,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Save button
                 ElevatedButton(
                   onPressed: _save,
                   style: ElevatedButton.styleFrom(

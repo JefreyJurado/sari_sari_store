@@ -67,10 +67,11 @@ class PdfReportService {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: pageFormat,
-        margin: const pw.EdgeInsets.all(32),
-        header: (ctx) => _buildHeader(
-            ctx, periodLabel, dateStr, timeStr,
-            bold, font, storeName),
+        margin: const pw.EdgeInsets.fromLTRB(32, 32, 32, 48),
+        header: (ctx) => ctx.pageNumber == 1
+            ? _buildHeader(ctx, periodLabel, dateStr, timeStr,
+                bold, font, storeName)
+            : pw.SizedBox(),
         footer: (ctx) => _buildFooter(ctx, font),
         build: (ctx) => [
           _buildSummarySection(report, bold, font),

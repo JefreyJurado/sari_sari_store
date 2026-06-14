@@ -9,6 +9,11 @@ class Product {
   final String? barcode;
   final bool isActive;
   final DateTime createdAt;
+  final int reorderPoint;
+  final DateTime? expiryDate;
+  final String? supplierName;
+  final String? supplierContact;
+  final String? seasonalTag;
 
   Product({
     required this.id,
@@ -21,12 +26,35 @@ class Product {
     this.barcode,
     this.isActive = true,
     required this.createdAt,
+    this.reorderPoint = 5,
+    this.expiryDate,
+    this.supplierName,
+    this.supplierContact,
+    this.seasonalTag,
   });
 
   double get profit => sellPrice - buyPrice;
   double get margin => buyPrice > 0 ? (profit / buyPrice) * 100 : 0;
-  bool get isLowStock => stock > 0 && stock <= 5;
+  bool get isLowStock => stock > 0 && stock <= reorderPoint;
   bool get isOutOfStock => stock <= 0;
+  bool get isNearExpiry {
+    if (expiryDate == null) return false;
+    final daysLeft = expiryDate!.difference(DateTime.now()).inDays;
+    return daysLeft >= 0 && daysLeft <= 7;
+  }
+  bool get isExpired {
+    if (expiryDate == null) return false;
+    return expiryDate!.isBefore(DateTime.now());
+  }
+
+  static const List<String> seasonalTags = [
+    'None',
+    'Typhoon Season',
+    'Christmas',
+    'Back to School',
+    'Fiesta',
+    'Summer',
+  ];
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -39,6 +67,11 @@ class Product {
         'barcode': barcode,
         'isActive': isActive ? 1 : 0,
         'createdAt': createdAt.toIso8601String(),
+        'reorderPoint': reorderPoint,
+        'expiryDate': expiryDate?.toIso8601String(),
+        'supplierName': supplierName,
+        'supplierContact': supplierContact,
+        'seasonalTag': seasonalTag,
       };
 
   factory Product.fromMap(Map<String, dynamic> map) => Product(
@@ -52,6 +85,13 @@ class Product {
         barcode: map['barcode'],
         isActive: map['isActive'] == 1,
         createdAt: DateTime.parse(map['createdAt']),
+        reorderPoint: map['reorderPoint'] as int? ?? 5,
+        expiryDate: map['expiryDate'] != null
+            ? DateTime.tryParse(map['expiryDate'] as String)
+            : null,
+        supplierName: map['supplierName'],
+        supplierContact: map['supplierContact'],
+        seasonalTag: map['seasonalTag'],
       );
 
   Product copyWith({
@@ -63,6 +103,12 @@ class Product {
     String? unit,
     String? barcode,
     bool? isActive,
+    int? reorderPoint,
+    DateTime? expiryDate,
+    bool clearExpiry = false,
+    String? supplierName,
+    String? supplierContact,
+    String? seasonalTag,
   }) =>
       Product(
         id: id,
@@ -75,5 +121,10 @@ class Product {
         barcode: barcode ?? this.barcode,
         isActive: isActive ?? this.isActive,
         createdAt: createdAt,
+        reorderPoint: reorderPoint ?? this.reorderPoint,
+        expiryDate: clearExpiry ? null : (expiryDate ?? this.expiryDate),
+        supplierName: supplierName ?? this.supplierName,
+        supplierContact: supplierContact ?? this.supplierContact,
+        seasonalTag: seasonalTag ?? this.seasonalTag,
       );
 }

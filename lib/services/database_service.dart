@@ -21,7 +21,7 @@ class DatabaseService {
         join(await getDatabasesPath(), 'pos_system.db');
     return openDatabase(
       path,
-      version: 5,
+      version: 7,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -39,7 +39,12 @@ class DatabaseService {
       buyPrice REAL NOT NULL, sellPrice REAL NOT NULL,
       stock INTEGER NOT NULL DEFAULT 0, unit TEXT,
       barcode TEXT, isActive INTEGER NOT NULL DEFAULT 1,
-      createdAt TEXT NOT NULL)''');
+      createdAt TEXT NOT NULL,
+      reorderPoint INTEGER NOT NULL DEFAULT 5,
+      expiryDate TEXT,
+      supplierName TEXT,
+      supplierContact TEXT,
+      seasonalTag TEXT)''');
 
     await db.execute('''CREATE TABLE sales(
       id TEXT PRIMARY KEY, totalAmount REAL NOT NULL,
@@ -126,6 +131,45 @@ class DatabaseService {
         label TEXT NOT NULL,
         amount REAL NOT NULL)''');
     }
+    if (oldV < 6) {
+      final categoryMap = {
+        'Inumin': 'Drinks / Beverages',
+        'Pagkain (Canned)': 'Food (Canned)',
+        'Merienda / Snacks': 'Snacks',
+        'Bigas at Pasta': 'Rice and Pasta',
+        'Kondimento': 'Condiments',
+        'Panaderya': 'Bakery / Bread',
+        'Sigarilyo': 'Cigarettes',
+      };
+      for (final entry in categoryMap.entries) {
+        await db.execute(
+          "UPDATE products SET category = ? WHERE category = ?",
+          [entry.value, entry.key],
+        );
+      }
+    }
+    if (oldV < 7) {
+      try {
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN reorderPoint INTEGER NOT NULL DEFAULT 5');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN expiryDate TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN supplierName TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN supplierContact TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN seasonalTag TEXT');
+      } catch (_) {}
+    }
   }
 
   // ── CUSTOMERS ──────────────────────────────────────────
@@ -170,6 +214,21 @@ class DatabaseService {
   Future<void> archiveProduct(String id) async =>
       (await database).update('products', {'isActive': 0},
           where: 'id=?', whereArgs: [id]);
+
+  Future<Map<String, dynamic>> getProductIncome(String productId) async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT 
+        COALESCE(SUM(si.quantity), 0) as totalQty,
+        COALESCE(SUM(si.price * si.quantity), 0) as totalRevenue,
+        COALESCE(SUM(si.buyPrice * si.quantity), 0) as totalCost,
+        COALESCE(SUM((si.price - si.buyPrice) * si.quantity), 0) as totalProfit
+      FROM sale_items si
+      JOIN sales s ON si.saleId = s.id
+      WHERE si.productId = ? AND s.status = 'completed'
+    ''', [productId]);
+    return result.first;
+  }
 
   Future<Product?> getProductByBarcode(
       String barcode) async {

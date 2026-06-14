@@ -130,26 +130,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
               children: [
 
                 // ── Non-sticky Header ─────────────────
-                Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Reports',
-                        style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                            letterSpacing: -0.5)),
-                    IconButton(
-                      icon: const Icon(
-                          Icons.refresh_outlined,
-                          color: Colors.black54,
-                          size: 22),
-                      onPressed: () => _load(force: true),
-                      tooltip: 'Refresh',
-                    ),
-                  ],
-                ),
+                const Text('Reports',
+                    style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                        letterSpacing: -0.5)),
                 Text(
                     'Analyze business performance trends',
                     style: TextStyle(

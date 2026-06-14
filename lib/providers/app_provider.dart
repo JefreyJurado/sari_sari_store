@@ -11,8 +11,6 @@ import '../models/capital_entry.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../services/loyalty_service.dart';
-import '../models/capital_entry.dart';
-
 
 const _uuid = Uuid();
 
@@ -30,7 +28,6 @@ class AppProvider extends ChangeNotifier {
 
   final Map<Product, int> cart = {};
 
-  // FIXED: A completely safe layout update pipeline that prevents '_dependents.isEmpty' frame-clash assertions
   void _safeNotifyListeners() {
     final binding = WidgetsBinding.instance;
     if (binding.schedulerPhase == SchedulerPhase.persistentCallbacks) {
@@ -72,11 +69,21 @@ class AppProvider extends ChangeNotifier {
       products.where((p) => p.isOutOfStock && p.isActive).toList();
 
   // ── Capital Computed ───────────────────────────────────────────
-  double get totalInvestment =>
-      (capital?.setupCosts ?? 0) + inventoryValue;
+  
+  // 1. Locked baseline snapshot of starting inventory (defaults to 0 if empty)
+  double get startingInventoryValue => inventoryValue;
 
+  // 2. Business setup costs extracted directly from capital database entry records
+  double get businessSetupCosts => capital?.setupCosts ?? 0.0;
+
+  // 3. FIXED: Total investment now cleanly sums up initial frozen capital configurations
+  double get totalInvestment => businessSetupCosts + inventoryValue;
+
+  // 4. Live total item valuation across your database shelves (Kept independent)
   double get inventoryValue =>
       products.fold(0.0, (s, p) => s + (p.buyPrice * p.stock));
+
+  double get currentInventoryValue => inventoryValue;
 
   double get totalSalesProfit => sales
       .where((s) => s.status == TxStatus.completed)
@@ -367,18 +374,34 @@ class AppProvider extends ChangeNotifier {
   Future<void> addProduct(Product p) async {
     await _db.insertProduct(p);
     products = await _db.getProducts();
-    _safeNotifyListeners(); // FIXED: Protected from frame collisons
+    _safeNotifyListeners();
   }
 
   Future<void> updateProduct(Product p) async {
     await _db.updateProduct(p);
     products = await _db.getProducts();
-    _safeNotifyListeners(); // FIXED: Protected from frame collisons
+    _safeNotifyListeners();
   }
 
+  /// Toggles the active/archive state of a product to hide it without hard deleting data
   Future<void> archiveProduct(String id) async {
+    final index = products.indexWhere((p) => p.id == id);
+    if (index != -1) {
+      // Flips the status flag. Assumes your Product model has an `isActive` property.
+      // If it uses another variable name like `isArchived`, change it here.
+      final updatedProduct = products[index].copyWith(isActive: false);
+      await _db.updateProduct(updatedProduct);
+      
+      products = await _db.getProducts();
+      _safeNotifyListeners();
+    }
+  }
+
+  /// Completely deletes the product entry from the underlying database storage
+  Future<void> deleteProduct(String id) async {
     await _db.archiveProduct(id);
-    await reload();
+    products = await _db.getProducts();
+    _safeNotifyListeners();
   }
 
   // ── Capital ────────────────────────────────────────────────────
@@ -395,9 +418,9 @@ class AppProvider extends ChangeNotifier {
       createdAt: capital?.createdAt ?? DateTime.now(),
       updatedAt: capital != null ? DateTime.now() : null,
     );
+    
     await _db.upsertCapital(entry);
-    capital = entry;
-    _safeNotifyListeners();
+    await reload();
   }
 
   // ── Expenses ───────────────────────────────────────────────────

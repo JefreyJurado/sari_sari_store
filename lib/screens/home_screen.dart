@@ -12,7 +12,9 @@ import 'expenses_screen.dart';
 import 'receipt_screen.dart';
 import 'lista_screen.dart';
 import 'payment_screen.dart';
+import 'capital_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 const _brandBlue = Color(0xFF1E3A8A);
 
@@ -1033,7 +1035,7 @@ class _CapitalCard extends StatelessWidget {
           const SizedBox(height: 14),
           Row(children: [
             _miniStat(
-                'Invested',
+                'Total Investment',
                 CurrencyFormatter.format(
                     prov.totalInvestment),
                 Colors.grey.shade600),
@@ -1095,136 +1097,9 @@ class _CapitalCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4));
 
   void _showDetails(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child:
-            Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-            width: 36, height: 4,
-            margin: const EdgeInsets.only(bottom: 20),
-            decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2)),
-          ),
-          const Text('Capital Breakdown',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87)),
-          const SizedBox(height: 20),
-
-          // Investment breakdown
-          _detailRow(
-              'Business Setup Costs',
-              CurrencyFormatter.format(
-                  prov.capital?.setupCosts ?? 0),
-              Icons.store_mall_directory_outlined,
-              Colors.blue.shade600),
-          const SizedBox(height: 10),
-          _detailRow(
-              'Starting Inventory',
-              CurrencyFormatter.format(
-                  prov.inventoryValue),
-              Icons.inventory_2_outlined,
-              Colors.purple.shade600),
-          const SizedBox(height: 10),
-          _detailRow(
-              'Monthly Expenses',
-              CurrencyFormatter.format(
-                  prov.totalExpensesAmount),
-              Icons.receipt_long_outlined,
-              Colors.orange.shade600),
-          Divider(height: 24, color: Colors.grey.shade200),
-          _detailRow(
-              'Total Invested',
-              CurrencyFormatter.format(
-                  prov.totalInvestment),
-              Icons.account_balance_outlined,
-              _brandBlue,
-              bold: true),
-          const SizedBox(height: 20),
-
-          // Performance
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border:
-                  Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(children: [
-              _perfRow(
-                  'Total Sales Profit',
-                  CurrencyFormatter.format(
-                      prov.totalSalesProfit),
-                  Colors.green.shade600),
-              const SizedBox(height: 8),
-              _perfRow(
-                  'Total Expenses',
-                  '- ${CurrencyFormatter.format(prov.totalExpensesAmount)}',
-                  Colors.red.shade600),
-              Divider(
-                  height: 16,
-                  color: Colors.grey.shade200),
-              _perfRow(
-                  'Current Capital',
-                  CurrencyFormatter.format(
-                      prov.currentCapital),
-                  _brandBlue,
-                  bold: true),
-              const SizedBox(height: 4),
-              _perfRow(
-                  prov.netGainLoss >= 0
-                      ? 'Net Gain'
-                      : 'Net Loss',
-                  '${prov.netGainLoss >= 0 ? '+' : ''}${CurrencyFormatter.format(prov.netGainLoss)}',
-                  prov.netGainLoss >= 0
-                      ? Colors.green.shade600
-                      : Colors.red.shade600,
-                  bold: true),
-            ]),
-          ),
-          const SizedBox(height: 16),
-
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) =>
-                            const SettingsScreen()));
-              },
-              icon: const Icon(Icons.edit_outlined,
-                  size: 16),
-              label: const Text('Edit Capital Settings',
-                  style: TextStyle(fontSize: 13)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _brandBlue,
-                side: BorderSide(
-                    color: _brandBlue
-                        .withValues(alpha: 0.4)),
-                padding: const EdgeInsets.symmetric(
-                    vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(10)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ]),
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CapitalScreen()),
     );
   }
 
