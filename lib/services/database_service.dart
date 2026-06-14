@@ -21,7 +21,7 @@ class DatabaseService {
         join(await getDatabasesPath(), 'pos_system.db');
     return openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -96,7 +96,22 @@ class DatabaseService {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       capitalId TEXT NOT NULL,
       label TEXT NOT NULL,
-      amount REAL NOT NULL)''');
+      amount REAL NOT NULL,
+      category TEXT DEFAULT 'Equipment',
+      vendor TEXT,
+      paymentMethod TEXT DEFAULT 'Cash',
+      date TEXT)''');
+
+    await db.execute('''CREATE TABLE inventory_snapshots(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      productId TEXT NOT NULL,
+      productName TEXT NOT NULL,
+      month TEXT NOT NULL,
+      beginningStock INTEGER NOT NULL DEFAULT 0,
+      stockReceived INTEGER NOT NULL DEFAULT 0,
+      stockSold INTEGER NOT NULL DEFAULT 0,
+      unitCost REAL NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL)''');
   }
 
   Future<void> _onUpgrade(Database db, int oldV,
@@ -168,6 +183,37 @@ class DatabaseService {
       try {
         await db.execute(
             'ALTER TABLE products ADD COLUMN seasonalTag TEXT');
+      } catch (_) {}
+    }
+    if (oldV < 8) {
+      try {
+        await db.execute(
+            'ALTER TABLE setup_cost_items ADD COLUMN category TEXT DEFAULT "Equipment"');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE setup_cost_items ADD COLUMN vendor TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE setup_cost_items ADD COLUMN paymentMethod TEXT DEFAULT "Cash"');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE setup_cost_items ADD COLUMN date TEXT');
+      } catch (_) {}
+      // Monthly inventory snapshot table
+      try {
+        await db.execute('''CREATE TABLE IF NOT EXISTS inventory_snapshots(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          productId TEXT NOT NULL,
+          productName TEXT NOT NULL,
+          month TEXT NOT NULL,
+          beginningStock INTEGER NOT NULL DEFAULT 0,
+          stockReceived INTEGER NOT NULL DEFAULT 0,
+          stockSold INTEGER NOT NULL DEFAULT 0,
+          unitCost REAL NOT NULL DEFAULT 0,
+          createdAt TEXT NOT NULL)''');
       } catch (_) {}
     }
   }
@@ -430,6 +476,48 @@ class DatabaseService {
         where: 'capitalId=?', whereArgs: [capitalId]);
     final items = itemMaps.map(SetupCostItem.fromMap).toList();
     return CapitalEntry.fromMap(maps.first, items);
+  }
+
+  // ── INVENTORY SNAPSHOTS ────────────────────────────────
+  Future<List<Map<String, dynamic>>> getInventorySnapshot(String month) async {
+    final db = await database;
+    // Get beginning stock from previous month snapshot or current stock
+    final products = await db.query('products', where: 'isActive=1');
+    final List<Map<String, dynamic>> result = [];
+
+    for (final p in products) {
+      final productId = p['id'] as String;
+      final productName = p['name'] as String;
+      final unitCost = (p['buyPrice'] as num).toDouble();
+
+      // Stock sold this month
+      final soldResult = await db.rawQuery('''
+        SELECT COALESCE(SUM(si.quantity), 0) as sold
+        FROM sale_items si
+        JOIN sales s ON si.saleId = s.id
+        WHERE si.productId = ?
+        AND strftime('%Y-%m', s.createdAt) = ?
+        AND s.status = 'completed'
+      ''', [productId, month]);
+      final stockSold = (soldResult.first['sold'] as num).toInt();
+
+      // Current stock
+      final currentStock = (p['stock'] as num).toInt();
+      final endingStock = currentStock;
+      final beginningStock = endingStock + stockSold;
+
+      result.add({
+        'productId': productId,
+        'productName': productName,
+        'month': month,
+        'beginningStock': beginningStock,
+        'stockSold': stockSold,
+        'endingStock': endingStock,
+        'unitCost': unitCost,
+        'totalInventoryValue': endingStock * unitCost,
+      });
+    }
+    return result;
   }
 
   // ── BACKUP ─────────────────────────────────────────────

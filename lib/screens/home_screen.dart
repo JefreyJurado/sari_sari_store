@@ -279,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 12),
 
                         // ── Capital Overview ──────────────
-                        if (prov.totalInvestment > 0) ...[
+                        if (prov.capital != null) ...[
                           _CapitalCard(prov: prov),
                           const SizedBox(height: 16),
                         ] else ...[
@@ -287,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               onTap: () => Navigator.push(
                                   context,
                                   CrossFadePageRoute(
-                                      child: const SettingsScreen()))),
+                                      child: const CapitalScreen()))),
                           const SizedBox(height: 16),
                         ],
 
@@ -1102,35 +1102,6 @@ class _CapitalCard extends StatelessWidget {
       MaterialPageRoute(builder: (_) => const CapitalScreen()),
     );
   }
-
-  Widget _detailRow(String label, String value,
-          IconData icon, Color color,
-          {bool bold = false}) =>
-      Row(children: [
-        Container(
-          width: 32, height: 32,
-          decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, size: 16, color: color),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-            child: Text(label,
-                style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 13,
-                    fontWeight: bold
-                        ? FontWeight.w700
-                        : FontWeight.w500))),
-        Text(value,
-            style: TextStyle(
-                fontWeight: bold
-                    ? FontWeight.w800
-                    : FontWeight.w600,
-                fontSize: bold ? 15 : 13,
-                color: bold ? color : Colors.black87)),
-      ]);
 
   Widget _perfRow(String label, String value, Color color,
           {bool bold = false}) =>

@@ -6,6 +6,7 @@ import '../models/product.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
 import 'barcode_scanner_screen.dart';
+import 'inventory_log_screen.dart';
 import '../services/database_service.dart';
 
 const _uuid = Uuid();
@@ -21,6 +22,66 @@ class _InventoryScreenState extends State<InventoryScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _search = '';
   String _sortBy = 'name';
+
+  void _confirmClearDefaults(BuildContext context, AppProvider prov) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Clear Default Products',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(children: [
+                Icon(Icons.warning_amber_outlined, color: Colors.red.shade600, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'This will archive all current products. This cannot be undone.',
+                    style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+                  ),
+                ),
+              ]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              for (final product in prov.products) {
+                await prov.archiveProduct(product.id);
+              }
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('All products cleared successfully.'),
+                    backgroundColor: Colors.green,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Clear All',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -98,6 +159,36 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             PopupMenuItem(value: 'stock', child: Text('Sort by Stock', style: TextStyle(fontSize: 13))),
                             PopupMenuItem(value: 'price', child: Text('Sort by Price', style: TextStyle(fontSize: 13))),
                           ],
+                        ),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert_outlined, color: Colors.black54, size: 22),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                              value: 'inventory_log',
+                              child: Row(children: [
+                                Icon(Icons.table_chart_outlined, size: 16, color: _blue),
+                                SizedBox(width: 8),
+                                Text('Inventory Control Log', style: TextStyle(fontSize: 13, color: _blue)),
+                              ]),
+                            ),
+                            PopupMenuItem(
+                              value: 'clear_defaults',
+                              child: Row(children: [
+                                Icon(Icons.delete_sweep_outlined, size: 16, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Clear Default Products', style: TextStyle(fontSize: 13, color: Colors.red)),
+                              ]),
+                            ),
+                          ],
+                          onSelected: (v) {
+                            if (v == 'clear_defaults') {
+                              _confirmClearDefaults(context, context.read<AppProvider>());
+                            } else if (v == 'inventory_log') {
+                              Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => const InventoryLogScreen()));
+                            }
+                          },
                         ),
                       ])
                     ],

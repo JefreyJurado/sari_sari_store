@@ -70,35 +70,71 @@ class AppProvider extends ChangeNotifier {
 
   // ── Capital Computed ───────────────────────────────────────────
   
-  // 1. Current Inventory Value — live, mula sa inventory screen
+  // 1. Live inventory value — for stock monitoring only
   double get currentInventoryValue =>
       products.fold(0.0, (s, p) => s + (p.buyPrice * p.stock));
 
-  // 2. Business setup costs — manually added
-  double get businessSetupCosts => capital?.setupCosts ?? 0.0;
-
-  // 3. Total Investment = Current Inventory + Setup Costs
-  double get totalInvestment => businessSetupCosts + currentInventoryValue;
-
-  // 4. Alias para sa compatibility
+  // 2. Alias
   double get inventoryValue => currentInventoryValue;
 
-  double get totalSalesProfit => sales
-      .where((s) => s.status == TxStatus.completed)
-      .fold(0.0, (s, t) => s + t.totalProfit);
+  // 3. Business setup costs — one-time fixed investment
+  double get businessSetupCosts => capital?.setupCosts ?? 0.0;
+
+  // 4. Total Investment = Setup Costs only (base ng ROI)
+  double get totalInvestment => businessSetupCosts;
+
+  // ── Break-Even Computed ────────────────────────────────────────
+  double get avgSellPrice {
+    if (products.isEmpty) return 0;
+    final active = products.where((p) => p.isActive).toList();
+    if (active.isEmpty) return 0;
+    return active.fold(0.0, (s, p) => s + p.sellPrice) / active.length;
+  }
+
+  double get avgUnitCost {
+    if (products.isEmpty) return 0;
+    final active = products.where((p) => p.isActive).toList();
+    if (active.isEmpty) return 0;
+    return active.fold(0.0, (s, p) => s + p.buyPrice) / active.length;
+  }
+
+  double get breakEvenUnits {
+    final margin = avgSellPrice - avgUnitCost;
+    if (margin <= 0) return 0;
+    return totalExpensesAmount / margin;
+  }
+
+  double get totalSalesProfit => grossProfit;
 
   double get totalExpensesAmount =>
       expenses.fold(0.0, (s, e) => s + e.amount);
 
-  double get currentCapital =>
-      totalInvestment + totalSalesProfit - totalExpensesAmount;
+  // Gross Revenue — total sales amount
+  double get grossRevenue => sales
+      .where((s) => s.status == TxStatus.completed)
+      .fold(0.0, (s, t) => s + t.totalAmount);
 
-  double get netGainLoss =>
-      currentCapital - totalInvestment;
+  // Total COGS — total cost of all sold items
+  double get totalCOGS => sales
+      .where((s) => s.status == TxStatus.completed)
+      .fold(0.0, (s, t) => s + t.items.fold(0.0, (si, i) => si + (i.buyPrice * i.quantity)));
 
+  // Gross Profit = Revenue - COGS
+  double get grossProfit => grossRevenue - totalCOGS;
+
+  // Net Profit = Gross Profit - Expenses
+  double get netProfit => grossProfit - totalExpensesAmount;
+
+  // Current Capital = Investment + Net Profit
+  double get currentCapital => totalInvestment + netProfit;
+
+  // Net Gain/Loss
+  double get netGainLoss => netProfit;
+
+  // ROI = Net Profit YTD / Total Startup Costs × 100
   double get roiPercent {
     if (totalInvestment <= 0) return 0;
-    return (netGainLoss / totalInvestment) * 100;
+    return (netProfit / totalInvestment) * 100;
   }
 
   // ── Init ───────────────────────────────────────────────────────

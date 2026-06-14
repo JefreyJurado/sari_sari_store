@@ -1,19 +1,48 @@
 class SetupCostItem {
   final String label;
   final double amount;
+  final String category;
+  final String? vendor;
+  final String paymentMethod;
+  final DateTime date;
 
-  SetupCostItem({required this.label, required this.amount});
+SetupCostItem({
+  required this.label,
+  required this.amount,
+  this.category = 'Equipment',  // CHANGE BACK from '' to 'Equipment'
+  this.vendor,
+  this.paymentMethod = 'Cash',  // CHANGE BACK from '' to 'Cash'
+  DateTime? date,
+}) : date = date ?? DateTime.now();
+
+  static const categories = [
+    'Equipment', 'Legal', 'Marketing',
+    'Rent', 'Utilities', 'Others'
+  ];
+
+  static const paymentMethods = [
+    'Cash', 'Credit Card', 'Bank Transfer', 'GCash'
+  ];
 
   Map<String, dynamic> toMap() => {
-        'label': label,
-        'amount': amount,
-      };
+    'label': label,
+    'amount': amount,
+    'category': category,
+    'vendor': vendor,
+    'paymentMethod': paymentMethod,
+    'date': date.toIso8601String(),
+  };
 
-  factory SetupCostItem.fromMap(Map<String, dynamic> m) =>
-      SetupCostItem(
-        label: m['label'] as String,
-        amount: (m['amount'] as num).toDouble(),
-      );
+factory SetupCostItem.fromMap(Map<String, dynamic> m) => SetupCostItem(
+  label: m['label'] as String,
+  amount: (m['amount'] as num).toDouble(),
+  category: m['category'] as String? ?? 'Equipment',  // Change from '' to 'Equipment'
+  vendor: m['vendor'] as String?,
+  paymentMethod: m['paymentMethod'] as String? ?? 'Cash',  // Change from '' to 'Cash'
+  date: m['date'] != null
+      ? DateTime.parse(m['date'] as String)
+      : DateTime.now(),
+);
 }
 
 class CapitalEntry {
@@ -33,25 +62,22 @@ class CapitalEntry {
     this.updatedAt,
   });
 
-  double get totalInvestment => setupCosts + inventoryValue;
-
-  double get computedSetupCosts =>
-      setupItems.isEmpty
-          ? setupCosts
-          : setupItems.fold(0.0, (s, i) => s + i.amount);
+  double get computedSetupCosts => setupItems.isEmpty
+      ? setupCosts
+      : setupItems.fold(0.0, (s, i) => s + i.amount);
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'cashInvestment': computedSetupCosts,
-        'inventoryValue': inventoryValue,
-        'overhead': 0.0,
-        'overheadMonths': 1,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt?.toIso8601String(),
-      };
+    'id': id,
+    'cashInvestment': computedSetupCosts,
+    'inventoryValue': inventoryValue,
+    'overhead': 0.0,
+    'overheadMonths': 1,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt?.toIso8601String(),
+  };
 
   factory CapitalEntry.fromMap(
-          Map<String, dynamic> m, List<SetupCostItem> items) =>
+      Map<String, dynamic> m, List<SetupCostItem> items) =>
       CapitalEntry(
         id: m['id'] as String,
         setupCosts: (m['cashInvestment'] as num).toDouble(),
@@ -68,13 +94,12 @@ class CapitalEntry {
     double? inventoryValue,
     List<SetupCostItem>? setupItems,
     DateTime? updatedAt,
-  }) =>
-      CapitalEntry(
-        id: id,
-        setupCosts: setupCosts ?? this.setupCosts,
-        inventoryValue: inventoryValue ?? this.inventoryValue,
-        setupItems: setupItems ?? this.setupItems,
-        createdAt: createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-      );
+  }) => CapitalEntry(
+    id: id,
+    setupCosts: setupCosts ?? this.setupCosts,
+    inventoryValue: inventoryValue ?? this.inventoryValue,
+    setupItems: setupItems ?? this.setupItems,
+    createdAt: createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
 }

@@ -15,7 +15,7 @@ class CapitalScreen extends StatefulWidget {
 class _CapitalScreenState extends State<CapitalScreen> {
   bool _isEditing = false;
   bool _loaded = false;
-  List<Map<String, Object>> _setupItems = [];
+  List<Map<String, dynamic>> _setupItems = [];
 
   @override
   void initState() {
@@ -27,12 +27,17 @@ class _CapitalScreenState extends State<CapitalScreen> {
     final prov = context.read<AppProvider>();
     final cap = prov.capital;
     if (cap != null && cap.setupItems.isNotEmpty) {
-      _setupItems = cap.setupItems.map<Map<String, Object>>((i) {
+      _setupItems.clear(); // Prevents stacking identical data elements in state memory
+      _setupItems = cap.setupItems.map<Map<String, dynamic>>((i) {
         final amtCtrl = TextEditingController(text: i.amount.toStringAsFixed(2));
         amtCtrl.addListener(() => setState(() {}));
         return {
           'ctrl': TextEditingController(text: i.label),
           'amtCtrl': amtCtrl,
+          'vendorCtrl': TextEditingController(text: i.vendor ?? ''),
+          'category': i.category, // Assuming category is an enum, adjust if it's a string
+          'paymentMethod': i.paymentMethod.toString().trim(),
+          'date': i.date,
         };
       }).toList();
     }
@@ -44,6 +49,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
     for (final item in _setupItems) {
       (item['ctrl'] as TextEditingController).dispose();
       (item['amtCtrl'] as TextEditingController).dispose();
+      (item['vendorCtrl'] as TextEditingController).dispose();
     }
     super.dispose();
   }
@@ -51,12 +57,23 @@ class _CapitalScreenState extends State<CapitalScreen> {
   Future<void> _save() async {
     final prov = context.read<AppProvider>();
     final setupItems = _setupItems
-        .map((i) => SetupCostItem(
-              label: (i['ctrl'] as TextEditingController).text.trim(),
-              amount: double.tryParse(
-                      (i['amtCtrl'] as TextEditingController).text) ??
-                  0,
-            ))
+        .map((item) {
+          // Explicitly cast and default check safely
+          final selectedCategory = item['category'] as String? ?? '';
+          final selectedPayment = item['paymentMethod'] as String? ?? '';
+          
+          return SetupCostItem(
+            label: (item['ctrl'] as TextEditingController).text.trim(),
+            amount: double.tryParse(
+                    (item['amtCtrl'] as TextEditingController).text) ?? 0,
+            category: selectedCategory,
+            vendor: (item['vendorCtrl'] as TextEditingController).text.trim().isEmpty
+                ? null
+                : (item['vendorCtrl'] as TextEditingController).text.trim(),
+            paymentMethod: selectedPayment,
+            date: item['date'] as DateTime? ?? DateTime.now(),
+          );
+        })
         .where((i) => i.label.isNotEmpty)
         .toList();
     final totalSetup = setupItems.fold(0.0, (s, i) => s + i.amount);
@@ -182,6 +199,10 @@ class _CapitalScreenState extends State<CapitalScreen> {
                                     _setupItems.add({
                                       'ctrl': TextEditingController(),
                                       'amtCtrl': amtCtrl,
+                                      'vendorCtrl': TextEditingController(),
+                                      'category': 'Equipment',
+                                      'paymentMethod': 'Cash',
+                                      'date': DateTime.now(),
                                     });
                                   });
                                 },
@@ -214,67 +235,171 @@ class _CapitalScreenState extends State<CapitalScreen> {
                             else
                               ...List.generate(_setupItems.length, (i) {
                                 final item = _setupItems[i];
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Row(children: [
-                                    Expanded(
-                                      flex: 3,
-                                      child: TextField(
-                                        controller: item['ctrl'] as TextEditingController,
-                                        decoration: InputDecoration(
-                                          hintText: 'e.g. DTI, Equipment...',
-                                          hintStyle: TextStyle(
-                                              color: Colors.grey[400], fontSize: 12),
-                                          filled: true,
-                                          fillColor: Colors.grey.shade50,
-                                          contentPadding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 10),
-                                          border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(8),
-                                              borderSide: BorderSide(
-                                                  color: Colors.grey.shade300)),
-                                          enabledBorder: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(8),
-                                              borderSide: BorderSide(
-                                                  color: Colors.grey.shade300)),
+                                final itemDate = item['date'] as DateTime? ?? DateTime.now();
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: Column(children: [
+                                    Row(children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: TextField(
+                                          controller: item['ctrl'] as TextEditingController,
+                                          decoration: InputDecoration(
+                                            hintText: 'e.g. DTI, Equipment...',
+                                            labelText: 'Description',
+                                            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
+                                            labelStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      flex: 2,
-                                      child: TextField(
-                                        controller: item['amtCtrl'] as TextEditingController,
-                                        keyboardType: const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                        decoration: InputDecoration(
-                                          prefixText: '₱ ',
-                                          filled: true,
-                                          fillColor: Colors.grey.shade50,
-                                          contentPadding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 10),
-                                          border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(8),
-                                              borderSide: BorderSide(
-                                                  color: Colors.grey.shade300)),
-                                          enabledBorder: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(8),
-                                              borderSide: BorderSide(
-                                                  color: Colors.grey.shade300)),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        flex: 2,
+                                        child: TextField(
+                                          controller: item['amtCtrl'] as TextEditingController,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                          decoration: InputDecoration(
+                                            prefixText: '₱ ',
+                                            labelText: 'Amount',
+                                            labelStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    IconButton(
-                                      onPressed: () {
-                                        (item['ctrl'] as TextEditingController).dispose();
-                                        (item['amtCtrl'] as TextEditingController).dispose();
-                                        setState(() => _setupItems.removeAt(i));
-                                      },
-                                      icon: Icon(Icons.close,
-                                          size: 18, color: Colors.red.shade300),
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
+                                      const SizedBox(width: 4),
+                                      IconButton(
+                                        onPressed: () {
+                                            // Read directly via absolute indexing before mutation safely
+                                            final controllersToDispose = _setupItems[i];
+                                            setState(() {
+                                            _setupItems.removeAt(i);
+                                            });
+                                            // Dispose after the widget tree releases the text element structure
+                                            (controllersToDispose['ctrl'] as TextEditingController).dispose();
+                                            (controllersToDispose['amtCtrl'] as TextEditingController).dispose();
+                                            (controllersToDispose['vendorCtrl'] as TextEditingController).dispose();
+                                        },
+                                        icon: Icon(Icons.close, size: 18, color: Colors.red.shade300),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        ),
+                                    ]),
+                                    const SizedBox(height: 8),
+                                    Row(children: [
+                                      Expanded(
+                                        child: TextField(
+                                          controller: item['vendorCtrl'] as TextEditingController,
+                                          decoration: InputDecoration(
+                                            hintText: 'Vendor (optional)',
+                                            labelText: 'Vendor',
+                                            labelStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                          ),
+                                        ),
+                                      ),
+                                    ]),
+                                    const SizedBox(height: 8),
+                                    Row(children: [
+                                      Expanded(
+                                        child: DropdownButtonFormField<String>(
+                                            key: ValueKey('cat_$i'),
+                                            initialValue: (item['category'] as String?)?.isEmpty == true ? 'Equipment' : (item['category'] as String? ?? 'Equipment'),
+                                            hint: const Text('Select Category', style: TextStyle(fontSize: 12)),
+                                            decoration: InputDecoration(
+                                            labelText: 'Category',
+                                            labelStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                            ),
+                                            items: SetupCostItem.categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 12)))).toList(),
+                                            onChanged: (v) {
+                                            if (v != null) {
+                                                setState(() {
+                                                _setupItems[i]['category'] = v;
+                                                });
+                                            }
+                                            },
+                                        ),
+                                        ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: DropdownButtonFormField<String>(
+                                            key: ValueKey('pay_$i'),
+                                            initialValue: (item['paymentMethod'] as String?)?.isEmpty == true ? 'Cash' : (item['paymentMethod'] as String? ?? 'Cash'),
+                                            hint: const Text('Select Payment', style: TextStyle(fontSize: 12)),
+                                            decoration: InputDecoration(
+                                            labelText: 'Payment',
+                                            labelStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                            ),
+                                            items: SetupCostItem.paymentMethods.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 12)))).toList(),
+                                            onChanged: (v) {
+                                            if (v != null) {
+                                                setState(() {
+                                                _setupItems[i]['paymentMethod'] = v;
+                                                });
+                                            }
+                                            },
+                                        ),
+                                        ),
+                                    ]),
+                                    const SizedBox(height: 8),
+                                    GestureDetector(
+                                    onTap: () async {
+                                        final picked = await showDatePicker(
+                                        context: context,
+                                        initialDate: itemDate,
+                                        firstDate: DateTime(2020),
+                                        lastDate: DateTime.now(),
+                                        );
+                                        if (picked != null) {
+                                        setState(() {
+                                            _setupItems[i]['date'] = picked; // Explicit list index mutate
+                                        });
+                                        }
+                                    },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.grey.shade300),
+                                        ),
+                                        child: Row(children: [
+                                          Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey[500]),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '${itemDate.month}/${itemDate.day}/${itemDate.year}',
+                                            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                                          ),
+                                        ]),
+                                      ),
                                     ),
                                   ]),
                                 );
@@ -330,27 +455,52 @@ class _CapitalScreenState extends State<CapitalScreen> {
                           // View mode
                           else ...[
                             if (prov.capital?.setupItems.isNotEmpty == true) ...[
-                              ...prov.capital!.setupItems.map((item) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: Row(children: [
-                                      Container(
-                                        width: 6, height: 6,
-                                        decoration: BoxDecoration(
-                                            color: _blue.withValues(alpha: 0.4),
-                                            shape: BoxShape.circle),
+                              ...prov.capital!.setupItems.map((item) => Container(
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.grey.shade200),
+                                    ),
+                                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Row(children: [
+                                        Expanded(
+                                          child: Text(item.label,
+                                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                        ),
+                                        Text(CurrencyFormatter.format(item.amount),
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.black87)),
+                                      ]),
+                                      const SizedBox(height: 4),
+                                      Row(children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: _blue.withValues(alpha: 0.08),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(item.category.isEmpty ? 'Uncategorized' : item.category, 
+                                          style: TextStyle(fontSize: 10, color: _blue.withValues(alpha: 0.8))),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.shade50,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(item.paymentMethod.isEmpty ? 'No Payment Method' : item.paymentMethod, style: TextStyle(fontSize: 10, color: Colors.green.shade700)),
+                                        ),
+                                        const Spacer(),
+                                        if (item.vendor != null)
+                                          Text(item.vendor!, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                                      ]),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${item.date.month}/${item.date.day}/${item.date.year}',
+                                        style: TextStyle(fontSize: 10, color: Colors.grey[400]),
                                       ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(item.label,
-                                            style: TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.grey[600])),
-                                      ),
-                                      Text(CurrencyFormatter.format(item.amount),
-                                          style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black87)),
                                     ]),
                                   )),
                               Divider(height: 16, color: Colors.grey.shade200),
@@ -365,8 +515,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // ── Starting Inventory ──
-                      _sectionHeader('Current Inventory Value'),
+                      // ── Stock Monitoring ──
+                      _sectionHeader('Stock Monitoring'),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -375,11 +525,21 @@ class _CapitalScreenState extends State<CapitalScreen> {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: Colors.grey.shade200),
                         ),
-                        child: _detailRow(
-                            'Current Inventory Value',
-                            CurrencyFormatter.format(prov.currentInventoryValue),
-                            Icons.inventory_2_outlined,
-                            Colors.purple.shade600),
+                        child: Column(children: [
+                          _detailRow(
+                              'Current Inventory Value',
+                              CurrencyFormatter.format(prov.currentInventoryValue),
+                              Icons.inventory_2_outlined,
+                              Colors.purple.shade600),
+                          const SizedBox(height: 4),
+                          Row(children: [
+                            const SizedBox(width: 48),
+                            Text(
+                              'Live stock value — not included in ROI',
+                              style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                            ),
+                          ]),
+                        ]),
                       ),
                       const SizedBox(height: 8),
                       Container(
@@ -427,6 +587,77 @@ class _CapitalScreenState extends State<CapitalScreen> {
                               '${isProfit ? '+' : ''}${CurrencyFormatter.format(prov.netGainLoss)}',
                               roiColor,
                               bold: true),
+                        ]),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Break-Even Point ──
+                      _sectionHeader('Break-Even Analysis'),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(children: [
+                          // Formula explanation
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Row(children: [
+                              Icon(Icons.info_outline, size: 13, color: Colors.grey[400]),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Break-Even = Total Fixed Expenses ÷ (Avg Sell Price - Avg Unit Cost)',
+                                  style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                ),
+                              ),
+                            ]),
+                          ),
+                          const SizedBox(height: 14),
+                          _perfRow(
+                            'Total Fixed Expenses',
+                            CurrencyFormatter.format(prov.totalExpensesAmount),
+                            Colors.orange.shade600,
+                          ),
+                          const SizedBox(height: 8),
+                          _perfRow(
+                            'Avg Sell Price',
+                            CurrencyFormatter.format(prov.avgSellPrice),
+                            Colors.green.shade600,
+                          ),
+                          const SizedBox(height: 8),
+                          _perfRow(
+                            'Avg Unit Cost',
+                            CurrencyFormatter.format(prov.avgUnitCost),
+                            Colors.red.shade400,
+                          ),
+                          Divider(height: 20, color: Colors.grey.shade200),
+                          _perfRow(
+                            'Break-Even Units',
+                            prov.breakEvenUnits <= 0
+                                ? 'N/A'
+                                : '${prov.breakEvenUnits.toStringAsFixed(0)} units',
+                            _blue,
+                            bold: true,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(children: [
+                            const SizedBox(width: 4),
+                            Text(
+                              prov.breakEvenUnits <= 0
+                                  ? 'Add products to compute break-even'
+                                  : 'Sell ${prov.breakEvenUnits.toStringAsFixed(0)} units to cover all expenses',
+                              style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                            ),
+                          ]),
                         ]),
                       ),
                       const SizedBox(height: 20),
