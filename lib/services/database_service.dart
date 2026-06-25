@@ -261,6 +261,16 @@ class DatabaseService {
       (await database).update('products', {'isActive': 0},
           where: 'id=?', whereArgs: [id]);
 
+  Future<void> restoreProduct(String id) async =>
+      (await database).update('products', {'isActive': 1},
+          where: 'id=?', whereArgs: [id]);
+
+  Future<List<Product>> getArchivedProducts() async {
+    final maps = await (await database).query('products',
+        where: 'isActive=0', orderBy: 'name ASC');
+    return maps.map(Product.fromMap).toList();
+  }
+
   Future<Map<String, dynamic>> getProductIncome(String productId) async {
     final db = await database;
     final result = await db.rawQuery('''

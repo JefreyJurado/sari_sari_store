@@ -204,6 +204,7 @@ class AppProvider extends ChangeNotifier {
     Customer? customer,
     String? notes,
     DateTime? dueDate,
+    DateTime? saleDate,
   }) async {
     if (cart.isEmpty) return null;
 
@@ -227,7 +228,7 @@ class AppProvider extends ChangeNotifier {
       customerName: customer?.name,
       type: type,
       notes: notes,
-      createdAt: DateTime.now(),
+      createdAt: saleDate ?? DateTime.now(),
     );
 
     await _db.insertSale(sale);
@@ -434,6 +435,12 @@ class AppProvider extends ChangeNotifier {
   /// Completely deletes the product entry from the underlying database storage
   Future<void> deleteProduct(String id) async {
     await _db.archiveProduct(id);
+    products = await _db.getProducts();
+    _safeNotifyListeners();
+  }
+
+  Future<void> restoreProduct(String id) async {
+    await _db.restoreProduct(id);
     products = await _db.getProducts();
     _safeNotifyListeners();
   }

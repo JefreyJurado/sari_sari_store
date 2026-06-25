@@ -7,6 +7,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
 import 'barcode_scanner_screen.dart';
 import 'inventory_log_screen.dart';
+import 'archived_products_screen.dart';
 import '../services/database_service.dart';
 
 const _uuid = Uuid();
@@ -169,74 +170,82 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   ),
                   const SizedBox(height: 12),
                   // ── Tools Row ──────────────────────────
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const InventoryLogScreen())),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-                              decoration: BoxDecoration(
-                                color: _blue.withValues(alpha: 0.06),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: _blue.withValues(alpha: 0.2)),
-                              ),
-                              child: const Row(children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const InventoryLogScreen())),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: _blue.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: _blue.withValues(alpha: 0.2)),
+                            ),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
                                 Icon(Icons.table_chart_outlined, size: 18, color: _blue),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text('Inventory Log',
-                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _blue)),
-                                      Text('Monthly stock tracking',
-                                          style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                    ],
-                                  ),
-                                ),
-                                Icon(Icons.chevron_right, size: 16, color: _blue),
-                              ]),
+                                SizedBox(height: 4),
+                                Text('Inventory Log',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
+                              ],
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => _confirmClearDefaults(context, context.read<AppProvider>()),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.red.shade200),
-                              ),
-                              child: Row(children: [
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _confirmClearDefaults(context, context.read<AppProvider>()),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.red.shade200),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
                                 Icon(Icons.delete_sweep_outlined, size: 18, color: Colors.red.shade600),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text('Clear Products',
-                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.red.shade600)),
-                                      const Text('Archive all items',
-                                          style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                    ],
-                                  ),
-                                ),
-                                Icon(Icons.chevron_right, size: 16, color: Colors.red.shade400),
-                              ]),
+                                const SizedBox(height: 4),
+                                Text('Clear Products',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.red.shade600)),
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const ArchivedProductsScreen())),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.orange.shade200),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.restore_outlined, size: 18, color: Colors.orange.shade700),
+                                const SizedBox(height: 4),
+                                Text('Archived',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.orange.shade700)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   SingleChildScrollView(

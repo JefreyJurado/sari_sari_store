@@ -6,6 +6,7 @@ import '../models/transaction.dart';
 import '../models/customer.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
+import '../utils/date_helper.dart';
 import 'receipt_screen.dart';
 
 const _blue = Color(0xFF1E3A8A);
@@ -449,6 +450,7 @@ class _CartSheetState extends State<_CartSheet> {
   String _paymentType = 'cash';
   bool _isProcessing = false;
   Customer? _selectedCustomer;
+  DateTime _saleDate = DateTime.now();
 
   AppProvider get prov => widget.prov;
   double get cashPaid => double.tryParse(_cashCtrl.text) ?? 0;
@@ -746,6 +748,61 @@ class _CartSheetState extends State<_CartSheet> {
                     contentPadding:
                         const EdgeInsets.symmetric(
                             vertical: 0),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // ── Sale Date ──────────────────────────
+                const Text('Sale Date',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.black87)),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _saleDate,
+                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) setState(() => _saleDate = picked);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _saleDate.day != DateTime.now().day
+                          ? _blue
+                          : Colors.grey.shade200),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.calendar_today_outlined,
+                          size: 18,
+                          color: _saleDate.day != DateTime.now().day ? _blue : Colors.grey[500]),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _saleDate.day == DateTime.now().day &&
+                                  _saleDate.month == DateTime.now().month &&
+                                  _saleDate.year == DateTime.now().year
+                              ? 'Today — ${DateHelper.formatDate(_saleDate)}'
+                              : 'Past Date — ${DateHelper.formatDate(_saleDate)}',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: _saleDate.day != DateTime.now().day
+                                  ? _blue
+                                  : Colors.black87),
+                        ),
+                      ),
+                      if (_saleDate.day != DateTime.now().day)
+                        GestureDetector(
+                          onTap: () => setState(() => _saleDate = DateTime.now()),
+                          child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
+                        ),
+                    ]),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -1052,6 +1109,7 @@ class _CartSheetState extends State<_CartSheet> {
           : PaymentType.online,
       notes: notes,
       customer: customer,
+      saleDate: _saleDate,
     );
 
     if (!mounted) return;

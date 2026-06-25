@@ -14,6 +14,7 @@ import 'lista_screen.dart';
 import 'payment_screen.dart';
 import 'capital_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'sales_history_screen.dart';
 
 
 const _brandBlue = Color(0xFF1E3A8A);
@@ -518,7 +519,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         // ── Recent Sales ──────────────────
                         _sectionHeader(
-                            title: 'Recent Activity Log'),
+                          title: 'Recent Activity Log',
+                          trailingText: 'View All',
+                          onTrailingTap: () => Navigator.push(
+                              context,
+                              CrossFadePageRoute(
+                                  child: const SalesHistoryScreen())),
+                        ),
                         const SizedBox(height: 12),
 
                         if (cashSales.isEmpty)
