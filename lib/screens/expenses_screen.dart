@@ -32,33 +32,31 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
       return Scaffold(
         backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: const Text('Expenses',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black87)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            onPressed: () => Navigator.pop(context),
+          ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(height: 1, color: Colors.grey.shade200),
+          ),
+        ),
         body: SafeArea(
           child: Column(children: [
-
-            // ── Non-sticky Header ──────────────────
-            SizedBox(
-              width: double.infinity,
-              child: Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    const Text('Expenses',
-                        style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                            letterSpacing: -0.5)),
-                    const SizedBox(height: 4),
-                    Text('Track your business expenses',
-                        style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 13)),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Track your business expenses',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
 
@@ -240,6 +238,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         text: existing?.notes ?? '');
     String category = existing?.category ??
         FilipinoCategories.expenseCategories.first;
+    DateTime _expenseDate = existing?.date ?? DateTime.now();
 
     showModalBottomSheet(
       context: context,
@@ -336,6 +335,63 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             const SizedBox(height: 12),
             _field(notesCtrl, 'Notes (optional)',
                 Icons.notes_outlined),
+            const SizedBox(height: 12),
+            // ── Date Picker ──────────────────────
+            StatefulBuilder(
+              builder: (_, setDate) => GestureDetector(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _expenseDate,
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setS(() => _expenseDate = picked);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _expenseDate.day != DateTime.now().day
+                          ? _blue
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.calendar_today_outlined,
+                        size: 18,
+                        color: _expenseDate.day != DateTime.now().day
+                            ? _blue
+                            : Colors.grey[500]),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _expenseDate.day == DateTime.now().day &&
+                                _expenseDate.month == DateTime.now().month &&
+                                _expenseDate.year == DateTime.now().year
+                            ? 'Today — ${DateHelper.formatDate(_expenseDate)}'
+                            : 'Past Date — ${DateHelper.formatDate(_expenseDate)}',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _expenseDate.day != DateTime.now().day
+                                ? _blue
+                                : Colors.black87),
+                      ),
+                    ),
+                    if (_expenseDate.day != DateTime.now().day)
+                      GestureDetector(
+                        onTap: () => setS(() => _expenseDate = DateTime.now()),
+                        child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
+                      ),
+                  ]),
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -367,6 +423,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       notes: notesCtrl.text.isEmpty
                           ? null
                           : notesCtrl.text,
+                      date: _expenseDate,
                     );
                   } else {
                     await prov.updateExpense(
@@ -374,6 +431,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         description: descCtrl.text.trim(),
                         category: category,
                         amount: amount,
+                        date: _expenseDate,
                         notes: notesCtrl.text.isEmpty
                             ? null
                             : notesCtrl.text,

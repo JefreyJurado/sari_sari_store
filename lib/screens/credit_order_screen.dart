@@ -46,6 +46,10 @@ class _CreditOrderScreenState
           elevation: 0,
           centerTitle: false,
           titleSpacing: 16,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            onPressed: () => Navigator.pop(context),
+          ),
           title: const Text('New Credit',
               style: TextStyle(
                   fontSize: 18,

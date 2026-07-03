@@ -87,56 +87,48 @@ class _DailySummaryScreenState
 
       return Scaffold(
         backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: const Text('Daily Summary',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black87)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            onPressed: () => Navigator.pop(context),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.calendar_today_outlined, color: Colors.black54, size: 22),
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate,
+                  firstDate: DateTime(2024),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null) {
+                  setState(() => _selectedDate = picked);
+                  _loadHourlyData();
+                }
+              },
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(height: 1, color: Colors.grey.shade200),
+          ),
+        ),
         body: SafeArea(
           child: RefreshIndicator(
             onRefresh: _loadHourlyData,
             child: SingleChildScrollView(
-              physics:
-                  const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(
-                  16, 20, 16, 32),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
-                  // ── Non-sticky Header ───────────────
-                  Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Daily Summary',
-                          style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                              letterSpacing: -0.5)),
-                      IconButton(
-                        icon: const Icon(
-                            Icons.calendar_today_outlined,
-                            color: Colors.black54,
-                            size: 22),
-                        onPressed: () async {
-                          final picked =
-                              await showDatePicker(
-                            context: context,
-                            initialDate: _selectedDate,
-                            firstDate: DateTime(2024),
-                            lastDate: DateTime.now(),
-                          );
-                          if (picked != null) {
-                            setState(() =>
-                                _selectedDate = picked);
-                            _loadHourlyData();
-                          }
-                        },
-                      ),
-                    ],
-                  ),
                   Text('View sales performance by day',
-                      style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 13)),
+                      style: TextStyle(color: Colors.grey[500], fontSize: 13)),
                   const SizedBox(height: 20),
 
                   // ── Date + Summary ──────────────────

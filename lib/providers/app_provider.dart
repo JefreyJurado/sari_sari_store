@@ -466,13 +466,13 @@ class AppProvider extends ChangeNotifier {
 
   // ── Expenses ───────────────────────────────────────────────────
   Future<void> addExpense(String desc, String cat, double amount,
-      {String? notes}) async {
+      {String? notes, DateTime? date}) async {
     await _db.insertExpense(Expense(
         id: _uuid.v4(),
         description: desc,
         category: cat,
         amount: amount,
-        date: DateTime.now(),
+        date: date ?? DateTime.now(),
         notes: notes));
     await reload();
   }

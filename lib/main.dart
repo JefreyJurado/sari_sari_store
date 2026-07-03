@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:io';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/app_provider.dart';
@@ -18,9 +20,15 @@ const _blue = Color(0xFF1E3A8A);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // FIXED: Removed the error blocking lines that were caching the stale engine frames
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  // Initialize sqflite for Windows/Linux/macOS
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  } else {
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  }
+
   await DatabaseService.instance.database;
   
   try {
@@ -44,6 +52,10 @@ class StorePHApp extends StatelessWidget {
       child: MaterialApp(
           title: 'StorePH',
           debugShowCheckedModeBanner: false,
+          shortcuts: {
+            ...WidgetsApp.defaultShortcuts,
+            const SingleActivator(LogicalKeyboardKey.backspace): const ActivateIntent(),
+          },
           builder: (context, widget) {
             ErrorWidget.builder = (errorDetails) {
               if (errorDetails.exception.toString().contains('_dependents.isEmpty')) {

@@ -150,8 +150,12 @@ class _PinScreenState extends State<PinScreen>
           ? AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
-              foregroundColor: Colors.white,
-              title: const Text('Setup PIN'),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: const Text('Setup PIN',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
             )
           : null,
       body: SafeArea(

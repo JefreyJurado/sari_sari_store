@@ -531,31 +531,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Settings',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black87)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: Colors.grey.shade200),
+        ),
+      ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
               child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
               children: [
-                Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Settings',
-                        style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                            letterSpacing: -0.5)),
-                    Icon(Icons.settings_outlined,
-                        color: Colors.grey[400], size: 22),
-                  ],
-                ),
-                const SizedBox(height: 4),
                 Text('Configure your store',
-                    style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 13)),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 13)),
                 const SizedBox(height: 20),
 
                 Container(

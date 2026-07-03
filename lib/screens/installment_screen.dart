@@ -61,42 +61,25 @@ class _InstallmentScreenState extends State<InstallmentScreen>
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          automaticallyImplyLeading: false,
-          toolbarHeight: 0,
+          title: const Text('Installment',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black87)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            onPressed: () => Navigator.pop(context),
+          ),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
-            child: Divider(
-                height: 1, color: Colors.grey.shade200),
+            child: Divider(height: 1, color: Colors.grey.shade200),
           ),
         ),
         body: SafeArea(
           child: Column(children: [
-
-            // ── Non-sticky Header ──────────────────
-            SizedBox(
-              width: double.infinity,
-              child: Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 20, 16, 12),
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  const Text('Installment',
-                      style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                          letterSpacing: -0.5)),
-                  const SizedBox(height: 4),
-                  Text('Manage payment plans',
-                      style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 13)),
-                ],
-              ),
-              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Text('Manage payment plans',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13)),
             ),
+            const SizedBox(height: 8),
 
             // ── Tab Bar ────────────────────────────
             Container(
