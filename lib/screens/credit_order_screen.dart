@@ -794,6 +794,7 @@ class _CreditSummaryScreenState
   bool _saving = false;
   bool _sharing = false;
   bool _saved = false;
+  DateTime _transactionDate = DateTime.now();
 
   double get _total => widget.selectedItems.entries
       .fold(0, (s, e) => s + e.key.sellPrice * e.value);
@@ -857,6 +858,7 @@ class _CreditSummaryScreenState
         type: _PaymentTypeCredit(),
         customer: customer,
         dueDate: widget.dueDate,
+        saleDate: _transactionDate,
       );
 
       setState(() {
@@ -1192,7 +1194,62 @@ class _CreditSummaryScreenState
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+
+            // ── Transaction Date ──────────────────
+            if (!_saved)
+              GestureDetector(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _transactionDate,
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) setState(() => _transactionDate = picked);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _transactionDate.day != DateTime.now().day
+                          ? _blue
+                          : Colors.grey.shade200,
+                    ),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.calendar_today_outlined,
+                        size: 18,
+                        color: _transactionDate.day != DateTime.now().day
+                            ? _blue
+                            : Colors.grey[500]),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _transactionDate.day == DateTime.now().day &&
+                                _transactionDate.month == DateTime.now().month &&
+                                _transactionDate.year == DateTime.now().year
+                            ? 'Transaction Date: Today'
+                            : 'Transaction Date: ${DateHelper.formatDate(_transactionDate)}',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _transactionDate.day != DateTime.now().day
+                                ? _blue
+                                : Colors.black87),
+                      ),
+                    ),
+                    if (_transactionDate.day != DateTime.now().day)
+                      GestureDetector(
+                        onTap: () => setState(() => _transactionDate = DateTime.now()),
+                        child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
+                      ),
+                  ]),
+                ),
+              ),
+            const SizedBox(height: 12),
 
             // Action buttons
             if (!_saved) ...[

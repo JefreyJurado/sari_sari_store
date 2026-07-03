@@ -13,11 +13,15 @@ import 'receipt_screen.dart';
 import 'lista_screen.dart';
 import 'payment_screen.dart';
 import 'capital_screen.dart';
+import 'daily_summary_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'sales_history_screen.dart';
 
 
 const _brandBlue = Color(0xFF1E3A8A);
+const _brandGreen = Color(0xFF059669);
+const _brandOrange = Color(0xFFEA580C);
+const _brandPurple = Color(0xFF7C3AED);
 
 class CrossFadePageRoute<T> extends PageRouteBuilder<T> {
   final Widget child;
@@ -242,13 +246,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             Icons.analytics_rounded,
                             gradient: const LinearGradient(
                               colors: [
-                                _brandBlue,
-                                Color(0xFF2563EB)
+                                _brandGreen,
+                                Color(0xFF10B981)
                               ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             isDark: true,
+                            onTap: () => Navigator.push(
+                                context,
+                                CrossFadePageRoute(
+                                    child: const SalesHistoryScreen())),
                           ),
                           const SizedBox(width: 12),
                           _statCard(
@@ -256,7 +264,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             CurrencyFormatter.format(
                                 prov.todayProfit),
                             Icons.trending_up_rounded,
-                            iconColor: Colors.green.shade600,
+                            iconColor: _brandGreen,
+                            onTap: () => Navigator.push(
+                                context,
+                                CrossFadePageRoute(
+                                    child: const DailySummaryScreen())),
                           ),
                         ]),
                         const SizedBox(height: 12),
@@ -265,7 +277,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             'Transactions',
                             prov.todaySales.length.toString(),
                             Icons.receipt_rounded,
-                            iconColor: _brandBlue,
+                            iconColor: _brandPurple,
+                            onTap: () => Navigator.push(
+                                context,
+                                CrossFadePageRoute(
+                                    child: const SalesHistoryScreen())),
                           ),
                           const SizedBox(width: 12),
                           _statCard(
@@ -273,8 +289,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             CurrencyFormatter.format(
                                 prov.totalUnpaidDebt),
                             Icons.account_balance_wallet_rounded,
+                            iconColor: prov.totalUnpaidDebt > 0
+                                ? _brandOrange
+                                : null,
                             isAlert:
                                 prov.totalUnpaidDebt > 0,
+                            onTap: () => Navigator.push(
+                                context,
+                                CrossFadePageRoute(
+                                    child: const ListaScreen())),
                           ),
                         ]),
                         const SizedBox(height: 12),
@@ -571,7 +594,8 @@ class _HomeScreenState extends State<HomeScreen> {
       {bool isAlert = false,
       LinearGradient? gradient,
       bool isDark = false,
-      Color? iconColor}) {
+      Color? iconColor,
+      VoidCallback? onTap}) {
     final Color textColor = isDark
         ? Colors.white
         : (isAlert ? Colors.red.shade700 : Colors.black87);
@@ -580,62 +604,65 @@ class _HomeScreenState extends State<HomeScreen> {
         : Colors.grey.shade500;
 
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: gradient,
-          color: isDark ? null : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-          border: isDark
-              ? null
-              : Border.all(
-                  color: isAlert
-                      ? Colors.red.shade100
-                      : Colors.grey.shade200),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-              children: [
-                Text(label,
-                    style: TextStyle(
-                        color: subtitleColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
-                Icon(
-                  icon,
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.6)
-                      : (isAlert
-                          ? Colors.red.shade400
-                          : (iconColor ??
-                              _brandBlue
-                                  .withValues(alpha: 0.5))),
-                  size: 18,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                  letterSpacing: -0.5,
-                  color: textColor),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: gradient,
+            color: isDark ? null : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ],
+            border: isDark
+                ? null
+                : Border.all(
+                    color: isAlert
+                        ? Colors.red.shade100
+                        : Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(label,
+                      style: TextStyle(
+                          color: subtitleColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                  Icon(
+                    icon,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.6)
+                        : (isAlert
+                            ? Colors.red.shade400
+                            : (iconColor ??
+                                _brandBlue
+                                    .withValues(alpha: 0.5))),
+                    size: 18,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                value,
+                style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                    letterSpacing: -0.5,
+                    color: textColor),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );

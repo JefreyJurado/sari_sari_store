@@ -486,6 +486,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
   String _markupType = '%';
   String _seasonalTag = 'None';
   DateTime? _expiryDate;
+  late DateTime _dateAdded;
   final _markupCtrl = TextEditingController();
   final _reorderCtrl = TextEditingController();
   final _supplierNameCtrl = TextEditingController();
@@ -497,6 +498,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
     _category = widget.initialCategory;
     _seasonalTag = widget.existing?.seasonalTag ?? 'None';
     _expiryDate = widget.existing?.expiryDate;
+    _dateAdded = widget.existing?.createdAt ?? DateTime.now();
     _reorderCtrl.text = (widget.existing?.reorderPoint ?? 5).toString();
     _supplierNameCtrl.text = widget.existing?.supplierName ?? '';
     _supplierContactCtrl.text = widget.existing?.supplierContact ?? '';
@@ -692,6 +694,38 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
           ),
           const SizedBox(height: 12),
 
+          GestureDetector(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _dateAdded,
+                firstDate: DateTime.now().subtract(const Duration(days: 3650)),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) setState(() => _dateAdded = picked);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(children: [
+                Icon(Icons.event_outlined, size: 18, color: Colors.grey[500]),
+                const SizedBox(width: 12),
+                Text('Date Added: ',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                Text('${_dateAdded.month}/${_dateAdded.day}/${_dateAdded.year}',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                const Spacer(),
+                Icon(Icons.edit_calendar_outlined, size: 16, color: Colors.grey[400]),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+
           _field(_supplierNameCtrl, 'Supplier Name (optional)', Icons.store_outlined),
           const SizedBox(height: 8),
           _field(_supplierContactCtrl, 'Supplier Contact (optional)', Icons.phone_outlined, keyboardType: TextInputType.phone),
@@ -737,7 +771,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                   sellPrice: double.tryParse(widget.sellCtrl.text) ?? 0,
                   stock: int.tryParse(widget.stockCtrl.text) ?? 0,
                   unit: widget.unitCtrl.text.trim().isEmpty ? 'pcs' : widget.unitCtrl.text.trim(),
-                  createdAt: widget.existing?.createdAt ?? DateTime.now(),
+                  createdAt: _dateAdded,
                   reorderPoint: int.tryParse(_reorderCtrl.text) ?? 5,
                   expiryDate: _expiryDate,
                   supplierName: _supplierNameCtrl.text.trim().isEmpty ? null : _supplierNameCtrl.text.trim(),

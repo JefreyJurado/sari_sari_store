@@ -360,6 +360,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
     final Map<Product, int> selectedProducts = {};
     final downCtrl = TextEditingController();
     int selectedMonths = 3;
+    DateTime startDate = DateTime.now();
 
     showModalBottomSheet(
       context: context,
@@ -920,6 +921,37 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                 // Step 3
                 _stepLabel('3', 'Payment Details'),
                 const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: startDate,
+                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) setS(() => startDate = picked);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 10),
+                      Text('Start Date: ',
+                          style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                      Text(DateHelper.formatDate(startDate),
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                      const Spacer(),
+                      Icon(Icons.edit_calendar_outlined, size: 16, color: Colors.grey[400]),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 12),
@@ -1114,8 +1146,8 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                         paidMonths: 0,
                         totalPaid: down,
                         status: InstallmentStatus.ongoing,
-                        startDate: DateTime.now(),
-                        nextDueDate: DateTime.now()
+                        startDate: startDate,
+                        nextDueDate: startDate
                             .add(const Duration(days: 30)),
                       );
                       await InstallmentService.instance

@@ -288,6 +288,7 @@ class AppProvider extends ChangeNotifier {
     Customer? customer,
     String? notes,
     DateTime? dueDate,
+    DateTime? saleDate,
   }) async {
     final txItems = items.map((e) {
       final product = e['product'] as Product;
@@ -313,7 +314,7 @@ class AppProvider extends ChangeNotifier {
       customerName: customer?.name,
       type: PaymentType.credit,
       notes: notes,
-      createdAt: DateTime.now(),
+      createdAt: saleDate ?? DateTime.now(),
     );
 
     await _db.insertSale(sale);
