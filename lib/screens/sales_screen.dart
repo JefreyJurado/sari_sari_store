@@ -133,6 +133,9 @@ class _SalesScreenState extends State<SalesScreen> {
                                     itemBuilder: (_, i) {
                                       final cat = categories[i];
                                       final sel = _category == cat;
+                                      final catColor = cat == 'All'
+                                          ? _blue
+                                          : FilipinoCategories.getColor(cat);
                                       return GestureDetector(
                                         onTap: () =>
                                             setState(() => _category = cat),
@@ -143,7 +146,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                               horizontal: 14, vertical: 8),
                                           decoration: BoxDecoration(
                                             color: sel
-                                                ? _blue
+                                                ? catColor
                                                 : Colors.grey.shade100,
                                             borderRadius:
                                                 BorderRadius.circular(20),
@@ -166,7 +169,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                                     Icon(
                                                       FilipinoCategories.getIcon(cat),
                                                       size: 14,
-                                                      color: sel ? Colors.white : Colors.grey[600],
+                                                      color: sel ? Colors.white : catColor,
                                                     ),
                                                     const SizedBox(width: 6),
                                                     Text(
@@ -329,15 +332,27 @@ class _ProductSliverGrid extends StatelessWidget {
           final qty = cart[p] ?? 0;
           final inCart = qty > 0;
 
+          final catColor = FilipinoCategories.getColor(p.category);
+
           return GestureDetector(
             onTap: p.isOutOfStock ? null : () => onAdd(p),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: p.isOutOfStock
+                    ? null
+                    : LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          catColor.withValues(alpha: 0.22),
+                          catColor.withValues(alpha: 0.04),
+                        ],
+                      ),
+                color: p.isOutOfStock ? Colors.white : null,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: inCart ? _blue : Colors.grey.shade200,
+                  color: inCart ? _blue : catColor.withValues(alpha: 0.35),
                   width: inCart ? 1.5 : 1,
                 ),
                 boxShadow: inCart
@@ -358,7 +373,7 @@ class _ProductSliverGrid extends StatelessWidget {
                       Icon(
                         FilipinoCategories.getIcon(p.category),
                         size: 20,
-                        color: _blue,
+                        color: catColor,
                       ),
                       const Spacer(),
                       if (p.isOutOfStock)

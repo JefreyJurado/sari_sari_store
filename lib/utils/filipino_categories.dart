@@ -30,6 +30,37 @@ class FilipinoCategories {
     'Others',
   ];
 
+  // Map categories to distinct colors for visual scanning
+  static const Map<String, Color> _colors = {
+    // Product Categories
+    'Food (Canned)': Color(0xFFEA580C),        // orange
+    'Drinks / Beverages': Color(0xFF0891B2),   // teal
+    'Snacks': Color(0xFFD97706),               // amber
+    'Bakery / Bread': Color(0xFFB45309),       // brown-amber
+    'Rice and Pasta': Color(0xFFCA8A04),       // yellow-gold
+    'Condiments': Color(0xFFDC2626),           // red
+    'Cleaning Supplies': Color(0xFF0EA5E9),    // sky blue
+    'Personal Care': Color(0xFFDB2777),        // pink
+    'Cigarettes': Color(0xFF57534E),           // stone gray
+    'Alcohol / Beer': Color(0xFFB45309),       // amber-brown
+    'Candies / Sweets': Color(0xFFEC4899),     // hot pink
+    'Frozen / Chilled': Color(0xFF0284C7),     // ice blue
+    'School Supplies': Color(0xFF7C3AED),      // purple
+
+    // Expense Categories
+    'Stocks / Resupply': Color(0xFF1E3A8A),    // brand blue
+    'Electricity': Color(0xFFD97706),          // amber
+    'Water': Color(0xFF0891B2),                // teal
+    'Rent / Rental': Color(0xFF7C3AED),        // purple
+    'Fare / Transport': Color(0xFF059669),     // green
+    'Services': Color(0xFF64748B),             // slate
+    'Personal / Allowance': Color(0xFF059669), // green
+    'Food / Meals': Color(0xFFEA580C),         // orange
+
+    // Fallback
+    'Others': Color(0xFF64748B),               // slate gray
+  };
+
   // Map categories to clean Material outline icons
   static const Map<String, IconData> _icons = {
     // Product Categories
@@ -94,6 +125,9 @@ class FilipinoCategories {
 
   // Helper method to fetch the correct outline icon
   static IconData getIcon(String category) => _icons[category] ?? Icons.inventory_2_outlined;
+
+  // Helper method to fetch the correct color for a category
+  static Color getColor(String category) => _colors[category] ?? const Color(0xFF64748B);
 
   // Helper method to fetch the correct emoji string (Fixes previous screen runtime dependencies)
   static String emoji(String category) => _emojis[category] ?? '📦';

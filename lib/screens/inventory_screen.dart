@@ -1144,29 +1144,35 @@ class _ProductTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isOut = product.stock <= 0;
     final isLow = product.isLowStock;
+    final catColor = FilipinoCategories.getColor(product.category);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: isOut
+            ? null
+            : LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  catColor.withValues(alpha: 0.20),
+                  catColor.withValues(alpha: 0.03),
+                ],
+              ),
+        color: isOut ? Colors.white : null,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: isOut
                 ? Colors.red.shade100
                 : isLow
                     ? Colors.orange.shade100
-                    : Colors.grey.shade200),
+                    : catColor.withValues(alpha: 0.35)),
       ),
       child: ListTile(
         onTap: () => _showProductDetails(context),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: Container(
-          width: 40, height: 40,
-          decoration: BoxDecoration(
-              color: Colors.grey.shade100, borderRadius: BorderRadius.circular(10)),
-          child: Center(
-              child: Icon(FilipinoCategories.getIcon(product.category), size: 20, color: _blue)),
-        ),
+        leading: Icon(FilipinoCategories.getIcon(product.category),
+            size: 24, color: catColor),
         title: Row(children: [
           Expanded(
             child: Text(product.name,
