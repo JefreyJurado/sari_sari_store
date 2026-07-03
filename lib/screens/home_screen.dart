@@ -244,15 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             CurrencyFormatter.format(
                                 prov.todayRevenue),
                             Icons.analytics_rounded,
-                            gradient: const LinearGradient(
-                              colors: [
-                                _brandGreen,
-                                Color(0xFF10B981)
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            isDark: true,
+                            accentColor: _brandGreen,
                             onTap: () => Navigator.push(
                                 context,
                                 CrossFadePageRoute(
@@ -264,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             CurrencyFormatter.format(
                                 prov.todayProfit),
                             Icons.trending_up_rounded,
-                            iconColor: _brandGreen,
+                            accentColor: const Color(0xFF10B981),
                             onTap: () => Navigator.push(
                                 context,
                                 CrossFadePageRoute(
@@ -277,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             'Transactions',
                             prov.todaySales.length.toString(),
                             Icons.receipt_rounded,
-                            iconColor: _brandPurple,
+                            accentColor: _brandPurple,
                             onTap: () => Navigator.push(
                                 context,
                                 CrossFadePageRoute(
@@ -289,9 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             CurrencyFormatter.format(
                                 prov.totalUnpaidDebt),
                             Icons.account_balance_wallet_rounded,
-                            iconColor: prov.totalUnpaidDebt > 0
-                                ? _brandOrange
-                                : null,
+                            accentColor: _brandOrange,
                             isAlert:
                                 prov.totalUnpaidDebt > 0,
                             onTap: () => Navigator.push(
@@ -592,16 +582,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _statCard(String label, String value, IconData icon,
       {bool isAlert = false,
-      LinearGradient? gradient,
-      bool isDark = false,
-      Color? iconColor,
+      Color? accentColor,
       VoidCallback? onTap}) {
-    final Color textColor = isDark
-        ? Colors.white
-        : (isAlert ? Colors.red.shade700 : Colors.black87);
-    final Color subtitleColor = isDark
-        ? Colors.white.withValues(alpha: 0.7)
-        : Colors.grey.shade500;
+    final Color bg = isAlert
+        ? Colors.red.shade600
+        : (accentColor ?? _brandBlue);
 
     return Expanded(
       child: GestureDetector(
@@ -609,22 +594,15 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: gradient,
-            color: isDark ? null : Colors.white,
+            color: bg,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
+                color: bg.withValues(alpha: 0.25),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               )
             ],
-            border: isDark
-                ? null
-                : Border.all(
-                    color: isAlert
-                        ? Colors.red.shade100
-                        : Colors.grey.shade200),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,30 +613,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(label,
                       style: TextStyle(
-                          color: subtitleColor,
+                          color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 12,
                           fontWeight: FontWeight.w600)),
-                  Icon(
-                    icon,
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.6)
-                        : (isAlert
-                            ? Colors.red.shade400
-                            : (iconColor ??
-                                _brandBlue
-                                    .withValues(alpha: 0.5))),
-                    size: 18,
-                  ),
+                  Icon(icon, color: Colors.white, size: 18),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
                 value,
-                style: TextStyle(
+                style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 20,
                     letterSpacing: -0.5,
-                    color: textColor),
+                    color: Colors.white),
                 overflow: TextOverflow.ellipsis,
               ),
             ],

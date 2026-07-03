@@ -1145,41 +1145,30 @@ class _ProductTile extends StatelessWidget {
     final isOut = product.stock <= 0;
     final isLow = product.isLowStock;
     final catColor = FilipinoCategories.getColor(product.category);
+    final bgColor = isOut ? Colors.grey.shade200 : catColor;
+    final textColor = isOut ? Colors.grey[700] : Colors.white;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        gradient: isOut
-            ? null
-            : LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  catColor.withValues(alpha: 0.20),
-                  catColor.withValues(alpha: 0.03),
-                ],
-              ),
-        color: isOut ? Colors.white : null,
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: isOut
-                ? Colors.red.shade100
-                : isLow
-                    ? Colors.orange.shade100
-                    : catColor.withValues(alpha: 0.35)),
+        border: isLow && !isOut
+            ? Border.all(color: Colors.orange.shade200, width: 2)
+            : null,
       ),
       child: ListTile(
         onTap: () => _showProductDetails(context),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         leading: Icon(FilipinoCategories.getIcon(product.category),
-            size: 24, color: catColor),
+            size: 24, color: isOut ? Colors.grey[600] : Colors.white),
         title: Row(children: [
           Expanded(
             child: Text(product.name,
                 style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
-                    color: isOut ? Colors.grey[400] : Colors.black87)),
+                    color: textColor)),
           ),
           if (product.seasonalTag != null)
             Container(
@@ -1223,17 +1212,23 @@ class _ProductTile extends StatelessWidget {
           children: [
             Text(
               'Cost: ${CurrencyFormatter.format(product.buyPrice)}  •  Sell: ${CurrencyFormatter.format(product.sellPrice)}',
-              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: isOut ? Colors.grey[500] : Colors.white.withValues(alpha: 0.85)),
             ),
             if (product.supplierName != null)
               Text(
                 '🏪 ${product.supplierName}',
-                style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                style: TextStyle(
+                    fontSize: 10,
+                    color: isOut ? Colors.grey[400] : Colors.white.withValues(alpha: 0.7)),
               ),
             if (product.expiryDate != null && !product.isExpired && !product.isNearExpiry)
               Text(
                 'Exp: ${product.expiryDate!.month}/${product.expiryDate!.day}/${product.expiryDate!.year}',
-                style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                style: TextStyle(
+                    fontSize: 10,
+                    color: isOut ? Colors.grey[400] : Colors.white.withValues(alpha: 0.7)),
               ),
           ],
         ),
@@ -1243,31 +1238,18 @@ class _ProductTile extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                  color: isOut
-                      ? Colors.red.shade50
-                      : isLow
-                          ? Colors.orange.shade50
-                          : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                      color: isOut
-                          ? Colors.red.shade200
-                          : isLow
-                              ? Colors.orange.shade200
-                              : Colors.grey.shade300)),
+                  color: Colors.white.withValues(alpha: isOut ? 1 : 0.25),
+                  borderRadius: BorderRadius.circular(6)),
               child: Text('${product.stock}',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isOut
-                          ? Colors.red
-                          : isLow
-                              ? Colors.orange
-                              : Colors.black54,
+                      color: isOut ? Colors.grey[700] : Colors.white,
                       fontSize: 13)),
             ),
           ),
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert_outlined, color: Colors.grey[400], size: 18),
+            icon: Icon(Icons.more_vert_outlined,
+                color: isOut ? Colors.grey[400] : Colors.white.withValues(alpha: 0.8), size: 18),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             itemBuilder: (_) => [
               PopupMenuItem(

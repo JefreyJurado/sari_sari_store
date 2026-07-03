@@ -333,33 +333,24 @@ class _ProductSliverGrid extends StatelessWidget {
           final inCart = qty > 0;
 
           final catColor = FilipinoCategories.getColor(p.category);
+          final bgColor = p.isOutOfStock ? Colors.grey.shade200 : catColor;
 
           return GestureDetector(
             onTap: p.isOutOfStock ? null : () => onAdd(p),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               decoration: BoxDecoration(
-                gradient: p.isOutOfStock
-                    ? null
-                    : LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          catColor.withValues(alpha: 0.22),
-                          catColor.withValues(alpha: 0.04),
-                        ],
-                      ),
-                color: p.isOutOfStock ? Colors.white : null,
+                color: bgColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: inCart ? _blue : catColor.withValues(alpha: 0.35),
-                  width: inCart ? 1.5 : 1,
+                  color: inCart ? Colors.white : Colors.transparent,
+                  width: inCart ? 2 : 0,
                 ),
                 boxShadow: inCart
                     ? [
                         BoxShadow(
-                            color: _blue.withValues(alpha: 0.05),
-                            blurRadius: 4,
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 6,
                             offset: const Offset(0, 2))
                       ]
                     : null,
@@ -373,15 +364,15 @@ class _ProductSliverGrid extends StatelessWidget {
                       Icon(
                         FilipinoCategories.getIcon(p.category),
                         size: 20,
-                        color: catColor,
+                        color: p.isOutOfStock ? Colors.grey[500] : Colors.white,
                       ),
                       const Spacer(),
                       if (p.isOutOfStock)
-                        _badge('Out', Colors.red)
+                        _badge('Out', Colors.white, Colors.grey.shade700)
                       else if (p.isLowStock)
-                        _badge('Low', Colors.orange)
+                        _badge('Low', Colors.white, Colors.orange.shade900)
                       else if (inCart)
-                        _badge('$qty', _blue),
+                        _badge('$qty', Colors.white, catColor),
                     ]),
                     const SizedBox(height: 8),
                     Expanded(
@@ -389,7 +380,7 @@ class _ProductSliverGrid extends StatelessWidget {
                           style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
-                              color: p.isOutOfStock ? Colors.grey[400] : Colors.black87),
+                              color: p.isOutOfStock ? Colors.grey[600] : Colors.white),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis),
                     ),
@@ -400,24 +391,25 @@ class _ProductSliverGrid extends StatelessWidget {
                           CurrencyFormatter.format(p.sellPrice),
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: p.isOutOfStock ? Colors.grey[400] : Colors.black87,
+                              color: p.isOutOfStock ? Colors.grey[600] : Colors.white,
                               fontSize: 14),
                         ),
                       ),
                       if (inCart) ...[
-                        _smallBtn(Icons.remove_outlined, Colors.grey.shade100, Colors.grey.shade700,
+                        _smallBtn(Icons.remove_outlined, Colors.white.withValues(alpha: 0.25), Colors.white,
                             () => onRemove(p)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Text('$qty',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
                         ),
-                        _smallBtn(Icons.add, _blue, Colors.white, () => onAdd(p)),
+                        _smallBtn(Icons.add, Colors.white, catColor, () => onAdd(p)),
                       ] else
                         _smallBtn(
                             Icons.add,
-                            p.isOutOfStock ? Colors.grey.shade100 : _blue.withValues(alpha: 0.08),
-                            p.isOutOfStock ? Colors.grey.shade400 : _blue,
+                            p.isOutOfStock ? Colors.grey.shade300 : Colors.white,
+                            p.isOutOfStock ? Colors.grey.shade500 : catColor,
                             p.isOutOfStock ? () {} : () => onAdd(p)),
                     ]),
                   ],
@@ -431,13 +423,12 @@ class _ProductSliverGrid extends StatelessWidget {
     );
   }
 
-  Widget _badge(String text, Color color) => Container(
+  Widget _badge(String text, Color bg, Color fg) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: color.withValues(alpha: 0.2), width: 0.5)),
-        child: Text(text, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+            color: bg,
+            borderRadius: BorderRadius.circular(6)),
+        child: Text(text, style: TextStyle(color: fg, fontSize: 10, fontWeight: FontWeight.w700)),
       );
 
   Widget _smallBtn(IconData icon, Color bg, Color fg, VoidCallback onTap) => GestureDetector(

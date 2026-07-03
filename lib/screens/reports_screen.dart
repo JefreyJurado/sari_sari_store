@@ -5,8 +5,14 @@ import '../services/report_service.dart';
 import '../utils/currency_formatter.dart';
 import '../widgets/profit_chart.dart';
 import '../services/pdf_report_service.dart';
+import 'sales_history_screen.dart';
+import 'daily_summary_screen.dart';
+import 'expenses_screen.dart';
 
 const _blue = Color(0xFF1E3A8A);
+const _green = Color(0xFF059669);
+const _red = Color(0xFFDC2626);
+const _purple = Color(0xFF7C3AED);
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -280,13 +286,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         'Total Sales',
                         CurrencyFormatter.format(
                             _report!.totalRevenue),
-                        Icons.shopping_bag_outlined),
+                        Icons.shopping_bag_outlined,
+                        accentColor: _green,
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const SalesHistoryScreen()))),
                     const SizedBox(width: 10),
                     _statCard(
                         'Total Profit',
                         CurrencyFormatter.format(
                             _report!.totalProfit),
-                        Icons.trending_up_outlined),
+                        Icons.trending_up_outlined,
+                        accentColor: _green,
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const DailySummaryScreen()))),
                   ]),
                   const SizedBox(height: 10),
                   Row(children: [
@@ -295,8 +313,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         CurrencyFormatter.format(
                             _report!.totalExpenses),
                         Icons.receipt_outlined,
+                        accentColor: _red,
                         isAlert:
-                            _report!.totalExpenses > 0),
+                            _report!.totalExpenses > 0,
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const ExpensesScreen()))),
                     const SizedBox(width: 10),
                     _statCard(
                         'Net Income',
@@ -304,7 +328,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             _report!.netIncome),
                         Icons
                             .account_balance_wallet_outlined,
-                        isAlert: _report!.netIncome < 0),
+                        accentColor: _purple,
+                        isAlert: _report!.netIncome < 0,
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const DailySummaryScreen()))),
                   ]),
                   const SizedBox(height: 12),
 
@@ -484,48 +514,48 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _statCard(String label, String value,
           IconData icon,
-          {bool isAlert = false}) =>
-      Expanded(
+          {bool isAlert = false,
+          Color? accentColor,
+          VoidCallback? onTap}) {
+    final color = isAlert ? Colors.red.shade600 : (accentColor ?? _blue);
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: color,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-                color: isAlert
-                    ? Colors.red.shade100
-                    : _blue.withValues(alpha: 0.15)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                Icon(icon,
-                    color: isAlert
-                        ? Colors.red.shade300
-                        : _blue.withValues(alpha: 0.5),
-                    size: 16),
+                Icon(icon, color: Colors.white, size: 16),
                 const SizedBox(width: 6),
                 Expanded(
                     child: Text(label,
                         style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 11),
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500),
                         overflow: TextOverflow.ellipsis)),
+                Icon(Icons.chevron_right,
+                    color: Colors.white.withValues(alpha: 0.6), size: 14),
               ]),
               const SizedBox(height: 8),
               Text(value,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: isAlert
-                          ? Colors.red.shade400
-                          : Colors.black87),
+                      color: Colors.white),
                   overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
-      );
+      ),
+    );
+  }
 
   Widget _sectionHeader(String title) => Text(title,
       style: const TextStyle(
