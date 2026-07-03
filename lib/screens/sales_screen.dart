@@ -73,13 +73,24 @@ class _SalesScreenState extends State<SalesScreen> {
                                 ),
                                 const Spacer(),
                                 if (prov.cartItemCount > 0)
-                                  Badge(
-                                    label: Text('${prov.cartItemCount}'),
-                                    child: IconButton(
-                                        icon: const Icon(
-                                            Icons.shopping_cart_outlined,
-                                            color: Colors.black87),
-                                        onPressed: () => _showCart(context, prov)),
+                                  TweenAnimationBuilder<double>(
+                                    key: ValueKey(prov.cartItemCount),
+                                    tween: Tween(begin: 1.3, end: 1.0),
+                                    duration: const Duration(milliseconds: 350),
+                                    curve: Curves.elasticOut,
+                                    builder: (context, scale, child) => Transform.scale(
+                                      scale: scale,
+                                      child: child,
+                                    ),
+                                    child: Badge(
+                                      backgroundColor: _blue,
+                                      label: Text('${prov.cartItemCount}'),
+                                      child: IconButton(
+                                          icon: const Icon(
+                                              Icons.shopping_cart_rounded,
+                                              color: _blue),
+                                          onPressed: () => _showCart(context, prov)),
+                                    ),
                                   )
                                 else
                                   const Padding(
@@ -236,50 +247,76 @@ class _SalesScreenState extends State<SalesScreen> {
         ),
         bottomNavigationBar: prov.cartItemCount > 0
             ? SafeArea(
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                        top: BorderSide(
-                            color: Colors.grey.shade200)),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) => Transform.translate(
+                    offset: Offset(0, (1 - value) * 40),
+                    child: Opacity(opacity: value, child: child),
                   ),
-                  child: GestureDetector(
-                    onTap: () => _showCart(context, prov),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: _blue,
-                        borderRadius:
-                            BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                          top: BorderSide(
+                              color: Colors.grey.shade200)),
+                    ),
+                    child: GestureDetector(
+                      onTap: () => _showCart(context, prov),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: _blue,
+                          borderRadius:
+                              BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _blue.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(children: [
+                          TweenAnimationBuilder<double>(
+                            key: ValueKey(prov.cartItemCount),
+                            tween: Tween(begin: 1.3, end: 1.0),
+                            duration: const Duration(milliseconds: 350),
+                            curve: Curves.elasticOut,
+                            builder: (context, scale, child) => Transform.scale(
+                              scale: scale,
+                              child: child,
+                            ),
+                            child: const Icon(
+                                Icons.shopping_cart_rounded,
+                                color: Colors.white,
+                                size: 18),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${prov.cartItemCount} item${prov.cartItemCount > 1 ? 's' : ''}',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500),
+                          ),
+                          const Spacer(),
+                          Text(
+                            CurrencyFormatter.format(
+                                prov.cartTotal),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_ios,
+                              color: Colors.white70, size: 14),
+                        ]),
                       ),
-                      child: Row(children: [
-                        const Icon(
-                            Icons.shopping_cart_outlined,
-                            color: Colors.white,
-                            size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${prov.cartItemCount} item${prov.cartItemCount > 1 ? 's' : ''}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500),
-                        ),
-                        const Spacer(),
-                        Text(
-                          CurrencyFormatter.format(
-                              prov.cartTotal),
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward_ios,
-                            color: Colors.white70, size: 14),
-                      ]),
                     ),
                   ),
                 ),
