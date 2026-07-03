@@ -29,13 +29,24 @@ class CrossFadePageRoute<T> extends PageRouteBuilder<T> {
       : super(
           pageBuilder: (context, animation, secondaryAnimation) =>
               child,
-          transitionDuration: const Duration(milliseconds: 200),
+          transitionDuration: const Duration(milliseconds: 280),
           reverseTransitionDuration:
-              const Duration(milliseconds: 150),
+              const Duration(milliseconds: 220),
           transitionsBuilder:
               (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-                opacity: animation, child: child);
+            const curve = Curves.easeOutCubic;
+            final slideAnim = Tween<Offset>(
+              begin: const Offset(0.08, 0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: animation, curve: curve));
+
+            return SlideTransition(
+              position: slideAnim,
+              child: FadeTransition(
+                opacity: CurvedAnimation(parent: animation, curve: curve),
+                child: child,
+              ),
+            );
           },
         );
 }

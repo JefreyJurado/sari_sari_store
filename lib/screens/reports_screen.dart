@@ -522,32 +522,38 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.25),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                Icon(icon, color: Colors.white, size: 16),
-                const SizedBox(width: 6),
-                Expanded(
-                    child: Text(label,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500),
-                        overflow: TextOverflow.ellipsis)),
-                Icon(Icons.chevron_right,
-                    color: Colors.white.withValues(alpha: 0.6), size: 14),
-              ]),
-              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(label,
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                  Icon(icon, color: Colors.white, size: 18),
+                ],
+              ),
+              const SizedBox(height: 12),
               Text(value,
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                      letterSpacing: -0.5,
                       color: Colors.white),
                   overflow: TextOverflow.ellipsis),
             ],

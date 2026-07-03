@@ -74,49 +74,49 @@ class _QuickActionButtonsState
       shrinkWrap: true,
       padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 8,
-      mainAxisSpacing: 8,
-      childAspectRatio: 1.1,
+      crossAxisSpacing: 4,
+      mainAxisSpacing: 12,
+      childAspectRatio: 0.85,
       children: allActions.map(_buildBtn).toList(),
     );
   }
 
   Widget _buildBtn(_QA a) => GestureDetector(
         onTap: a.onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: a.color.withValues(alpha: 0.15)),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 36, height: 36,
-                decoration: BoxDecoration(
-                  color: a.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(a.icon, color: a.color, size: 18),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: a.color,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: a.color.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  a.label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              child: Icon(a.icon, color: Colors.white, size: 22),
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Text(
+                a.label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
 }

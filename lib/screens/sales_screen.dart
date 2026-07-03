@@ -321,10 +321,10 @@ class _ProductSliverGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.05,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisCount: 3,
+        childAspectRatio: 0.82,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
       delegate: SliverChildBuilderDelegate(
         (context, i) {
@@ -341,7 +341,7 @@ class _ProductSliverGrid extends StatelessWidget {
               duration: const Duration(milliseconds: 150),
               decoration: BoxDecoration(
                 color: bgColor,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: inCart ? Colors.white : Colors.transparent,
                   width: inCart ? 2 : 0,
@@ -356,14 +356,14 @@ class _ProductSliverGrid extends StatelessWidget {
                     : null,
               ),
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
                       Icon(
                         FilipinoCategories.getIcon(p.category),
-                        size: 20,
+                        size: 18,
                         color: p.isOutOfStock ? Colors.grey[500] : Colors.white,
                       ),
                       const Spacer(),
@@ -374,44 +374,46 @@ class _ProductSliverGrid extends StatelessWidget {
                       else if (inCart)
                         _badge('$qty', Colors.white, catColor),
                     ]),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Expanded(
                       child: Text(p.name,
                           style: TextStyle(
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                               fontSize: 13,
                               color: p.isOutOfStock ? Colors.grey[600] : Colors.white),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis),
                     ),
-                    const SizedBox(height: 6),
-                    Row(children: [
-                      Expanded(
-                        child: Text(
-                          CurrencyFormatter.format(p.sellPrice),
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: p.isOutOfStock ? Colors.grey[600] : Colors.white,
-                              fontSize: 14),
-                        ),
-                      ),
-                      if (inCart) ...[
-                        _smallBtn(Icons.remove_outlined, Colors.white.withValues(alpha: 0.25), Colors.white,
-                            () => onRemove(p)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text('$qty',
+                    const SizedBox(height: 4),
+                    Text(
+                      CurrencyFormatter.format(p.sellPrice),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: p.isOutOfStock ? Colors.grey[600] : Colors.white,
+                          fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    if (inCart)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _smallBtn(Icons.remove_outlined, Colors.white.withValues(alpha: 0.25), Colors.white,
+                              () => onRemove(p)),
+                          Text('$qty',
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
-                        ),
-                        _smallBtn(Icons.add, Colors.white, catColor, () => onAdd(p)),
-                      ] else
-                        _smallBtn(
+                                  fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                          _smallBtn(Icons.add, Colors.white, catColor, () => onAdd(p)),
+                        ],
+                      )
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        child: _smallBtn(
                             Icons.add,
                             p.isOutOfStock ? Colors.grey.shade300 : Colors.white,
                             p.isOutOfStock ? Colors.grey.shade500 : catColor,
                             p.isOutOfStock ? () {} : () => onAdd(p)),
-                    ]),
+                      ),
                   ],
                 ),
               ),
@@ -434,9 +436,8 @@ class _ProductSliverGrid extends StatelessWidget {
   Widget _smallBtn(IconData icon, Color bg, Color fg, VoidCallback onTap) => GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+          height: 26,
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(7)),
           child: Icon(icon, size: 14, color: fg),
         ),
       );
