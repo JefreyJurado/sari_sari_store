@@ -308,9 +308,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         // ── Quick Actions ─────────────────
                         _sectionHeader(
                             title: 'Quick Actions'),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
                         const QuickActionButtons(),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 20),
 
                         // ── Alerts ────────────────────────
                         if (prov.outOfStock.isNotEmpty ||

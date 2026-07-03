@@ -26,8 +26,6 @@ class QuickActionButtons extends StatefulWidget {
 
 class _QuickActionButtonsState
     extends State<QuickActionButtons> {
-  bool _showMore = false;
-
   @override
   Widget build(BuildContext context) {
     final mainActions = [
@@ -69,67 +67,17 @@ class _QuickActionButtonsState
                       const BarcodeScannerScreen()))),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GridView.count(
-          crossAxisCount: 4,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          children: mainActions.map(_buildBtn).toList(),
-        ),
-        const SizedBox(height: 8),
+    final allActions = [...mainActions, ...moreActions];
 
-        // Toggle
-        GestureDetector(
-          onTap: () =>
-              setState(() => _showMore = !_showMore),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border:
-                  Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  _showMore ? 'Show less' : 'More tools',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[600]),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  _showMore
-                      ? Icons.keyboard_arrow_up_outlined
-                      : Icons.keyboard_arrow_down_outlined,
-                  size: 18,
-                  color: Colors.grey[500],
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        if (_showMore) ...[
-          const SizedBox(height: 8),
-          GridView.count(
-            crossAxisCount: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            children: moreActions.map(_buildBtn).toList(),
-          ),
-        ],
-      ],
+    return GridView.count(
+      crossAxisCount: 4,
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+      childAspectRatio: 1.1,
+      children: allActions.map(_buildBtn).toList(),
     );
   }
 
@@ -145,14 +93,14 @@ class _QuickActionButtonsState
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 40, height: 40,
+                width: 36, height: 36,
                 decoration: BoxDecoration(
                   color: a.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(9),
                 ),
-                child: Icon(a.icon, color: a.color, size: 20),
+                child: Icon(a.icon, color: a.color, size: 18),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 4),
