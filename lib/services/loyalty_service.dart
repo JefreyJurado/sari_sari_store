@@ -62,6 +62,7 @@ class LoyaltyService {
     required String customerName,
     required double saleAmount,
     DateTime? saleDate,
+    String? saleId,
   }) async {
     final points = _pointsFor(saleAmount);
     if (points <= 0) return;
@@ -91,7 +92,98 @@ class LoyaltyService {
           description:
               'Binili ng ${CurrencyFormatter.format(saleAmount)}',
           createdAt: saleDate ?? DateTime.now(),
+          saleId: saleId,
         ));
+
+    await _saveAccounts(accounts);
+    await _saveTransactions(transactions);
+  }
+
+  Future<LoyaltyAccount?> getAccount(String customerId) async {
+    final accounts = await _loadAccounts();
+    return accounts[customerId];
+  }
+
+  /// Applies `points` of a customer's available balance as a redemption,
+  /// e.g. toward a discount at checkout.
+  Future<bool> redeemPoints({
+    required String customerId,
+    required int points,
+    String? saleId,
+  }) async {
+    if (points <= 0) return false;
+
+    final accounts = await _loadAccounts();
+    final transactions = await _loadTransactions();
+
+    final existing = accounts[customerId];
+    if (existing == null || existing.availablePoints < points) {
+      return false;
+    }
+
+    accounts[customerId] = existing.copyWith(
+        redeemedPoints: existing.redeemedPoints + points);
+
+    transactions[customerId] ??= [];
+    transactions[customerId]!.insert(
+        0,
+        LoyaltyTransaction(
+          id: _uuid.v4(),
+          customerId: customerId,
+          points: points,
+          type: 'redeemed',
+          description:
+              'Redeemed for ${CurrencyFormatter.format(points * LoyaltyAccount.pesoPerPoint)} off',
+          createdAt: DateTime.now(),
+          saleId: saleId,
+        ));
+
+    await _saveAccounts(accounts);
+    await _saveTransactions(transactions);
+    return true;
+  }
+
+  /// Reverses points earned or redeemed from a specific voided sale.
+  Future<void> voidPointsFromSale({
+    required String customerId,
+    required String saleId,
+  }) async {
+    final accounts = await _loadAccounts();
+    final transactions = await _loadTransactions();
+
+    final custTransactions = transactions[customerId];
+    if (custTransactions == null) return;
+
+    final earned = custTransactions
+        .where((t) => t.isEarned && t.saleId == saleId)
+        .toList();
+    final redeemed = custTransactions
+        .where((t) => t.type == 'redeemed' && t.saleId == saleId)
+        .toList();
+    if (earned.isEmpty && redeemed.isEmpty) return;
+
+    final pointsEarnedToReverse =
+        earned.fold(0, (s, t) => s + t.points);
+    final pointsRedeemedToReverse =
+        redeemed.fold(0, (s, t) => s + t.points);
+
+    custTransactions.removeWhere((t) =>
+        (t.isEarned || t.type == 'redeemed') &&
+        t.saleId == saleId);
+
+    final existing = accounts[customerId];
+    if (existing != null) {
+      final desiredTotal =
+          existing.totalPoints - pointsEarnedToReverse;
+      final desiredRedeemed =
+          existing.redeemedPoints - pointsRedeemedToReverse;
+      final newRedeemed = desiredRedeemed < 0 ? 0 : desiredRedeemed;
+      final newTotal = desiredTotal < newRedeemed
+          ? newRedeemed
+          : desiredTotal;
+      accounts[customerId] = existing.copyWith(
+          totalPoints: newTotal, redeemedPoints: newRedeemed);
+    }
 
     await _saveAccounts(accounts);
     await _saveTransactions(transactions);

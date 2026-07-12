@@ -4,8 +4,9 @@ import '../providers/app_provider.dart';
 import '../models/transaction.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class SalesHistoryScreen extends StatefulWidget {
   const SalesHistoryScreen({super.key});
@@ -39,7 +40,9 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'This will void the sale and restore the stock. This cannot be undone.',
+                    sale.isCreditSale
+                        ? 'This will void the sale, restore the stock, cancel the customer\'s utang for this sale, and reverse any loyalty points earned. This cannot be undone.'
+                        : 'This will void the sale and restore the stock. This cannot be undone.',
                     style: TextStyle(fontSize: 12, color: Colors.red.shade700),
                   ),
                 ),
@@ -197,9 +200,9 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   const Spacer(),
                   Text(
                     CurrencyFormatter.format(
-                      filtered
+                      CurrencyFormatter.roundCents(filtered
                           .where((s) => s.status == TxStatus.completed)
-                          .fold(0.0, (s, t) => s + t.totalAmount),
+                          .fold(0.0, (s, t) => s + t.totalAmount)),
                     ),
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _blue),
                   ),

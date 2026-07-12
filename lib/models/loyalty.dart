@@ -11,8 +11,10 @@ class LoyaltyAccount {
     required this.lastUpdated,
   });
 
+  static const double pesoPerPoint = 0.10;
+
   int get availablePoints => totalPoints - redeemedPoints;
-  double get pesoValue => availablePoints * 0.10;
+  double get pesoValue => availablePoints * pesoPerPoint;
 
   Map<String, dynamic> toMap() => {
         'customerId': customerId,
@@ -47,6 +49,7 @@ class LoyaltyTransaction {
   final String type;
   final String description;
   final DateTime createdAt;
+  final String? saleId;
 
   LoyaltyTransaction({
     required this.id,
@@ -55,6 +58,7 @@ class LoyaltyTransaction {
     required this.type,
     required this.description,
     required this.createdAt,
+    this.saleId,
   });
 
   bool get isEarned => type == 'earned';
@@ -66,6 +70,7 @@ class LoyaltyTransaction {
         'type': type,
         'description': description,
         'createdAt': createdAt.toIso8601String(),
+        'saleId': saleId,
       };
 
   factory LoyaltyTransaction.fromMap(Map<String, dynamic> m) =>
@@ -76,5 +81,6 @@ class LoyaltyTransaction {
         type: m['type'],
         description: m['description'],
         createdAt: DateTime.parse(m['createdAt']),
+        saleId: m['saleId'] as String?,
       );
 }

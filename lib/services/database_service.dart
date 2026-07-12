@@ -233,9 +233,22 @@ class DatabaseService {
       (await database).update('customers', c.toMap(),
           where: 'id=?', whereArgs: [c.id]);
 
-  Future<void> deleteCustomer(String id) async =>
-      (await database).delete('customers',
-          where: 'id=?', whereArgs: [id]);
+  /// Deletes a customer along with their debts and payment history, so
+  /// deleting a customer never leaves orphaned debt/payment rows that
+  /// still count toward store-wide unpaid-debt totals.
+  Future<void> deleteCustomer(String id) async {
+    final db = await database;
+    final debtRows = await db.query('debts',
+        where: 'customerId=?', whereArgs: [id]);
+    for (final row in debtRows) {
+      await db.delete('payments',
+          where: 'debtId=?', whereArgs: [row['id']]);
+    }
+    await db.delete('debts',
+        where: 'customerId=?', whereArgs: [id]);
+    await db.delete('customers',
+        where: 'id=?', whereArgs: [id]);
+  }
 
   // ── PRODUCTS ───────────────────────────────────────────
   Future<void> insertProduct(Product p) async =>
@@ -358,6 +371,20 @@ class DatabaseService {
       (await database).update('debts', d.toMap(),
           where: 'id=?', whereArgs: [d.id]);
 
+  /// Deletes any debt(s) tied to a sale (and their payment history),
+  /// used when the originating sale is voided.
+  Future<void> deleteDebtsBySale(String saleId) async {
+    final db = await database;
+    final debtRows = await db.query('debts',
+        where: 'saleId=?', whereArgs: [saleId]);
+    for (final row in debtRows) {
+      await db.delete('payments',
+          where: 'debtId=?', whereArgs: [row['id']]);
+    }
+    await db.delete('debts',
+        where: 'saleId=?', whereArgs: [saleId]);
+  }
+
   // ── PAYMENTS ───────────────────────────────────────────
   Future<void> insertPayment(DebtPayment p) async =>
       (await database).insert('payments', p.toMap(),
@@ -377,10 +404,18 @@ class DatabaseService {
     final sinceStr =
         DateTime(since.year, since.month, since.day)
             .toIso8601String();
+    // Profit is computed via a correlated subquery (rather than a JOIN on
+    // sale_items) so it doesn't multiply/duplicate the revenue SUM when a
+    // sale has more than one line item.
     return (await database).rawQuery('''
       SELECT date(createdAt) as day,
         SUM(totalAmount) as revenue,
-        COUNT(*) as txCount
+        COUNT(*) as txCount,
+        (SELECT COALESCE(SUM((si.price - si.buyPrice) * si.quantity), 0)
+         FROM sale_items si
+         JOIN sales s2 ON si.saleId = s2.id
+         WHERE date(s2.createdAt) = date(sales.createdAt)
+           AND s2.status = 'completed') as profit
       FROM sales WHERE createdAt >= ? AND status='completed'
       GROUP BY date(createdAt) ORDER BY day ASC
     ''', [sinceStr]);
@@ -388,8 +423,9 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getTopProducts(
       int days) async {
-    final since =
-        DateTime.now().subtract(Duration(days: days));
+    final now = DateTime.now();
+    final since = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: days - 1));
     return (await database).rawQuery('''
       SELECT si.productName,
         SUM(si.quantity) as totalQty,

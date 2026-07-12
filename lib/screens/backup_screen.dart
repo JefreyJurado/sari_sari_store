@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../services/backup_service.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class BackupScreen extends StatefulWidget {
   const BackupScreen({super.key});

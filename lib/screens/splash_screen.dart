@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

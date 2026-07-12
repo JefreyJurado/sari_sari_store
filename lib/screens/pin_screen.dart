@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/app_theme.dart';
 
 class PinScreen extends StatefulWidget {
   final bool isSetup;
@@ -145,7 +146,6 @@ class _PinScreenState extends State<PinScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0038A8),
       appBar: widget.isSetup
           ? AppBar(
               backgroundColor: Colors.transparent,
@@ -158,7 +158,15 @@ class _PinScreenState extends State<PinScreen>
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
             )
           : null,
-      body: SafeArea(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.blue, AppColors.blueDark],
+          ),
+        ),
+        child: SafeArea(
         child: Column(children: [
           const Spacer(),
 
@@ -295,6 +303,7 @@ class _PinScreenState extends State<PinScreen>
 
           const SizedBox(height: 32),
         ]),
+        ),
       ),
     );
   }

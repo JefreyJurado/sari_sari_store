@@ -9,9 +9,10 @@ import 'barcode_scanner_screen.dart';
 import 'inventory_log_screen.dart';
 import 'archived_products_screen.dart';
 import '../services/database_service.dart';
+import '../theme/app_theme.dart';
 
 const _uuid = Uuid();
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -31,7 +32,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text('Clear Default Products',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -43,7 +47,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 border: Border.all(color: Colors.red.shade200),
               ),
               child: Row(children: [
-                Icon(Icons.warning_amber_outlined, color: Colors.red.shade600, size: 20),
+                Icon(Icons.warning_amber_outlined,
+                    color: Colors.red.shade600, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -58,7 +63,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            child: Text('Cancel',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13)),
           ),
           TextButton(
             onPressed: () async {
@@ -77,7 +83,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
               }
             },
             child: const Text('Clear All',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600, fontSize: 13)),
+                style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13)),
           ),
         ],
       ),
@@ -94,7 +103,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final query = _search.trim().toLowerCase();
     final list = query.isEmpty
         ? List<Product>.from(sourceProducts)
-        : sourceProducts.where((p) => p.name.toLowerCase().contains(query)).toList();
+        : sourceProducts
+            .where((p) => p.name.toLowerCase().contains(query))
+            .toList();
     switch (_sortBy) {
       case 'stock':
         list.sort((a, b) => a.stock.compareTo(b.stock));
@@ -113,7 +124,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Selector<AppProvider, ({ List<Product> list, int lowCount, int outCount })>(
+        child: Selector<AppProvider,
+            ({List<Product> list, int lowCount, int outCount})>(
           selector: (_, prov) => (
             list: prov.products,
             lowCount: prov.lowStock.length,
@@ -142,7 +154,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                     letterSpacing: -0.5)),
                             const SizedBox(height: 4),
                             Text('Manage store items and real-time stock',
-                                style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                                style: TextStyle(
+                                    color: Colors.grey[500], fontSize: 13)),
                           ],
                         ),
                       ),
@@ -150,18 +163,31 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       Row(children: [
                         _iconBtn(
                           icon: Icons.qr_code_scanner_outlined,
-                          onPressed: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const BarcodeScannerScreen())),
+                          onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const BarcodeScannerScreen())),
                         ),
                         const SizedBox(width: 8),
                         PopupMenuButton<String>(
                           onSelected: (v) => setState(() => _sortBy = v),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                           offset: const Offset(0, 40),
                           itemBuilder: (_) => const [
-                            PopupMenuItem(value: 'name', child: Text('Sort by Name', style: TextStyle(fontSize: 13))),
-                            PopupMenuItem(value: 'stock', child: Text('Sort by Stock', style: TextStyle(fontSize: 13))),
-                            PopupMenuItem(value: 'price', child: Text('Sort by Price', style: TextStyle(fontSize: 13))),
+                            PopupMenuItem(
+                                value: 'name',
+                                child: Text('Sort by Name',
+                                    style: TextStyle(fontSize: 13))),
+                            PopupMenuItem(
+                                value: 'stock',
+                                child: Text('Sort by Stock',
+                                    style: TextStyle(fontSize: 13))),
+                            PopupMenuItem(
+                                value: 'price',
+                                child: Text('Sort by Price',
+                                    style: TextStyle(fontSize: 13))),
                           ],
                           child: _labelBtn(Icons.sort_outlined, 'Sort'),
                         ),
@@ -174,23 +200,31 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     children: [
                       Expanded(
                         child: GestureDetector(
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const InventoryLogScreen())),
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const InventoryLogScreen())),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 10),
                             decoration: BoxDecoration(
                               color: _blue.withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: _blue.withValues(alpha: 0.2)),
+                              border: Border.all(
+                                  color: _blue.withValues(alpha: 0.2)),
                             ),
                             child: const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.table_chart_outlined, size: 18, color: _blue),
+                                Icon(Icons.table_chart_outlined,
+                                    size: 18, color: _blue),
                                 SizedBox(height: 4),
                                 Text('Inventory Log',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _blue)),
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: _blue)),
                               ],
                             ),
                           ),
@@ -199,9 +233,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: GestureDetector(
-                          onTap: () => _confirmClearDefaults(context, context.read<AppProvider>()),
+                          onTap: () => _confirmClearDefaults(
+                              context, context.read<AppProvider>()),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 10),
                             decoration: BoxDecoration(
                               color: Colors.red.shade50,
                               borderRadius: BorderRadius.circular(10),
@@ -210,11 +246,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.delete_sweep_outlined, size: 18, color: Colors.red.shade600),
+                                Icon(Icons.delete_sweep_outlined,
+                                    size: 18, color: Colors.red.shade600),
                                 const SizedBox(height: 4),
                                 Text('Clear Products',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.red.shade600)),
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.red.shade600)),
                               ],
                             ),
                           ),
@@ -223,10 +263,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: GestureDetector(
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const ArchivedProductsScreen())),
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ArchivedProductsScreen())),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 10),
                             decoration: BoxDecoration(
                               color: Colors.orange.shade50,
                               borderRadius: BorderRadius.circular(10),
@@ -235,11 +279,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.restore_outlined, size: 18, color: Colors.orange.shade700),
+                                Icon(Icons.restore_outlined,
+                                    size: 18, color: Colors.orange.shade700),
                                 const SizedBox(height: 4),
                                 Text('Archived',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.orange.shade700)),
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.orange.shade700)),
                               ],
                             ),
                           ),
@@ -264,8 +312,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     onChanged: (v) => setState(() => _search = v),
                     decoration: InputDecoration(
                       hintText: 'Search products...',
-                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                      prefixIcon: Icon(Icons.search_outlined, color: Colors.grey[400], size: 20),
+                      hintStyle:
+                          TextStyle(color: Colors.grey[400], fontSize: 14),
+                      prefixIcon: Icon(Icons.search_outlined,
+                          color: Colors.grey[400], size: 20),
                       filled: true,
                       fillColor: Colors.grey.shade100,
                       border: OutlineInputBorder(
@@ -280,10 +330,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       child: Padding(
                         padding: const EdgeInsets.only(top: 40),
                         child: Column(children: [
-                          Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[300]),
+                          Icon(Icons.inventory_2_outlined,
+                              size: 48, color: Colors.grey[300]),
                           const SizedBox(height: 12),
                           Text('No products found',
-                              style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+                              style: TextStyle(
+                                  color: Colors.grey[400], fontSize: 14)),
                         ]),
                       ),
                     )
@@ -297,9 +349,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         return _ProductTile(
                           product: item,
                           prov: context.read<AppProvider>(),
-                          onEdit: () => _showForm(context, context.read<AppProvider>(), item),
-                          onArchive: () => _confirmArchive(context, context.read<AppProvider>(), item),
-                          onAdjust: () => _adjustStock(context, context.read<AppProvider>(), item),
+                          onEdit: () => _showForm(
+                              context, context.read<AppProvider>(), item),
+                          onArchive: () => _confirmArchive(
+                              context, context.read<AppProvider>(), item),
+                          onAdjust: () => _adjustStock(
+                              context, context.read<AppProvider>(), item),
                         );
                       },
                     ),
@@ -331,9 +386,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Text(value,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: _blue, fontSize: 13)),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, color: _blue, fontSize: 13)),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(color: _blue.withValues(alpha: 0.8), fontSize: 11)),
+          Text(label,
+              style:
+                  TextStyle(color: _blue.withValues(alpha: 0.8), fontSize: 11)),
         ]),
       );
 
@@ -343,7 +401,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         text: existing != null ? existing.buyPrice.toStringAsFixed(2) : '');
     final sellCtrl = TextEditingController(
         text: existing != null ? existing.sellPrice.toStringAsFixed(2) : '');
-    final stockCtrl = TextEditingController(text: existing?.stock.toString() ?? '');
+    final stockCtrl =
+        TextEditingController(text: existing?.stock.toString() ?? '');
     final unitCtrl = TextEditingController(text: existing?.unit ?? 'pcs');
 
     showModalBottomSheet(
@@ -386,7 +445,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
   void _adjustStock(BuildContext screenCtx, AppProvider prov, Product product) {
     showDialog(
         context: screenCtx,
-        builder: (dialogCtx) => _StockAdjustDialog(product: product, prov: prov));
+        builder: (dialogCtx) =>
+            _StockAdjustDialog(product: product, prov: prov));
   }
 
   Widget _iconBtn({required IconData icon, required VoidCallback onPressed}) =>
@@ -413,31 +473,35 @@ class _InventoryScreenState extends State<InventoryScreen> {
           const SizedBox(width: 4),
           Text(label,
               style: const TextStyle(
-                  fontSize: 12,
-                  color: _blue,
-                  fontWeight: FontWeight.w600)),
+                  fontSize: 12, color: _blue, fontWeight: FontWeight.w600)),
         ]),
       );
 
-  void _confirmArchive(BuildContext screenCtx, AppProvider prov, Product product) {
+  void _confirmArchive(
+      BuildContext screenCtx, AppProvider prov, Product product) {
     showDialog(
       context: screenCtx,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text('Archive Product',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
-        content: Text('Archive "${product.name}"? It will no longer appear in sales.',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
+        content: Text(
+            'Archive "${product.name}"? It will no longer appear in sales.',
             style: TextStyle(color: Colors.grey[600], fontSize: 13)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey[600], fontSize: 13))),
+              child: Text('Cancel',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13))),
           TextButton(
             onPressed: () {
               prov.archiveProduct(product.id);
               Navigator.pop(dialogCtx);
-              
+
               ScaffoldMessenger.of(screenCtx).showSnackBar(
                 SnackBar(
                   content: Text('"${product.name}" archived successfully.'),
@@ -447,7 +511,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
               );
             },
             child: const Text('Archive',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600, fontSize: 13)),
+                style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13)),
           ),
         ],
       ),
@@ -536,23 +603,27 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Center(
             child: Container(
-              width: 36, height: 4,
+              width: 36,
+              height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                  color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2)),
             ),
           ),
           Text(widget.existing == null ? 'Add Product' : 'Edit Product',
               style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87)),
           const SizedBox(height: 16),
-
           _field(widget.nameCtrl, 'Product name *', Icons.label_outline),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
@@ -574,7 +645,8 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                 .map((c) => DropdownMenuItem(
                     value: c,
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(FilipinoCategories.getIcon(c), size: 16, color: _blue),
+                      Icon(FilipinoCategories.getIcon(c),
+                          size: 16, color: _blue),
                       const SizedBox(width: 8),
                       Text(c, style: const TextStyle(fontSize: 13)),
                     ])))
@@ -584,14 +656,18 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
             },
           ),
           const SizedBox(height: 12),
-
           Row(children: [
-            Expanded(child: _field(widget.buyCtrl, 'Cost price', Icons.arrow_downward_outlined, keyboardType: TextInputType.number, prefix: '₱ ')),
+            Expanded(
+                child: _field(
+                    widget.buyCtrl, 'Cost price', Icons.arrow_downward_outlined,
+                    keyboardType: TextInputType.number, prefix: '₱ ')),
             const SizedBox(width: 12),
-            Expanded(child: _field(widget.sellCtrl, 'Sell price', Icons.arrow_upward_outlined, keyboardType: TextInputType.number, prefix: '₱ ')),
+            Expanded(
+                child: _field(
+                    widget.sellCtrl, 'Sell price', Icons.arrow_upward_outlined,
+                    keyboardType: TextInputType.number, prefix: '₱ ')),
           ]),
           const SizedBox(height: 8),
-
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -602,7 +678,11 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
             child: Row(children: [
               const Icon(Icons.trending_up_outlined, size: 16, color: _blue),
               const SizedBox(width: 8),
-              const Text('Markup:', style: TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w500)),
+              const Text('Markup:',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w500)),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => setState(() {
@@ -610,25 +690,33 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                   _applyMarkup();
                 }),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: _blue, borderRadius: BorderRadius.circular(6)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: _blue, borderRadius: BorderRadius.circular(6)),
                   child: Text(_markupType,
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _markupCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     hintText: _markupType == '%' ? 'e.g. 15' : 'e.g. 2.00',
                     hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
                     suffixText: _markupType,
-                    suffixStyle: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    suffixStyle:
+                        TextStyle(color: Colors.grey[500], fontSize: 12),
                     filled: true,
                     fillColor: Colors.grey.shade50,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(color: Colors.grey.shade300)),
@@ -639,26 +727,32 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                 ),
               ),
               const SizedBox(width: 8),
-              Text('→ auto sell price', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+              Text('→ auto sell price',
+                  style: TextStyle(fontSize: 10, color: Colors.grey[500])),
             ]),
           ),
           const SizedBox(height: 12),
-
           Row(children: [
-            Expanded(child: _field(widget.stockCtrl, 'Stock qty', Icons.inventory_2_outlined, keyboardType: TextInputType.number)),
+            Expanded(
+                child: _field(
+                    widget.stockCtrl, 'Stock qty', Icons.inventory_2_outlined,
+                    keyboardType: TextInputType.number)),
             const SizedBox(width: 12),
-            Expanded(child: _field(widget.unitCtrl, 'Unit (pcs, kg...)', Icons.straighten_outlined)),
+            Expanded(
+                child: _field(widget.unitCtrl, 'Unit (pcs, kg...)',
+                    Icons.straighten_outlined)),
           ]),
           const SizedBox(height: 12),
-
-          _field(_reorderCtrl, 'Reorder Point (alert when stock ≤)', Icons.notification_important_outlined, keyboardType: TextInputType.number),
+          _field(_reorderCtrl, 'Reorder Point (alert when stock ≤)',
+              Icons.notification_important_outlined,
+              keyboardType: TextInputType.number),
           const SizedBox(height: 12),
-
           GestureDetector(
             onTap: () async {
               final picked = await showDatePicker(
                 context: context,
-                initialDate: _expiryDate ?? DateTime.now().add(const Duration(days: 30)),
+                initialDate:
+                    _expiryDate ?? DateTime.now().add(const Duration(days: 30)),
                 firstDate: DateTime.now(),
                 lastDate: DateTime.now().add(const Duration(days: 3650)),
               );
@@ -672,7 +766,8 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                 border: Border.all(color: Colors.grey.shade300),
               ),
               child: Row(children: [
-                Icon(Icons.calendar_month_outlined, size: 18, color: Colors.grey[500]),
+                Icon(Icons.calendar_month_outlined,
+                    size: 18, color: Colors.grey[500]),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -681,7 +776,9 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                         : 'Expiry Date (optional)',
                     style: TextStyle(
                         fontSize: 13,
-                        color: _expiryDate != null ? Colors.black87 : Colors.grey[400]),
+                        color: _expiryDate != null
+                            ? Colors.black87
+                            : Colors.grey[400]),
                   ),
                 ),
                 if (_expiryDate != null)
@@ -693,7 +790,6 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
             ),
           ),
           const SizedBox(height: 12),
-
           GestureDetector(
             onTap: () async {
               final picked = await showDatePicker(
@@ -718,25 +814,30 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                     style: TextStyle(fontSize: 13, color: Colors.grey[600])),
                 Text('${_dateAdded.month}/${_dateAdded.day}/${_dateAdded.year}',
                     style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87)),
                 const Spacer(),
-                Icon(Icons.edit_calendar_outlined, size: 16, color: Colors.grey[400]),
+                Icon(Icons.edit_calendar_outlined,
+                    size: 16, color: Colors.grey[400]),
               ]),
             ),
           ),
           const SizedBox(height: 12),
-
-          _field(_supplierNameCtrl, 'Supplier Name (optional)', Icons.store_outlined),
+          _field(_supplierNameCtrl, 'Supplier Name (optional)',
+              Icons.store_outlined),
           const SizedBox(height: 8),
-          _field(_supplierContactCtrl, 'Supplier Contact (optional)', Icons.phone_outlined, keyboardType: TextInputType.phone),
+          _field(_supplierContactCtrl, 'Supplier Contact (optional)',
+              Icons.phone_outlined,
+              keyboardType: TextInputType.phone),
           const SizedBox(height: 12),
-
           DropdownButtonFormField<String>(
             value: _seasonalTag,
             decoration: InputDecoration(
               labelText: 'Seasonal Tag',
               labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
-              prefixIcon: Icon(Icons.local_offer_outlined, size: 18, color: Colors.grey[500]),
+              prefixIcon: Icon(Icons.local_offer_outlined,
+                  size: 18, color: Colors.grey[500]),
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide(color: Colors.grey.shade300)),
@@ -757,7 +858,6 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
             },
           ),
           const SizedBox(height: 20),
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -767,15 +867,25 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                   id: widget.existing?.id ?? _uuid.v4(),
                   name: widget.nameCtrl.text.trim(),
                   category: _category,
-                  buyPrice: double.tryParse(widget.buyCtrl.text) ?? 0,
-                  sellPrice: double.tryParse(widget.sellCtrl.text) ?? 0,
-                  stock: int.tryParse(widget.stockCtrl.text) ?? 0,
-                  unit: widget.unitCtrl.text.trim().isEmpty ? 'pcs' : widget.unitCtrl.text.trim(),
+                  buyPrice: (double.tryParse(widget.buyCtrl.text) ?? 0)
+                      .clamp(0, double.infinity),
+                  sellPrice: (double.tryParse(widget.sellCtrl.text) ?? 0)
+                      .clamp(0, double.infinity),
+                  stock: (int.tryParse(widget.stockCtrl.text) ?? 0)
+                      .clamp(0, 999999),
+                  unit: widget.unitCtrl.text.trim().isEmpty
+                      ? 'pcs'
+                      : widget.unitCtrl.text.trim(),
                   createdAt: _dateAdded,
-                  reorderPoint: int.tryParse(_reorderCtrl.text) ?? 5,
+                  reorderPoint:
+                      (int.tryParse(_reorderCtrl.text) ?? 5).clamp(0, 999999),
                   expiryDate: _expiryDate,
-                  supplierName: _supplierNameCtrl.text.trim().isEmpty ? null : _supplierNameCtrl.text.trim(),
-                  supplierContact: _supplierContactCtrl.text.trim().isEmpty ? null : _supplierContactCtrl.text.trim(),
+                  supplierName: _supplierNameCtrl.text.trim().isEmpty
+                      ? null
+                      : _supplierNameCtrl.text.trim(),
+                  supplierContact: _supplierContactCtrl.text.trim().isEmpty
+                      ? null
+                      : _supplierContactCtrl.text.trim(),
                   seasonalTag: _seasonalTag == 'None' ? null : _seasonalTag,
                 );
                 final isNew = widget.existing == null;
@@ -791,10 +901,13 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                 foregroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
-              child: Text(widget.existing == null ? 'Save Product' : 'Update Product',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              child: Text(
+                  widget.existing == null ? 'Save Product' : 'Update Product',
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ),
           const SizedBox(height: 20),
@@ -854,7 +967,10 @@ class _StockAdjustDialogState extends State<_StockAdjustDialog> {
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       title: const Text('Adjust Stock',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87)),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
           padding: const EdgeInsets.all(12),
@@ -863,16 +979,23 @@ class _StockAdjustDialogState extends State<_StockAdjustDialog> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.grey.shade200)),
           child: Row(children: [
-            Icon(FilipinoCategories.getIcon(widget.product.category), size: 20, color: _blue),
+            Icon(FilipinoCategories.getIcon(widget.product.category),
+                size: 20, color: _blue),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(widget.product.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black87)),
-                Text('Current: ${widget.product.stock} ${widget.product.unit}',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.product.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: Colors.black87)),
+                    Text(
+                        'Current: ${widget.product.stock} ${widget.product.unit}',
+                        style:
+                            TextStyle(color: Colors.grey[500], fontSize: 12)),
+                  ]),
             ),
           ]),
         ),
@@ -899,7 +1022,8 @@ class _StockAdjustDialogState extends State<_StockAdjustDialog> {
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[600], fontSize: 13))),
+            child: Text('Cancel',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13))),
         TextButton(
           onPressed: () {
             final adj = int.tryParse(_ctrl.text);
@@ -910,14 +1034,18 @@ class _StockAdjustDialogState extends State<_StockAdjustDialog> {
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Stock adjusted to $newStock for "${widget.product.name}".'),
+                content: Text(
+                    'Stock adjusted to $newStock for "${widget.product.name}".'),
                 duration: const Duration(seconds: 2),
                 behavior: SnackBarBehavior.floating,
               ),
             );
           },
           child: const Text('Apply',
-              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600, fontSize: 13)),
+              style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13)),
         ),
       ],
     );
@@ -942,19 +1070,27 @@ class _ProductTile extends StatelessWidget {
 
   String _seasonalEmoji(String tag) {
     switch (tag) {
-      case 'Typhoon Season': return '🌧️ Typhoon';
-      case 'Christmas': return '🎄 Christmas';
-      case 'Back to School': return '✏️ School';
-      case 'Fiesta': return '🎉 Fiesta';
-      case 'Summer': return '☀️ Summer';
-      default: return tag;
+      case 'Typhoon Season':
+        return '🌧️ Typhoon';
+      case 'Christmas':
+        return '🎄 Christmas';
+      case 'Back to School':
+        return '✏️ School';
+      case 'Fiesta':
+        return '🎉 Fiesta';
+      case 'Summer':
+        return '☀️ Summer';
+      default:
+        return tag;
     }
   }
 
-  Widget _infoRow(String label, String value, {Color? valueColor, bool bold = false}) =>
+  Widget _infoRow(String label, String value,
+          {Color? valueColor, bool bold = false}) =>
       Row(children: [
         Expanded(
-          child: Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          child: Text(label,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         ),
         Text(value,
             style: TextStyle(
@@ -983,16 +1119,17 @@ class _ProductTile extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
-            width: 36, height: 4,
+            width: 36,
+            height: 4,
             margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(
                 color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2)),
           ),
-
           Row(children: [
             Container(
-              width: 44, height: 44,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: _blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
@@ -1004,19 +1141,21 @@ class _ProductTile extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(product.name,
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87)),
-                Text(product.category,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(product.name,
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87)),
+                    Text(product.category,
+                        style:
+                            TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  ]),
             ),
           ]),
           const SizedBox(height: 20),
-
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -1025,19 +1164,24 @@ class _ProductTile extends StatelessWidget {
               border: Border.all(color: Colors.grey.shade200),
             ),
             child: Column(children: [
-              _infoRow('Cost Price', CurrencyFormatter.format(product.buyPrice)),
+              _infoRow(
+                  'Cost Price', CurrencyFormatter.format(product.buyPrice)),
               const SizedBox(height: 8),
-              _infoRow('Sell Price', CurrencyFormatter.format(product.sellPrice)),
+              _infoRow(
+                  'Sell Price', CurrencyFormatter.format(product.sellPrice)),
               const SizedBox(height: 8),
-              _infoRow('Profit per Unit', CurrencyFormatter.format(product.profit),
+              _infoRow(
+                  'Profit per Unit', CurrencyFormatter.format(product.profit),
                   valueColor: Colors.green.shade600),
               const SizedBox(height: 8),
               _infoRow('Margin', '${product.margin.toStringAsFixed(1)}%',
                   valueColor: Colors.green.shade600),
               Divider(height: 20, color: Colors.grey.shade200),
-              _infoRow('Current Stock', '${product.stock} ${product.unit ?? 'pcs'}'),
+              _infoRow(
+                  'Current Stock', '${product.stock} ${product.unit ?? 'pcs'}'),
               const SizedBox(height: 8),
-              _infoRow('Reorder Point', '≤ ${product.reorderPoint} ${product.unit ?? 'pcs'}'),
+              _infoRow('Reorder Point',
+                  '≤ ${product.reorderPoint} ${product.unit ?? 'pcs'}'),
               if (product.expiryDate != null) ...[
                 const SizedBox(height: 8),
                 _infoRow(
@@ -1061,7 +1205,6 @@ class _ProductTile extends StatelessWidget {
             ]),
           ),
           const SizedBox(height: 16),
-
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -1080,7 +1223,8 @@ class _ProductTile extends StatelessWidget {
                         color: Colors.black87)),
               ]),
               const SizedBox(height: 12),
-              _infoRow('Total Units Sold', '$totalQty ${product.unit ?? 'pcs'}'),
+              _infoRow(
+                  'Total Units Sold', '$totalQty ${product.unit ?? 'pcs'}'),
               const SizedBox(height: 8),
               _infoRow('Total Revenue', CurrencyFormatter.format(totalRevenue)),
               const SizedBox(height: 8),
@@ -1095,7 +1239,6 @@ class _ProductTile extends StatelessWidget {
             ]),
           ),
           const SizedBox(height: 16),
-
           Row(children: [
             Expanded(
               child: OutlinedButton.icon(
@@ -1122,7 +1265,8 @@ class _ProductTile extends StatelessWidget {
                   onAdjust();
                 },
                 icon: const Icon(Icons.inventory_2_outlined, size: 16),
-                label: const Text('Adjust Stock', style: TextStyle(fontSize: 13)),
+                label:
+                    const Text('Adjust Stock', style: TextStyle(fontSize: 13)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _blue,
                   foregroundColor: Colors.white,
@@ -1145,146 +1289,190 @@ class _ProductTile extends StatelessWidget {
     final isOut = product.stock <= 0;
     final isLow = product.isLowStock;
     final catColor = FilipinoCategories.getColor(product.category);
-    final bgColor = isOut ? Colors.grey.shade200 : catColor;
-    final textColor = isOut ? Colors.grey[700] : Colors.white;
+    final textColor = isOut ? Colors.grey[500] : AppColors.textPrimary;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: isLow && !isOut
-            ? Border.all(color: Colors.orange.shade200, width: 2)
-            : null,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(
+            color: isLow && !isOut
+                ? Colors.orange.shade200
+                : Colors.grey.shade200,
+            width: isLow && !isOut ? 1.6 : 1),
+        boxShadow: AppShadows.soft,
       ),
-      child: ListTile(
-        onTap: () => _showProductDetails(context),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: Icon(FilipinoCategories.getIcon(product.category),
-            size: 24, color: isOut ? Colors.grey[600] : Colors.white),
-        title: Row(children: [
-          Expanded(
-            child: Text(product.name,
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: textColor)),
-          ),
-          if (product.seasonalTag != null)
-            Container(
-              margin: const EdgeInsets.only(left: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        child: Material(
+          color: Colors.transparent,
+          child: ListTile(
+            onTap: () => _showProductDetails(context),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            leading: Container(
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.orange.shade200),
+                color: isOut
+                    ? Colors.grey.shade100
+                    : catColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              child: Text(
-                _seasonalEmoji(product.seasonalTag!),
-                style: const TextStyle(fontSize: 10),
-              ),
+              child: Icon(FilipinoCategories.getIcon(product.category),
+                  size: 20, color: isOut ? Colors.grey[500] : catColor),
             ),
-          if (product.isExpired)
-            Container(
-              margin: const EdgeInsets.only(left: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.red.shade200),
+            title: Row(children: [
+              Expanded(
+                child: Text(product.name,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: textColor)),
               ),
-              child: const Text('EXPIRED', style: TextStyle(fontSize: 9, color: Colors.red, fontWeight: FontWeight.bold)),
-            )
-          else if (product.isNearExpiry)
-            Container(
-              margin: const EdgeInsets.only(left: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: const Text('EXP SOON', style: TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold)),
-            ),
-        ]),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Cost: ${CurrencyFormatter.format(product.buyPrice)}  •  Sell: ${CurrencyFormatter.format(product.sellPrice)}',
-              style: TextStyle(
-                  fontSize: 11,
-                  color: isOut ? Colors.grey[500] : Colors.white.withValues(alpha: 0.85)),
-            ),
-            if (product.supplierName != null)
-              Text(
-                '🏪 ${product.supplierName}',
-                style: TextStyle(
-                    fontSize: 10,
-                    color: isOut ? Colors.grey[400] : Colors.white.withValues(alpha: 0.7)),
-              ),
-            if (product.expiryDate != null && !product.isExpired && !product.isNearExpiry)
-              Text(
-                'Exp: ${product.expiryDate!.month}/${product.expiryDate!.day}/${product.expiryDate!.year}',
-                style: TextStyle(
-                    fontSize: 10,
-                    color: isOut ? Colors.grey[400] : Colors.white.withValues(alpha: 0.7)),
-              ),
-          ],
-        ),
-        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          GestureDetector(
-            onTap: onAdjust,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: isOut ? 1 : 0.25),
-                  borderRadius: BorderRadius.circular(6)),
-              child: Text('${product.stock}',
+              if (product.seasonalTag != null)
+                Container(
+                  margin: const EdgeInsets.only(left: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Text(
+                    _seasonalEmoji(product.seasonalTag!),
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ),
+              if (product.isExpired)
+                Container(
+                  margin: const EdgeInsets.only(left: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: const Text('EXPIRED',
+                      style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold)),
+                )
+              else if (product.isNearExpiry)
+                Container(
+                  margin: const EdgeInsets.only(left: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: const Text('EXP SOON',
+                      style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold)),
+                ),
+            ]),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cost: ${CurrencyFormatter.format(product.buyPrice)}  •  Sell: ${CurrencyFormatter.format(product.sellPrice)}',
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isOut ? Colors.grey[700] : Colors.white,
-                      fontSize: 13)),
+                      fontSize: 11,
+                      color: isOut ? Colors.grey[400] : Colors.grey[600]),
+                ),
+                if (product.supplierName != null)
+                  Text(
+                    '🏪 ${product.supplierName}',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: isOut ? Colors.grey[400] : Colors.grey[500]),
+                  ),
+                if (product.expiryDate != null &&
+                    !product.isExpired &&
+                    !product.isNearExpiry)
+                  Text(
+                    'Exp: ${product.expiryDate!.month}/${product.expiryDate!.day}/${product.expiryDate!.year}',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: isOut ? Colors.grey[400] : Colors.grey[500]),
+                  ),
+              ],
             ),
+            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+              GestureDetector(
+                onTap: onAdjust,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                      color: isOut
+                          ? Colors.grey.shade100
+                          : catColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.sm)),
+                  child: Text('${product.stock}',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isOut ? Colors.grey[500] : catColor,
+                          fontSize: 13)),
+                ),
+              ),
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert_outlined,
+                    color: Colors.grey[400], size: 18),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                      value: 'edit',
+                      child: Row(children: [
+                        Icon(Icons.edit_outlined,
+                            size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        Text('Edit',
+                            style: TextStyle(
+                                fontSize: 13, color: Colors.grey[700]))
+                      ])),
+                  PopupMenuItem(
+                      value: 'stock',
+                      child: Row(children: [
+                        Icon(Icons.inventory_2_outlined,
+                            size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        Text('Adjust Stock',
+                            style: TextStyle(
+                                fontSize: 13, color: Colors.grey[700]))
+                      ])),
+                  const PopupMenuItem(
+                      value: 'archive',
+                      child: Row(children: [
+                        Icon(Icons.archive_outlined,
+                            size: 16, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Archive',
+                            style: TextStyle(fontSize: 13, color: Colors.red))
+                      ])),
+                ],
+                onSelected: (v) {
+                  if (v == 'edit') {
+                    onEdit();
+                  } else if (v == 'stock') {
+                    onAdjust();
+                  } else if (v == 'archive') {
+                    onArchive();
+                  }
+                },
+              ),
+            ]),
           ),
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert_outlined,
-                color: isOut ? Colors.grey[400] : Colors.white.withValues(alpha: 0.8), size: 18),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                  value: 'edit',
-                  child: Row(children: [
-                    Icon(Icons.edit_outlined, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 8),
-                    Text('Edit', style: TextStyle(fontSize: 13, color: Colors.grey[700]))
-                  ])),
-              PopupMenuItem(
-                  value: 'stock',
-                  child: Row(children: [
-                    Icon(Icons.inventory_2_outlined, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 8),
-                    Text('Adjust Stock', style: TextStyle(fontSize: 13, color: Colors.grey[700]))
-                  ])),
-              const PopupMenuItem(
-                  value: 'archive',
-                  child: Row(children: [
-                    Icon(Icons.archive_outlined, size: 16, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Archive', style: TextStyle(fontSize: 13, color: Colors.red))
-                  ])),
-            ],
-            onSelected: (v) {
-              if (v == 'edit') {
-                onEdit();
-              } else if (v == 'stock') {
-                onAdjust();
-              } else if (v == 'archive') {
-                onArchive();
-              }
-            },
-          ),
-        ]),
+        ),
       ),
     );
   }

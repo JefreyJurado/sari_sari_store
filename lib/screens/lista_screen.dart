@@ -8,8 +8,9 @@ import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import 'payment_screen.dart';
 import 'credit_order_screen.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class ListaScreen extends StatefulWidget {
   final Map<dynamic, int>? cartItems;
@@ -51,8 +52,7 @@ class _ListaScreenState extends State<ListaScreen>
       final paidCustomers = prov.customers.where((c) {
         final allDebts = prov.debtsFor(c.id);
         if (allDebts.isEmpty) return false;
-        final allPaid =
-            allDebts.every((d) => d.status == DebtStatus.paid);
+        final allPaid = allDebts.every((d) => d.status == DebtStatus.paid);
         if (!allPaid) return false;
         return _search.isEmpty ||
             c.name.toLowerCase().contains(_search.toLowerCase());
@@ -63,7 +63,8 @@ class _ListaScreenState extends State<ListaScreen>
         // Removed fixed appBar to allow natural non-sticky scrolling
         body: SafeArea(
           child: NestedScrollView(
-            headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+            headerSliverBuilder:
+                (BuildContext context, bool innerBoxIsScrolled) {
               return [
                 SliverToBoxAdapter(
                   child: Column(
@@ -90,20 +91,39 @@ class _ListaScreenState extends State<ListaScreen>
                               Expanded(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 12),
+                                      horizontal: 16, vertical: 14),
                                   decoration: BoxDecoration(
-                                    color: _blue.withValues(alpha: 0.03),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                        color: _blue.withValues(alpha: 0.1)),
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        AppColors.blue,
+                                        AppColors.blueDark,
+                                      ],
+                                    ),
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.xxl),
+                                    boxShadow:
+                                        AppShadows.colored(AppColors.blue),
                                   ),
                                   child: Row(children: [
-                                    const Icon(Icons.people_outline,
-                                        color: _blue, size: 18),
-                                    const SizedBox(width: 10),
-                                    Text('${unpaidCustomers.length} active balances',
-                                        style: const TextStyle(
-                                            color: Colors.black87,
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(
+                                            AppRadius.sm),
+                                      ),
+                                      child: const Icon(Icons.people_outline,
+                                          color: Colors.white, size: 18),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                        '${unpaidCustomers.length} active balances',
+                                        style: TextStyle(
+                                            color: Colors.white
+                                                .withValues(alpha: 0.9),
                                             fontWeight: FontWeight.w500,
                                             fontSize: 13)),
                                     const Spacer(),
@@ -112,8 +132,8 @@ class _ListaScreenState extends State<ListaScreen>
                                           prov.totalUnpaidDebt),
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w900,
-                                          fontSize: 16,
-                                          color: Colors.redAccent),
+                                          fontSize: 17,
+                                          color: Colors.white),
                                     ),
                                   ]),
                                 ),
@@ -154,7 +174,9 @@ class _ListaScreenState extends State<ListaScreen>
                         unselectedLabelStyle: const TextStyle(
                             fontSize: 13, fontWeight: FontWeight.normal),
                         tabs: [
-                          Tab(text: 'Unpaid Session (${unpaidCustomers.length})'),
+                          Tab(
+                              text:
+                                  'Unpaid Session (${unpaidCustomers.length})'),
                           Tab(text: 'Fully Settled (${paidCustomers.length})'),
                         ],
                       ),
@@ -176,40 +198,32 @@ class _ListaScreenState extends State<ListaScreen>
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (_) => const CreditOrderScreen()),
+            MaterialPageRoute(builder: (_) => const CreditOrderScreen()),
           ),
           backgroundColor: _blue,
           foregroundColor: Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          icon: const Icon(Icons.add_shopping_cart_outlined,
-              size: 18),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.xl)),
+          icon: const Icon(Icons.add_shopping_cart_outlined, size: 18),
           label: const Text('New Credit',
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         ),
       );
     });
   }
 
-  Widget _buildUnpaidList(
-      List<Customer> customers, AppProvider prov) {
+  Widget _buildUnpaidList(List<Customer> customers, AppProvider prov) {
     if (customers.isEmpty) {
       return Center(
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-          Icon(Icons.check_circle_outline,
-              size: 48, color: Colors.grey[300]),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.check_circle_outline, size: 48, color: Colors.grey[300]),
           const SizedBox(height: 12),
           Text(
               _search.isEmpty
                   ? 'No outstanding credit lines logged'
                   : 'No customer matches search query',
-              style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500])),
+              style: TextStyle(fontSize: 14, color: Colors.grey[500])),
         ]),
       );
     }
@@ -223,10 +237,9 @@ class _ListaScreenState extends State<ListaScreen>
             .debtsFor(c.id)
             .where((d) => d.status != DebtStatus.paid)
             .toList();
-        final totalOwed =
-            unpaidDebts.fold(0.0, (s, d) => s + d.remaining);
-        final hasOverdue =
-            unpaidDebts.any((d) => d.isOverdue);
+        final totalOwed = CurrencyFormatter.roundCents(
+            unpaidDebts.fold(0.0, (s, d) => s + d.remaining));
+        final hasOverdue = unpaidDebts.any((d) => d.isOverdue);
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -234,69 +247,68 @@ class _ListaScreenState extends State<ListaScreen>
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: hasOverdue
-                  ? Colors.red.shade200
-                  : Colors.grey.shade200,
+              color: hasOverdue ? Colors.red.shade200 : Colors.grey.shade200,
               width: hasOverdue ? 1.5 : 1,
             ),
           ),
-          child: ListTile(
-            onTap: () => _showCustomerDebts(
-                context, c, prov.debtsFor(c.id), prov),
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 8),
-            leading: CircleAvatar(
-              radius: 20,
-              backgroundColor: hasOverdue
-                  ? Colors.red.shade50
-                  : Colors.grey.shade100,
-              child: Text(c.name[0].toUpperCase(),
-                  style: TextStyle(
-                      color: hasOverdue
-                          ? Colors.red
-                          : Colors.black87,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14)),
-            ),
-            title: Row(children: [
-              Expanded(
-                child: Text(c.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Colors.black87)),
-              ),
-              if (hasOverdue)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                          color: Colors.red.shade200)),
-                  child: Text('OVERDUE',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Material(
+              color: Colors.transparent,
+              child: ListTile(
+                onTap: () =>
+                    _showCustomerDebts(context, c, prov.debtsFor(c.id), prov),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                leading: CircleAvatar(
+                  radius: 20,
+                  backgroundColor:
+                      hasOverdue ? Colors.red.shade50 : Colors.grey.shade100,
+                  child: Text(c.name[0].toUpperCase(),
                       style: TextStyle(
-                          color: Colors.red.shade600,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.3)),
+                          color: hasOverdue ? Colors.red : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14)),
                 ),
-            ]),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                  '${unpaidDebts.length} unresolved log'
-                  '${c.phone != null ? '  •  ${c.phone}' : ''}',
-                  style: TextStyle(
-                      color: Colors.grey[500], fontSize: 12)),
-            ),
-            trailing: Text(
-              CurrencyFormatter.format(totalOwed),
-              style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: Colors.black87,
-                  fontSize: 15),
+                title: Row(children: [
+                  Expanded(
+                    child: Text(c.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Colors.black87)),
+                  ),
+                  if (hasOverdue)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.red.shade200)),
+                      child: Text('OVERDUE',
+                          style: TextStyle(
+                              color: Colors.red.shade600,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.3)),
+                    ),
+                ]),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                      '${unpaidDebts.length} unresolved log'
+                      '${c.phone != null ? '  •  ${c.phone}' : ''}',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                ),
+                trailing: Text(
+                  CurrencyFormatter.format(totalOwed),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black87,
+                      fontSize: 15),
+                ),
+              ),
             ),
           ),
         );
@@ -304,22 +316,17 @@ class _ListaScreenState extends State<ListaScreen>
     );
   }
 
-  Widget _buildPaidList(
-      List<Customer> customers, AppProvider prov) {
+  Widget _buildPaidList(List<Customer> customers, AppProvider prov) {
     if (customers.isEmpty) {
       return Center(
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-          Icon(Icons.history_outlined,
-              size: 48, color: Colors.grey[300]),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.history_outlined, size: 48, color: Colors.grey[300]),
           const SizedBox(height: 12),
           Text(
               _search.isEmpty
                   ? 'No fully paid ledger sessions archived'
                   : 'No customer historical items match',
-              style: TextStyle(
-                  fontSize: 14, color: Colors.grey[500])),
+              style: TextStyle(fontSize: 14, color: Colors.grey[500])),
         ]),
       );
     }
@@ -330,8 +337,8 @@ class _ListaScreenState extends State<ListaScreen>
       itemBuilder: (_, i) {
         final c = customers[i];
         final allDebts = prov.debtsFor(c.id);
-        final totalPaid = allDebts.fold(
-            0.0, (s, d) => s + d.originalAmount);
+        final totalPaid = CurrencyFormatter.roundCents(
+            allDebts.fold(0.0, (s, d) => s + d.originalAmount));
         final lastPaid = allDebts.isNotEmpty
             ? allDebts
                 .map((d) => d.createdAt)
@@ -343,69 +350,71 @@ class _ListaScreenState extends State<ListaScreen>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border:
-                Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: Colors.grey.shade200),
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 8),
-            leading: CircleAvatar(
-              radius: 20,
-              backgroundColor: Colors.grey.shade100,
-              child: Text(c.name[0].toUpperCase(),
-                  style: const TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14)),
-            ),
-            title: Text(c.name,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: Colors.black87)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 2),
-                if (c.phone != null)
-                  Text(c.phone!,
-                      style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 12)),
-                if (lastPaid != null)
-                  Text(
-                      'Last settlement: ${DateHelper.formatDate(lastPaid)}',
-                      style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 11)),
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(CurrencyFormatter.format(totalPaid),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                        fontSize: 14)),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                          color: Colors.green.shade200)),
-                  child: Text('PAID',
-                      style: TextStyle(
-                          color: Colors.green.shade700,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.3)),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Material(
+              color: Colors.transparent,
+              child: ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                leading: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.grey.shade100,
+                  child: Text(c.name[0].toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14)),
                 ),
-              ],
+                title: Text(c.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Colors.black87)),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 2),
+                    if (c.phone != null)
+                      Text(c.phone!,
+                          style:
+                              TextStyle(color: Colors.grey[500], fontSize: 12)),
+                    if (lastPaid != null)
+                      Text(
+                          'Last settlement: ${DateHelper.formatDate(lastPaid)}',
+                          style:
+                              TextStyle(color: Colors.grey[500], fontSize: 11)),
+                  ],
+                ),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(CurrencyFormatter.format(totalPaid),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                            fontSize: 14)),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.green.shade200)),
+                      child: Text('PAID',
+                          style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.3)),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         );
@@ -413,17 +422,16 @@ class _ListaScreenState extends State<ListaScreen>
     );
   }
 
-  void _showCustomerDebts(BuildContext context,
-      Customer customer, List<Debt> debts, AppProvider prov) {
+  void _showCustomerDebts(BuildContext context, Customer customer,
+      List<Debt> debts, AppProvider prov) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => _CustomerDebtSheet(
-          customer: customer, debts: debts, prov: prov),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) =>
+          _CustomerDebtSheet(customer: customer, debts: debts, prov: prov),
     );
   }
 }
@@ -434,17 +442,13 @@ class _CustomerDebtSheet extends StatefulWidget {
   final AppProvider prov;
 
   const _CustomerDebtSheet(
-      {required this.customer,
-      required this.debts,
-      required this.prov});
+      {required this.customer, required this.debts, required this.prov});
 
   @override
-  State<_CustomerDebtSheet> createState() =>
-      _CustomerDebtSheetState();
+  State<_CustomerDebtSheet> createState() => _CustomerDebtSheetState();
 }
 
-class _CustomerDebtSheetState
-    extends State<_CustomerDebtSheet> {
+class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
   final Map<String, Sale?> _saleCache = {};
   bool _loading = true;
 
@@ -456,9 +460,7 @@ class _CustomerDebtSheetState
 
   Future<void> _loadSales() async {
     for (final d in widget.debts) {
-      final sale = widget.prov.sales
-          .where((s) => s.id == d.saleId)
-          .firstOrNull;
+      final sale = widget.prov.sales.where((s) => s.id == d.saleId).firstOrNull;
       _saleCache[d.id] = sale;
     }
     if (mounted) setState(() => _loading = false);
@@ -466,16 +468,14 @@ class _CustomerDebtSheetState
 
   @override
   Widget build(BuildContext context) {
-    final unpaid = widget.debts
-        .where((d) => d.status != DebtStatus.paid)
-        .toList();
-    final paid = widget.debts
-        .where((d) => d.status == DebtStatus.paid)
-        .toList();
+    final unpaid =
+        widget.debts.where((d) => d.status != DebtStatus.paid).toList();
+    final paid =
+        widget.debts.where((d) => d.status == DebtStatus.paid).toList();
     final totalUnpaid =
-        unpaid.fold(0.0, (s, d) => s + d.remaining);
-    final totalPaid =
-        paid.fold(0.0, (s, d) => s + d.originalAmount);
+        CurrencyFormatter.roundCents(unpaid.fold(0.0, (s, d) => s + d.remaining));
+    final totalPaid = CurrencyFormatter.roundCents(
+        paid.fold(0.0, (s, d) => s + d.originalAmount));
 
     return DraggableScrollableSheet(
       expand: false,
@@ -483,30 +483,25 @@ class _CustomerDebtSheetState
       builder: (_, ctrl) => Column(children: [
         Container(
           margin: const EdgeInsets.symmetric(vertical: 10),
-          width: 36, height: 4,
+          width: 36,
+          height: 4,
           decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2)),
+              color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
         ),
         Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Row(children: [
             CircleAvatar(
               radius: 20,
               backgroundColor: Colors.grey.shade100,
-              child: Text(
-                  widget.customer.name[0].toUpperCase(),
+              child: Text(widget.customer.name[0].toUpperCase(),
                   style: const TextStyle(
                       color: Colors.black87,
                       fontWeight: FontWeight.bold,
                       fontSize: 15)),
             ),
             const SizedBox(width: 12),
-            Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(widget.customer.name,
                   style: const TextStyle(
                       fontSize: 16,
@@ -514,30 +509,22 @@ class _CustomerDebtSheetState
                       color: Colors.black87)),
               if (widget.customer.phone != null)
                 Text(widget.customer.phone!,
-                    style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 12)),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 12)),
             ]),
             const Spacer(),
-            Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.end,
-                children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text(CurrencyFormatter.format(totalUnpaid),
                   style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 18,
                       color: Colors.redAccent)),
               Text('unpaid remaining',
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[500])),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
             ]),
           ]),
         ),
         Padding(
-          padding:
-              const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Row(children: [
             Expanded(
               child: Container(
@@ -545,22 +532,17 @@ class _CustomerDebtSheetState
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: Colors.grey.shade200),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
                 child: Column(children: [
-                  Text(
-                      CurrencyFormatter.format(
-                          totalUnpaid),
+                  Text(CurrencyFormatter.format(totalUnpaid),
                       style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                           fontSize: 14)),
                   const SizedBox(height: 2),
                   Text('Active Unpaid',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[500])),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                 ]),
               ),
             ),
@@ -571,21 +553,17 @@ class _CustomerDebtSheetState
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: Colors.grey.shade200),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
                 child: Column(children: [
-                  Text(
-                      CurrencyFormatter.format(totalPaid),
+                  Text(CurrencyFormatter.format(totalPaid),
                       style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                           fontSize: 14)),
                   const SizedBox(height: 2),
                   Text('Settled Archived',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[500])),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                 ]),
               ),
             ),
@@ -595,14 +573,12 @@ class _CustomerDebtSheetState
         Divider(height: 1, color: Colors.grey.shade200),
         Expanded(
           child: _loading
-              ? const Center(
-                  child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator())
               : widget.debts.isEmpty
                   ? Center(
                       child: Text('No credit records associated',
-                          style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 14)))
+                          style:
+                              TextStyle(color: Colors.grey[400], fontSize: 14)))
                   : ListView(
                       controller: ctrl,
                       padding: const EdgeInsets.all(16),
@@ -610,15 +586,13 @@ class _CustomerDebtSheetState
                         if (unpaid.isNotEmpty) ...[
                           _sectionLabel('UNSETTLED CREDITS'),
                           const SizedBox(height: 8),
-                          ...unpaid.map((d) =>
-                              _debtCard(d, isUnpaid: true)),
+                          ...unpaid.map((d) => _debtCard(d, isUnpaid: true)),
                           const SizedBox(height: 16),
                         ],
                         if (paid.isNotEmpty) ...[
                           _sectionLabel('COMPLETED LEDGER HISTORY'),
                           const SizedBox(height: 8),
-                          ...paid.map((d) =>
-                              _debtCard(d, isUnpaid: false)),
+                          ...paid.map((d) => _debtCard(d, isUnpaid: false)),
                         ],
                       ],
                     ),
@@ -636,10 +610,8 @@ class _CustomerDebtSheetState
 
   Widget _debtCard(Debt d, {required bool isUnpaid}) {
     final sale = _saleCache[d.id];
-    final daysUntilDue =
-        d.dueDate.difference(DateTime.now()).inDays;
-    final isNearDue =
-        isUnpaid && daysUntilDue <= 3 && !d.isOverdue;
+    final daysUntilDue = d.dueDate.difference(DateTime.now()).inDays;
+    final isNearDue = isUnpaid && daysUntilDue <= 3 && !d.isOverdue;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -655,138 +627,132 @@ class _CustomerDebtSheetState
           width: (isUnpaid && d.isOverdue) || isNearDue ? 1.5 : 1,
         ),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 6),
-        onTap: () => _showDebtDetail(d, sale, isUnpaid),
-        leading: Container(
-          width: 36, height: 36,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            isUnpaid
-                ? Icons.credit_card_outlined
-                : Icons.check_circle_outline,
-            color: isUnpaid
-                ? Colors.black54
-                : Colors.green.shade600,
-            size: 18,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Material(
+          color: Colors.transparent,
+          child: ListTile(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            onTap: () => _showDebtDetail(d, sale, isUnpaid),
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isUnpaid
+                    ? Icons.credit_card_outlined
+                    : Icons.check_circle_outline,
+                color: isUnpaid ? Colors.black54 : Colors.green.shade600,
+                size: 18,
+              ),
+            ),
+            title: Text(
+              CurrencyFormatter.format(
+                  isUnpaid ? d.remaining : d.originalAmount),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  fontSize: 15),
+            ),
+            subtitle:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const SizedBox(height: 2),
+              Text(DateHelper.formatDate(d.createdAt),
+                  style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+              if (isUnpaid) ...[
+                const SizedBox(height: 1),
+                Text(
+                  d.isOverdue
+                      ? 'Overdue — Due ${DateHelper.formatDate(d.dueDate)}'
+                      : 'Due ${DateHelper.formatDate(d.dueDate)}',
+                  style: TextStyle(
+                      color: d.isOverdue
+                          ? Colors.red
+                          : isNearDue
+                              ? Colors.orange.shade700
+                              : Colors.grey[500],
+                      fontSize: 11,
+                      fontWeight: d.isOverdue || isNearDue
+                          ? FontWeight.w600
+                          : FontWeight.normal),
+                ),
+              ],
+              if (sale != null) ...[
+                const SizedBox(height: 2),
+                Text('${sale.items.length} product units log',
+                    style: TextStyle(color: Colors.grey[400], fontSize: 11)),
+              ]
+            ]),
+            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+              if (isUnpaid && d.isOverdue)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.red.shade200)),
+                  child: Text('Overdue',
+                      style: TextStyle(
+                          color: Colors.red.shade600,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold)),
+                )
+              else if (isNearDue)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.orange.shade200)),
+                  child: Text('Soon',
+                      style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold)),
+                ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, color: Colors.grey[400], size: 18),
+            ]),
           ),
         ),
-        title: Text(
-          CurrencyFormatter.format(
-              isUnpaid ? d.remaining : d.originalAmount),
-          style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-              fontSize: 15),
-        ),
-        subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-          const SizedBox(height: 2),
-          Text(DateHelper.formatDate(d.createdAt),
-              style: TextStyle(
-                  color: Colors.grey[500], fontSize: 11)),
-          if (isUnpaid) ...[
-            const SizedBox(height: 1),
-            Text(
-              d.isOverdue
-                  ? 'Overdue — Due ${DateHelper.formatDate(d.dueDate)}'
-                  : 'Due ${DateHelper.formatDate(d.dueDate)}',
-              style: TextStyle(
-                  color: d.isOverdue
-                      ? Colors.red
-                      : isNearDue
-                          ? Colors.orange.shade700
-                          : Colors.grey[500],
-                  fontSize: 11,
-                  fontWeight: d.isOverdue || isNearDue
-                      ? FontWeight.w600
-                      : FontWeight.normal),
-            ),
-          ],
-          if (sale != null) ...[
-            const SizedBox(height: 2),
-            Text('${sale.items.length} product units log',
-                style: TextStyle(
-                    color: Colors.grey[400], fontSize: 11)),
-          ]
-        ]),
-        trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-          if (isUnpaid && d.isOverdue)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                      color: Colors.red.shade200)),
-              child: Text('Overdue',
-                  style: TextStyle(
-                      color: Colors.red.shade600,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold)),
-            )
-          else if (isNearDue)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                      color: Colors.orange.shade200)),
-              child: Text('Soon',
-                  style: TextStyle(
-                      color: Colors.orange.shade700,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold)),
-            ),
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right,
-              color: Colors.grey[400], size: 18),
-        ]),
       ),
     );
   }
 
   void _showDebtDetail(Debt d, Sale? sale, bool isUnpaid) {
-    final daysUntilDue =
-        d.dueDate.difference(DateTime.now()).inDays;
-    final isNearDue =
-        isUnpaid && daysUntilDue <= 3 && !d.isOverdue;
+    final daysUntilDue = d.dueDate.difference(DateTime.now()).inDays;
+    final isNearDue = isUnpaid && daysUntilDue <= 3 && !d.isOverdue;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(16))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.75,
         builder: (_, ctrl) => Column(children: [
           Container(
-            margin:
-                const EdgeInsets.symmetric(vertical: 10),
-            width: 36, height: 4,
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            width: 36,
+            height: 4,
             decoration: BoxDecoration(
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(2)),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Row(children: [
               Container(
-                width: 38, height: 38,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(10),
@@ -795,32 +761,25 @@ class _CustomerDebtSheetState
                   isUnpaid
                       ? Icons.credit_card_outlined
                       : Icons.check_circle_outline,
-                  color: isUnpaid
-                      ? Colors.black54
-                      : Colors.green,
+                  color: isUnpaid ? Colors.black54 : Colors.green,
                   size: 20,
                 ),
               ),
               const SizedBox(width: 12),
-              Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                Text(isUnpaid ? 'Unpaid Record Details' : 'Settled Summary Logs',
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(
+                    isUnpaid ? 'Unpaid Record Details' : 'Settled Summary Logs',
                     style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87)),
                 Text(DateHelper.formatDate(d.createdAt),
-                    style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 12)),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 12)),
               ]),
               const Spacer(),
               Text(
-                CurrencyFormatter.format(isUnpaid
-                    ? d.remaining
-                    : d.originalAmount),
+                CurrencyFormatter.format(
+                    isUnpaid ? d.remaining : d.originalAmount),
                 style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
@@ -828,15 +787,13 @@ class _CustomerDebtSheetState
               ),
             ]),
           ),
-          Divider(
-              height: 20, color: Colors.grey.shade200),
+          Divider(height: 20, color: Colors.grey.shade200),
           Expanded(
             child: ListView(
               controller: ctrl,
               padding: const EdgeInsets.all(16),
               children: [
-                if (sale != null &&
-                    sale.items.isNotEmpty) ...[
+                if (sale != null && sale.items.isNotEmpty) ...[
                   Text('Purchased Items Context',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
@@ -844,40 +801,33 @@ class _CustomerDebtSheetState
                           color: Colors.grey[500])),
                   const SizedBox(height: 10),
                   ...sale.items.map((item) => Container(
-                        margin: const EdgeInsets.only(
-                            bottom: 8),
+                        margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius:
-                              BorderRadius.circular(12),
-                          border: Border.all(
-                              color: Colors.grey.shade200),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: Row(children: [
                           Expanded(
                             child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                              Text(item.productName,
-                                  style: const TextStyle(
-                                      fontWeight:
-                                          FontWeight.w600,
-                                      fontSize: 13,
-                                      color: Colors.black87)),
-                              const SizedBox(height: 2),
-                              Text(
-                                  '${CurrencyFormatter.format(item.price)} × ${item.quantity}',
-                                  style: TextStyle(
-                                      color: Colors.grey[500],
-                                      fontSize: 12)),
-                            ]),
+                                  Text(item.productName,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                          color: Colors.black87)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                      '${CurrencyFormatter.format(item.price)} × ${item.quantity}',
+                                      style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 12)),
+                                ]),
                           ),
-                          Text(
-                              CurrencyFormatter.format(
-                                  item.subtotal),
+                          Text(CurrencyFormatter.format(item.subtotal),
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
@@ -890,24 +840,19 @@ class _CustomerDebtSheetState
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                         color: Colors.grey.shade50,
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        border: Border.all(
-                            color: Colors.grey.shade200)),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200)),
                     child: Text('No item statement parameters tracked.',
-                        style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 13)),
+                        style:
+                            TextStyle(color: Colors.grey[400], fontSize: 13)),
                   ),
                   const SizedBox(height: 8),
                 ],
                 _summaryRow('Original balance logged:',
-                    CurrencyFormatter.format(
-                        d.originalAmount)),
+                    CurrencyFormatter.format(d.originalAmount)),
                 if (d.paidAmount > 0)
                   _summaryRow('Sum cumulative paid:',
-                      CurrencyFormatter.format(
-                          d.paidAmount)),
+                      CurrencyFormatter.format(d.paidAmount)),
                 const SizedBox(height: 12),
                 if (isUnpaid) ...[
                   Container(
@@ -919,8 +864,7 @@ class _CustomerDebtSheetState
                           : isNearDue
                               ? Colors.orange.shade50
                               : Colors.grey.shade50,
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                           color: d.isOverdue
                               ? Colors.red.shade200
@@ -989,13 +933,12 @@ class _CustomerDebtSheetState
                   const SizedBox(height: 12),
                 ],
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.grey.shade200),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: Row(children: [
                     Text(
@@ -1008,9 +951,8 @@ class _CustomerDebtSheetState
                             fontSize: 13)),
                     const Spacer(),
                     Text(
-                      CurrencyFormatter.format(isUnpaid
-                          ? d.remaining
-                          : d.originalAmount),
+                      CurrencyFormatter.format(
+                          isUnpaid ? d.remaining : d.originalAmount),
                       style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 22,
@@ -1029,27 +971,21 @@ class _CustomerDebtSheetState
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) =>
-                                  PaymentScreen(
-                                      debt: d,
-                                      customer:
-                                          widget.customer)),
+                              builder: (_) => PaymentScreen(
+                                  debt: d, customer: widget.customer)),
                         );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _blue,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       child: const Text('Accept Balance Tender Payment',
                           style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold)),
+                              fontSize: 14, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -1062,13 +998,10 @@ class _CustomerDebtSheetState
     );
   }
 
-  Widget _summaryRow(String label, String value) =>
-      Padding(
+  Widget _summaryRow(String label, String value) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Row(children: [
-          Text(label,
-              style: TextStyle(
-                  color: Colors.grey[600], fontSize: 13)),
+          Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
           const Spacer(),
           Text(value,
               style: const TextStyle(

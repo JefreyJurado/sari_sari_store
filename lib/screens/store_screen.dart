@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import '../models/store.dart';
+import '../theme/app_theme.dart';
 
 const _uuid = Uuid();
 
@@ -31,9 +32,8 @@ class _StoreScreenState extends State<StoreScreen> {
 
     try {
       final list = jsonDecode(storesJson) as List;
-      _stores = list
-          .map((s) => Store.fromMap(s as Map<String, dynamic>))
-          .toList();
+      _stores =
+          list.map((s) => Store.fromMap(s as Map<String, dynamic>)).toList();
     } catch (_) {}
 
     if (_stores.isEmpty) {
@@ -71,7 +71,7 @@ class _StoreScreenState extends State<StoreScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
@@ -82,21 +82,20 @@ class _StoreScreenState extends State<StoreScreen> {
             top: 20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
-            width: 40, height: 4,
+            width: 40,
+            height: 4,
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(2)),
           ),
-          Text(
-              existing == null ? 'Dagdag Tindahan' : 'I-edit ang Tindahan',
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(existing == null ? 'Dagdag Tindahan' : 'I-edit ang Tindahan',
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           _field(nameCtrl, 'Pangalan ng Tindahan *', Icons.store_outlined),
           const SizedBox(height: 12),
-          _field(addressCtrl, 'Address (optional)',
-              Icons.location_on_outlined),
+          _field(addressCtrl, 'Address (optional)', Icons.location_on_outlined),
           const SizedBox(height: 12),
           _field(phoneCtrl, 'Numero (optional)', Icons.phone_outlined,
               keyboardType: TextInputType.phone),
@@ -120,8 +119,7 @@ class _StoreScreenState extends State<StoreScreen> {
                   );
                   _stores.add(store);
                 } else {
-                  final idx =
-                      _stores.indexWhere((s) => s.id == existing.id);
+                  final idx = _stores.indexWhere((s) => s.id == existing.id);
                   if (idx != -1) {
                     _stores[idx] = existing.copyWith(
                       name: nameCtrl.text.trim(),
@@ -144,8 +142,8 @@ class _StoreScreenState extends State<StoreScreen> {
                 existing == null
                     ? 'I-save ang Tindahan'
                     : 'I-update ang Tindahan',
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -167,8 +165,7 @@ class _StoreScreenState extends State<StoreScreen> {
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, size: 20),
-          border:
-              OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true,
           fillColor: Colors.white,
         ),
@@ -180,7 +177,7 @@ class _StoreScreenState extends State<StoreScreen> {
         _stores.where((s) => s.id == _activeStoreId).firstOrNull;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         centerTitle: false,
         titleSpacing: 16,
@@ -190,7 +187,6 @@ class _StoreScreenState extends State<StoreScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(children: [
-
               // ── Gradient Header ────────────────────────────
               Container(
                 width: double.infinity,
@@ -200,7 +196,7 @@ class _StoreScreenState extends State<StoreScreen> {
                     end: Alignment.bottomRight,
                     colors: [
                       Color(0xFF1B5E20),
-                      Color(0xFF2E7D32),
+                      AppColors.green,
                       Color(0xFF388E3C),
                       Color(0xFF43A047),
                     ],
@@ -212,19 +208,23 @@ class _StoreScreenState extends State<StoreScreen> {
                 ),
                 child: Stack(children: [
                   ...[
-                    [20.0, 10.0], [280.0, 8.0], [150.0, 5.0],
-                    [310.0, 40.0], [50.0, 50.0],
+                    [20.0, 10.0],
+                    [280.0, 8.0],
+                    [150.0, 5.0],
+                    [310.0, 40.0],
+                    [50.0, 50.0],
                   ].map((pos) => Positioned(
-                    left: pos[0], top: pos[1],
-                    child: Container(
-                      width: 3, height: 3,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.25),
-                      ),
-                    ),
-                  )),
-
+                        left: pos[0],
+                        top: pos[1],
+                        child: Container(
+                          width: 3,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.25),
+                          ),
+                        ),
+                      )),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                     child: Column(
@@ -233,7 +233,8 @@ class _StoreScreenState extends State<StoreScreen> {
                         // Active store info
                         Row(children: [
                           Container(
-                            width: 48, height: 48,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(14),
@@ -262,8 +263,7 @@ class _StoreScreenState extends State<StoreScreen> {
                                 if (activeStore?.address != null)
                                   Text(activeStore!.address!,
                                       style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12)),
+                                          color: Colors.white70, fontSize: 12)),
                               ],
                             ),
                           ),
@@ -332,125 +332,133 @@ class _StoreScreenState extends State<StoreScreen> {
                         borderRadius: BorderRadius.circular(14),
                         border: isActive
                             ? Border.all(
-                                color: const Color(0xFF2E7D32), width: 2)
+                                color: AppColors.green, width: 2)
                             : null,
                         boxShadow: [
                           BoxShadow(
                             color: isActive
-                                ? const Color(0xFF2E7D32)
-                                    .withValues(alpha: 0.1)
+                                ? AppColors.green.withValues(alpha: 0.1)
                                 : Colors.black.withValues(alpha: 0.05),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                      child: ListTile(
-                        onTap: () async {
-                          setState(() => _activeStoreId = store.id);
-                          await _save();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(SnackBar(
-                              content: Text(
-                                  '${store.name} ang aktibong tindahan na!'),
-                              backgroundColor: Colors.green,
-                            ));
-                          }
-                        },
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        leading: Container(
-                          width: 44, height: 44,
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? const Color(0xFF2E7D32)
-                                : Colors.grey.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(Icons.store_outlined,
-                              color: isActive ? Colors.white : Colors.grey,
-                              size: 22),
-                        ),
-                        title: Row(children: [
-                          Expanded(
-                            child: Text(store.name,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15)),
-                          ),
-                          if (isActive)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                  color: const Color(0xFF2E7D32),
-                                  borderRadius: BorderRadius.circular(6)),
-                              child: const Text('AKTIBO',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold)),
-                            ),
-                        ]),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (store.address != null)
-                              Text(store.address!,
-                                  style: TextStyle(
-                                      color: Colors.grey[500], fontSize: 12)),
-                            if (store.phone != null)
-                              Text(store.phone!,
-                                  style: TextStyle(
-                                      color: Colors.grey[500], fontSize: 12)),
-                          ],
-                        ),
-                        trailing: PopupMenuButton(
-                          icon: Icon(Icons.more_vert,
-                              color: Colors.grey[400], size: 20),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(
-                                value: 'edit',
-                                child: Row(children: [
-                                  Icon(Icons.edit_outlined,
-                                      size: 18, color: Colors.blue),
-                                  SizedBox(width: 8),
-                                  Text('I-edit'),
-                                ])),
-                            PopupMenuItem(
-                                value: 'delete',
-                                child: Row(children: [
-                                  Icon(Icons.delete_outline,
-                                      size: 18, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Burahin',
-                                      style: TextStyle(color: Colors.red)),
-                                ])),
-                          ],
-                          onSelected: (v) async {
-                            if (v == 'edit') {
-                              _showForm(existing: store);
-                            } else if (v == 'delete') {
-                              if (_stores.length <= 1) {
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(const SnackBar(
-                                  content: Text(
-                                      'Hindi puwedeng burahin ang tanging tindahan!'),
-                                  backgroundColor: Colors.red,
-                                ));
-                                return;
-                              }
-                              _stores.removeWhere((s) => s.id == store.id);
-                              if (_activeStoreId == store.id) {
-                                _activeStoreId = _stores.first.id;
-                              }
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            onTap: () async {
+                              setState(() => _activeStoreId = store.id);
                               await _save();
-                              setState(() {});
-                            }
-                          },
+                              if (mounted) {
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(SnackBar(
+                                  content: Text(
+                                      '${store.name} ang aktibong tindahan na!'),
+                                  backgroundColor: Colors.green,
+                                ));
+                              }
+                            },
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            leading: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? AppColors.green
+                                    : Colors.grey.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(Icons.store_outlined,
+                                  color: isActive ? Colors.white : Colors.grey,
+                                  size: 22),
+                            ),
+                            title: Row(children: [
+                              Expanded(
+                                child: Text(store.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15)),
+                              ),
+                              if (isActive)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                      color: AppColors.green,
+                                      borderRadius: BorderRadius.circular(6)),
+                                  child: const Text('AKTIBO',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold)),
+                                ),
+                            ]),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (store.address != null)
+                                  Text(store.address!,
+                                      style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 12)),
+                                if (store.phone != null)
+                                  Text(store.phone!,
+                                      style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 12)),
+                              ],
+                            ),
+                            trailing: PopupMenuButton(
+                              icon: Icon(Icons.more_vert,
+                                  color: Colors.grey[400], size: 20),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(children: [
+                                      Icon(Icons.edit_outlined,
+                                          size: 18, color: Colors.blue),
+                                      SizedBox(width: 8),
+                                      Text('I-edit'),
+                                    ])),
+                                PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(children: [
+                                      Icon(Icons.delete_outline,
+                                          size: 18, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Text('Burahin',
+                                          style: TextStyle(color: Colors.red)),
+                                    ])),
+                              ],
+                              onSelected: (v) async {
+                                if (v == 'edit') {
+                                  _showForm(existing: store);
+                                } else if (v == 'delete') {
+                                  if (_stores.length <= 1) {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
+                                      content: Text(
+                                          'Hindi puwedeng burahin ang tanging tindahan!'),
+                                      backgroundColor: Colors.red,
+                                    ));
+                                    return;
+                                  }
+                                  _stores.removeWhere((s) => s.id == store.id);
+                                  if (_activeStoreId == store.id) {
+                                    _activeStoreId = _stores.first.id;
+                                  }
+                                  await _save();
+                                  setState(() {});
+                                }
+                              },
+                            ),
+                          ),
                         ),
                       ),
                     );

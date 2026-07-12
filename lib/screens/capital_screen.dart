@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/capital_entry.dart';
 import '../utils/currency_formatter.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class CapitalScreen extends StatefulWidget {
   const CapitalScreen({super.key});
@@ -80,7 +81,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
         })
         .where((i) => i.label.isNotEmpty)
         .toList();
-    final totalSetup = setupItems.fold(0.0, (s, i) => s + i.amount);
+    final totalSetup =
+        CurrencyFormatter.roundCents(setupItems.fold(0.0, (s, i) => s + i.amount));
     await prov.saveCapital(
       setupCosts: totalSetup,
       inventoryValue: prov.currentInventoryValue,
@@ -239,8 +241,6 @@ class _CapitalScreenState extends State<CapitalScreen> {
                             else
                               ...List.generate(_setupItems.length, (i) {
                                 final itemDate = _setupItems[i]['date'] as DateTime? ?? DateTime.now();
-                                final currentCategory = _setupItems[i]['category'] as String? ?? 'Equipment';
-                                final currentPayment = _setupItems[i]['paymentMethod'] as String? ?? 'Cash';
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(12),

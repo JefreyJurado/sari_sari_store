@@ -8,6 +8,7 @@ import '../models/product.dart';
 import '../services/database_service.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
+import '../theme/app_theme.dart';
 
 const _uuid = Uuid();
 
@@ -73,7 +74,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
     }
     if (!mounted) return;
     setState(() {
-      _flashColor = found ? const Color(0xFF1E3A8A) : Colors.red;
+      _flashColor = found ? AppColors.blue : Colors.red;
       _flashOpacity = 0.4;
     });
     await Future.delayed(const Duration(milliseconds: 200));
@@ -131,7 +132,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
   void _showProductFound(Product product, AppProvider prov) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
@@ -167,7 +168,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
               )],
             ),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-              _statCol('Presyo', CurrencyFormatter.format(product.sellPrice), const Color(0xFF2E7D32)),
+              _statCol('Presyo', CurrencyFormatter.format(product.sellPrice), AppColors.green),
               Container(width: 1, height: 40, color: Colors.grey[200]),
               _statCol('Stock', '${product.stock}', product.isOutOfStock ? Colors.red : Colors.blue),
               Container(width: 1, height: 40, color: Colors.grey[200]),
@@ -303,7 +304,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
@@ -399,7 +400,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
   void _showHistory() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
@@ -460,7 +461,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
@@ -477,14 +478,14 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+                  color: AppColors.green.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.2)),
+                  border: Border.all(color: AppColors.green.withValues(alpha: 0.2)),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.qr_code_outlined, size: 16, color: Color(0xFF2E7D32)),
+                  const Icon(Icons.qr_code_outlined, size: 16, color: AppColors.green),
                   const SizedBox(width: 8),
-                  Expanded(child: Text('Barcode: $barcode', style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
+                  Expanded(child: Text('Barcode: $barcode', style: const TextStyle(color: AppColors.green, fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
                 ]),
               ),
               const SizedBox(height: 16),
@@ -590,7 +591,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    final scanColor = _isScanning ? const Color(0xFF1E3A8A) : Colors.orange;
+    final scanColor = _isScanning ? AppColors.blue : Colors.orange;
 
     return Scaffold(
       backgroundColor: Colors.black,

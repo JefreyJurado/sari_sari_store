@@ -11,6 +11,7 @@ import '../models/capital_entry.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../services/loyalty_service.dart';
+import '../utils/currency_formatter.dart';
 
 const _uuid = Uuid();
 
@@ -38,8 +39,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   // ── Computed ───────────────────────────────────────────────────
-  double get cartTotal =>
-      cart.entries.fold(0, (s, e) => s + e.key.sellPrice * e.value);
+  double get cartTotal => CurrencyFormatter.roundCents(cart.entries
+      .fold(0.0, (s, e) => s + e.key.sellPrice * e.value));
 
   int get cartItemCount => cart.values.fold(0, (s, q) => s + q);
 
@@ -54,14 +55,14 @@ class AppProvider extends ChangeNotifier {
         .toList();
   }
 
-  double get todayRevenue =>
-      todaySales.fold(0, (s, t) => s + t.totalAmount);
-  double get todayProfit =>
-      todaySales.fold(0, (s, t) => s + t.totalProfit);
+  double get todayRevenue => CurrencyFormatter.roundCents(
+      todaySales.fold(0.0, (s, t) => s + t.totalAmount));
+  double get todayProfit => CurrencyFormatter.roundCents(
+      todaySales.fold(0.0, (s, t) => s + t.totalProfit));
 
-  double get totalUnpaidDebt => debts
+  double get totalUnpaidDebt => CurrencyFormatter.roundCents(debts
       .where((d) => d.status != DebtStatus.paid)
-      .fold(0, (s, d) => s + d.remaining);
+      .fold(0.0, (s, d) => s + d.remaining));
 
   List<Product> get lowStock =>
       products.where((p) => p.isLowStock && p.isActive).toList();
@@ -69,10 +70,10 @@ class AppProvider extends ChangeNotifier {
       products.where((p) => p.isOutOfStock && p.isActive).toList();
 
   // ── Capital Computed ───────────────────────────────────────────
-  
+
   // 1. Live inventory value — for stock monitoring only
-  double get currentInventoryValue =>
-      products.fold(0.0, (s, p) => s + (p.buyPrice * p.stock));
+  double get currentInventoryValue => CurrencyFormatter.roundCents(
+      products.fold(0.0, (s, p) => s + (p.buyPrice * p.stock)));
 
   // 2. Alias
   double get inventoryValue => currentInventoryValue;
@@ -88,14 +89,16 @@ class AppProvider extends ChangeNotifier {
     if (products.isEmpty) return 0;
     final active = products.where((p) => p.isActive).toList();
     if (active.isEmpty) return 0;
-    return active.fold(0.0, (s, p) => s + p.sellPrice) / active.length;
+    return CurrencyFormatter.roundCents(
+        active.fold(0.0, (s, p) => s + p.sellPrice) / active.length);
   }
 
   double get avgUnitCost {
     if (products.isEmpty) return 0;
     final active = products.where((p) => p.isActive).toList();
     if (active.isEmpty) return 0;
-    return active.fold(0.0, (s, p) => s + p.buyPrice) / active.length;
+    return CurrencyFormatter.roundCents(
+        active.fold(0.0, (s, p) => s + p.buyPrice) / active.length);
   }
 
   double get breakEvenUnits {
@@ -106,27 +109,30 @@ class AppProvider extends ChangeNotifier {
 
   double get totalSalesProfit => grossProfit;
 
-  double get totalExpensesAmount =>
-      expenses.fold(0.0, (s, e) => s + e.amount);
+  double get totalExpensesAmount => CurrencyFormatter.roundCents(
+      expenses.fold(0.0, (s, e) => s + e.amount));
 
   // Gross Revenue — total sales amount
-  double get grossRevenue => sales
+  double get grossRevenue => CurrencyFormatter.roundCents(sales
       .where((s) => s.status == TxStatus.completed)
-      .fold(0.0, (s, t) => s + t.totalAmount);
+      .fold(0.0, (s, t) => s + t.totalAmount));
 
   // Total COGS — total cost of all sold items
-  double get totalCOGS => sales
+  double get totalCOGS => CurrencyFormatter.roundCents(sales
       .where((s) => s.status == TxStatus.completed)
-      .fold(0.0, (s, t) => s + t.items.fold(0.0, (si, i) => si + (i.buyPrice * i.quantity)));
+      .fold(0.0, (s, t) => s + t.items.fold(0.0, (si, i) => si + (i.buyPrice * i.quantity))));
 
   // Gross Profit = Revenue - COGS
-  double get grossProfit => grossRevenue - totalCOGS;
+  double get grossProfit =>
+      CurrencyFormatter.roundCents(grossRevenue - totalCOGS);
 
   // Net Profit = Gross Profit - Expenses
-  double get netProfit => grossProfit - totalExpensesAmount;
+  double get netProfit =>
+      CurrencyFormatter.roundCents(grossProfit - totalExpensesAmount);
 
   // Current Capital = Investment + Net Profit
-  double get currentCapital => totalInvestment + netProfit;
+  double get currentCapital =>
+      CurrencyFormatter.roundCents(totalInvestment + netProfit);
 
   // Net Gain/Loss
   double get netGainLoss => netProfit;
@@ -205,6 +211,8 @@ class AppProvider extends ChangeNotifier {
     String? notes,
     DateTime? dueDate,
     DateTime? saleDate,
+    double discount = 0,
+    int pointsToRedeem = 0,
   }) async {
     if (cart.isEmpty) return null;
 
@@ -218,10 +226,13 @@ class AppProvider extends ChangeNotifier {
             ))
         .toList();
 
+    final discountedTotal =
+        (cartTotal - discount).clamp(0, cartTotal).toDouble();
+
     final sale = Sale(
       id: _uuid.v4(),
       items: items,
-      totalAmount: cartTotal,
+      totalAmount: discountedTotal,
       cashPaid: cashPaid,
       creditAmount: creditAmount,
       customerId: customer?.id,
@@ -260,11 +271,19 @@ class AppProvider extends ChangeNotifier {
     }
 
     if (customer != null) {
+      if (pointsToRedeem > 0) {
+        await LoyaltyService.instance.redeemPoints(
+          customerId: customer.id,
+          points: pointsToRedeem,
+          saleId: sale.id,
+        );
+      }
       await LoyaltyService.instance.addPointsFromSale(
         customerId: customer.id,
         customerName: customer.name,
-        saleAmount: cartTotal,
+        saleAmount: discountedTotal,
         saleDate: sale.createdAt,
+        saleId: sale.id,
       );
     }
 
@@ -302,7 +321,8 @@ class AppProvider extends ChangeNotifier {
       );
     }).toList();
 
-    final total = txItems.fold(0.0, (s, i) => s + i.subtotal);
+    final total =
+        CurrencyFormatter.roundCents(txItems.fold(0.0, (s, i) => s + i.subtotal));
 
     final sale = Sale(
       id: _uuid.v4(),
@@ -353,6 +373,7 @@ class AppProvider extends ChangeNotifier {
         customerName: customer.name,
         saleAmount: total,
         saleDate: sale.createdAt,
+        saleId: sale.id,
       );
     }
 
@@ -378,6 +399,13 @@ class AppProvider extends ChangeNotifier {
           p.copyWith(stock: p.stock + item.quantity));
     }
     await _db.voidSale(sale.id);
+    await _db.deleteDebtsBySale(sale.id);
+    if (sale.customerId != null) {
+      await LoyaltyService.instance.voidPointsFromSale(
+        customerId: sale.customerId!,
+        saleId: sale.id,
+      );
+    }
     await reload();
   }
 
@@ -433,13 +461,6 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
-  /// Completely deletes the product entry from the underlying database storage
-  Future<void> deleteProduct(String id) async {
-    await _db.archiveProduct(id);
-    products = await _db.getProducts();
-    _safeNotifyListeners();
-  }
-
   Future<void> restoreProduct(String id) async {
     await _db.restoreProduct(id);
     products = await _db.getProducts();
@@ -491,6 +512,11 @@ class AppProvider extends ChangeNotifier {
   // ── Debts / Payments ───────────────────────────────────────────
   List<Debt> debtsFor(String customerId) =>
       debts.where((d) => d.customerId == customerId).toList();
+
+  double unpaidDebtFor(String customerId) =>
+      CurrencyFormatter.roundCents(debtsFor(customerId)
+          .where((d) => d.status != DebtStatus.paid)
+          .fold(0.0, (s, d) => s + d.remaining));
 
   Future<void> recordPayment(Debt debt, double amount,
       {String? notes}) async {

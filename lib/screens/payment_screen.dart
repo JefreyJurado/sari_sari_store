@@ -4,8 +4,9 @@ import '../providers/app_provider.dart';
 import '../models/debt.dart';
 import '../models/customer.dart';
 import '../utils/currency_formatter.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class PaymentScreen extends StatefulWidget {
   final Debt debt;

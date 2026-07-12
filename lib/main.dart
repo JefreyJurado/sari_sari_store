@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/app_provider.dart';
 import 'screens/home_screen.dart';
@@ -15,8 +14,9 @@ import 'screens/pin_screen.dart';
 import 'services/notification_service.dart';
 import 'services/database_service.dart';
 import 'data/default_products.dart';
+import 'theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,6 +68,11 @@ class _SlideFadePageTransitionsBuilder extends PageTransitionsBuilder {
   }
 }
 
+/// Exposed so integration tests can capture a screenshot of the current
+/// screen (see the `builder:` callback below) without any OS-level window
+/// capture — avoids ever touching windows outside the app.
+final GlobalKey screenshotBoundaryKey = GlobalKey();
+
 class StorePHApp extends StatelessWidget {
   const StorePHApp({super.key});
 
@@ -90,18 +95,18 @@ class StorePHApp extends StatelessWidget {
               }
               return ErrorWidget(errorDetails.exception);
             };
-            if (widget != null) return widget;
-            return const Scaffold(
-              backgroundColor: Colors.white,
-              body: SizedBox.shrink(),
-            );
+            if (widget == null) {
+              return const Scaffold(
+                backgroundColor: Colors.white,
+                body: SizedBox.shrink(),
+              );
+            }
+            // Lets integration tests capture a real screenshot of whatever
+            // is currently on screen without any OS-level window capture.
+            return RepaintBoundary(
+                key: screenshotBoundaryKey, child: widget);
           },
-          theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: _blue,
-            brightness: Brightness.light,
-          ),
+          theme: AppTheme.light.copyWith(
           pageTransitionsTheme: PageTransitionsTheme(
             builders: {
               TargetPlatform.android: const _SlideFadePageTransitionsBuilder(),
@@ -110,30 +115,6 @@ class StorePHApp extends StatelessWidget {
               TargetPlatform.macOS: const _SlideFadePageTransitionsBuilder(),
               TargetPlatform.linux: const _SlideFadePageTransitionsBuilder(),
             },
-          ),
-          textTheme: GoogleFonts.poppinsTextTheme(),
-          appBarTheme: AppBarTheme(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
-            elevation: 0,
-            titleTextStyle: GoogleFonts.poppins(
-              color: Colors.black87,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            backgroundColor: _blue,
-            foregroundColor: Colors.white,
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _blue,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-            ),
           ),
         ),
         home: const _StartupRouter(),
@@ -276,11 +257,11 @@ class _MainShellState extends State<_MainShell> {
   ];
 
   static const _tabColors = [
-    _blue,
-    Color(0xFF059669),
-    Color(0xFFEA580C),
-    Color(0xFF7C3AED),
-    Color(0xFF0891B2),
+    AppColors.blue,
+    AppColors.green,
+    AppColors.orange,
+    AppColors.purple,
+    AppColors.teal,
   ];
 
   @override
@@ -339,6 +320,7 @@ class _MainShellState extends State<_MainShell> {
     final selected = _tab == index;
     final color = _tabColors[index];
     return GestureDetector(
+      key: ValueKey('navtab_$label'),
       onTap: () {
         if (_tab != index) {
           HapticFeedback.selectionClick();

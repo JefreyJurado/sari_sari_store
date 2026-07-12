@@ -1,6 +1,7 @@
 import '../models/transaction.dart';
 import '../models/expense.dart';
 import '../services/database_service.dart';
+import '../utils/currency_formatter.dart';
 
 class ReportData {
   final double totalRevenue;
@@ -33,18 +34,23 @@ class ReportService {
     required List<Expense> expenses,
     required int days,
   }) async {
-    final since = DateTime.now().subtract(Duration(days: days));
+    final now = DateTime.now();
+    final since = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: days - 1));
     final filteredSales = sales
         .where((s) =>
             s.status == TxStatus.completed &&
-            s.createdAt.isAfter(since))
+            !s.createdAt.isBefore(since))
         .toList();
     final filteredExpenses =
-        expenses.where((e) => e.date.isAfter(since)).toList();
+        expenses.where((e) => !e.date.isBefore(since)).toList();
 
-    final revenue = filteredSales.fold(0.0, (s, t) => s + t.totalAmount);
-    final profit = filteredSales.fold(0.0, (s, t) => s + t.totalProfit);
-    final expTotal = filteredExpenses.fold(0.0, (s, e) => s + e.amount);
+    final revenue = CurrencyFormatter.roundCents(
+        filteredSales.fold(0.0, (s, t) => s + t.totalAmount));
+    final profit = CurrencyFormatter.roundCents(
+        filteredSales.fold(0.0, (s, t) => s + t.totalProfit));
+    final expTotal = CurrencyFormatter.roundCents(
+        filteredExpenses.fold(0.0, (s, e) => s + e.amount));
 
     final daily = await _db.getDailyRevenue(days);
     final top = await _db.getTopProducts(days);
@@ -53,7 +59,7 @@ class ReportService {
       totalRevenue: revenue,
       totalProfit: profit,
       totalExpenses: expTotal,
-      netIncome: profit - expTotal,
+      netIncome: CurrencyFormatter.roundCents(profit - expTotal),
       transactionCount: filteredSales.length,
       dailyRevenue: daily,
       topProducts: top,

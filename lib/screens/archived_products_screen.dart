@@ -6,8 +6,6 @@ import '../services/database_service.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
 
-const _blue = Color(0xFF1E3A8A);
-
 class ArchivedProductsScreen extends StatefulWidget {
   const ArchivedProductsScreen({super.key});
   @override

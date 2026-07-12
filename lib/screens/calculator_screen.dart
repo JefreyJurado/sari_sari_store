@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
@@ -35,7 +36,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       } else if (['+', '-', '×', '÷'].contains(val)) {
         _firstNum = double.tryParse(_display) ?? 0;
         _operator = val;
-        _expression = '${_formatNum(_firstNum)} $val';
+        _expression = '${_withCommas(_formatNum(_firstNum))} $val';
         _newNum = true;
       } else if (val == '=') {
         if (_operator.isEmpty) return;
@@ -49,7 +50,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             result = second != 0 ? _firstNum / second : 0;
             break;
         }
-        _expression = '${_formatNum(_firstNum)} $_operator ${_formatNum(second)} =';
+        _expression =
+            '${_withCommas(_formatNum(_firstNum))} $_operator ${_withCommas(_formatNum(second))} =';
         _display = _formatNum(result);
         _operator = '';
         _newNum = true;
@@ -86,10 +88,28 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     return s;
   }
 
+  /// Inserts thousands-separator commas into a plain numeric string for
+  /// display only — the underlying `_display`/`_firstNum` values stay
+  /// comma-free so double.tryParse keeps working unmodified.
+  String _withCommas(String raw) {
+    final isNegative = raw.startsWith('-');
+    final unsigned = isNegative ? raw.substring(1) : raw;
+    final dotIndex = unsigned.indexOf('.');
+    final wholePart =
+        dotIndex == -1 ? unsigned : unsigned.substring(0, dotIndex);
+    final decimalPart = dotIndex == -1 ? '' : unsigned.substring(dotIndex);
+    final buffer = StringBuffer();
+    for (int i = 0; i < wholePart.length; i++) {
+      if (i > 0 && (wholePart.length - i) % 3 == 0) buffer.write(',');
+      buffer.write(wholePart[i]);
+    }
+    return '${isNegative ? '-' : ''}$buffer$decimalPart';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         centerTitle: false,
         titleSpacing: 16,
@@ -98,15 +118,20 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       ),
       body: Column(children: [
 
-        // ── Solid Blue Display ───────────────────────────
+        // ── Display ────────────────────────────────────
         Container(
           width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Color(0xFF1E3A8A), // Formally solid blue color now!
-            borderRadius: BorderRadius.only(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.blue, AppColors.blueDark],
+            ),
+            borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(28),
               bottomRight: Radius.circular(28),
             ),
+            boxShadow: AppShadows.colored(AppColors.blue),
           ),
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
           child: Column(
@@ -122,7 +147,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               const SizedBox(height: 8),
               // Main display
               Text(
-                _display,
+                _withCommas(_display),
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 48,
@@ -199,17 +224,17 @@ class _CalcButton extends StatelessWidget {
     Color fg;
 
     if (isEquals) {
-      bg = const Color(0xFF1E3A8A);
+      bg = AppColors.blue;
       fg = Colors.white;
     } else if (isOperator) {
-      bg = const Color(0xFF1E3A8A).withValues(alpha: 0.10);
-      fg = const Color(0xFF1E3A8A);
+      bg = AppColors.blue.withValues(alpha: 0.10);
+      fg = AppColors.blue;
     } else if (isSpecial) {
       bg = Colors.grey.shade200;
       fg = Colors.grey.shade700;
     } else {
       bg = Colors.white;
-      fg = const Color(0xFF1A1A2E);
+      fg = AppColors.textPrimary;
     }
 
     return GestureDetector(

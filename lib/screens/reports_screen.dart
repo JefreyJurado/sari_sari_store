@@ -8,8 +8,9 @@ import '../services/pdf_report_service.dart';
 import 'sales_history_screen.dart';
 import 'daily_summary_screen.dart';
 import 'expenses_screen.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 const _green = Color(0xFF059669);
 const _red = Color(0xFFDC2626);
 const _purple = Color(0xFF7C3AED);
@@ -518,21 +519,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Color? accentColor,
           VoidCallback? onTap}) {
     final color = isAlert ? Colors.red.shade600 : (accentColor ?? _blue);
+    final colorDark = Color.lerp(color, Colors.black, 0.18)!;
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.25),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ],
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [color, colorDark],
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.xxl),
+            boxShadow: AppShadows.colored(color),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,12 +540,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(label,
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.85),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600)),
-                  Icon(icon, color: Colors.white, size: 18),
+                  Expanded(
+                    child: Text(label,
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 16),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),

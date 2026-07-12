@@ -8,15 +8,15 @@ import '../services/installment_service.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../models/product.dart';
+import '../theme/app_theme.dart';
 
 const _uuid = Uuid();
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class InstallmentScreen extends StatefulWidget {
   const InstallmentScreen({super.key});
   @override
-  State<InstallmentScreen> createState() =>
-      _InstallmentScreenState();
+  State<InstallmentScreen> createState() => _InstallmentScreenState();
 }
 
 class _InstallmentScreenState extends State<InstallmentScreen>
@@ -50,8 +50,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
   List<Installment> get _completed => _installments
       .where((i) => i.status == InstallmentStatus.completed)
       .toList();
-  List<Installment> get _overdue =>
-      _ongoing.where((i) => i.isOverdue).toList();
+  List<Installment> get _overdue => _ongoing.where((i) => i.isOverdue).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +61,10 @@ class _InstallmentScreenState extends State<InstallmentScreen>
           backgroundColor: Colors.white,
           elevation: 0,
           title: const Text('Installment',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black87)),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87)),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black87),
             onPressed: () => Navigator.pop(context),
@@ -85,9 +87,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
             Container(
               decoration: BoxDecoration(
                 border: Border(
-                    bottom: BorderSide(
-                        color: Colors.grey.shade200,
-                        width: 1)),
+                    bottom: BorderSide(color: Colors.grey.shade200, width: 1)),
               ),
               child: TabBar(
                 controller: _tabCtrl,
@@ -95,21 +95,13 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                 unselectedLabelColor: Colors.grey[500],
                 indicatorColor: _blue,
                 indicatorWeight: 2,
-                labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12),
-                unselectedLabelStyle:
-                    const TextStyle(fontSize: 12),
+                labelStyle:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                unselectedLabelStyle: const TextStyle(fontSize: 12),
                 tabs: [
-                  Tab(
-                      text:
-                          'Ongoing (${_ongoing.length})'),
-                  Tab(
-                      text:
-                          'Overdue (${_overdue.length})'),
-                  Tab(
-                      text:
-                          'Completed (${_completed.length})'),
+                  Tab(text: 'Ongoing (${_ongoing.length})'),
+                  Tab(text: 'Overdue (${_overdue.length})'),
+                  Tab(text: 'Completed (${_completed.length})'),
                 ],
               ),
             ),
@@ -117,8 +109,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
             // ── Tab Content ────────────────────────
             Expanded(
               child: _loading
-                  ? const Center(
-                      child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator())
                   : TabBarView(
                       controller: _tabCtrl,
                       children: [
@@ -137,26 +128,20 @@ class _InstallmentScreenState extends State<InstallmentScreen>
           elevation: 0,
           icon: const Icon(Icons.add, size: 18),
           label: const Text('New Installment',
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         ),
       );
     });
   }
 
-  Widget _buildList(
-      List<Installment> list, AppProvider prov) {
+  Widget _buildList(List<Installment> list, AppProvider prov) {
     if (list.isEmpty) {
       return Center(
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-          Icon(Icons.credit_score_outlined,
-              size: 48, color: Colors.grey[300]),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.credit_score_outlined, size: 48, color: Colors.grey[300]),
           const SizedBox(height: 12),
           Text('No installments yet',
-              style: TextStyle(
-                  color: Colors.grey[400], fontSize: 14)),
+              style: TextStyle(color: Colors.grey[400], fontSize: 14)),
         ]),
       );
     }
@@ -181,12 +166,12 @@ class _InstallmentScreenState extends State<InstallmentScreen>
           ),
           child: Padding(
             padding: const EdgeInsets.all(14),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Container(
-                  width: 38, height: 38,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: inst.isCompleted
                         ? Colors.green.shade50
@@ -210,19 +195,17 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    Text(inst.itemDescription,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                            color: Colors.black87)),
-                    Text(inst.customerName,
-                        style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 12)),
-                  ]),
+                        Text(inst.itemDescription,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: Colors.black87)),
+                        Text(inst.customerName,
+                            style: TextStyle(
+                                color: Colors.grey[500], fontSize: 12)),
+                      ]),
                 ),
                 if (inst.isOverdue)
                   _statusBadge('Overdue', Colors.red)
@@ -232,19 +215,15 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                   icon: Icon(Icons.more_vert_outlined,
                       size: 18, color: Colors.grey[400]),
                   shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10)),
                   itemBuilder: (_) => [
                     const PopupMenuItem(
                       value: 'delete',
                       child: Row(children: [
-                        Icon(Icons.delete_outline,
-                            size: 16, color: Colors.red),
+                        Icon(Icons.delete_outline, size: 16, color: Colors.red),
                         SizedBox(width: 8),
                         Text('Delete',
-                            style: TextStyle(
-                                color: Colors.red,
-                                fontSize: 13)),
+                            style: TextStyle(color: Colors.red, fontSize: 13)),
                       ]),
                     ),
                   ],
@@ -262,23 +241,17 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: inst.progressPercent,
-                  backgroundColor:
-                      Colors.grey.withValues(alpha: 0.12),
+                  backgroundColor: Colors.grey.withValues(alpha: 0.12),
                   valueColor: AlwaysStoppedAnimation(
-                      inst.isCompleted
-                          ? Colors.green
-                          : _blue),
+                      inst.isCompleted ? Colors.green : _blue),
                   minHeight: 6,
                 ),
               ),
               const SizedBox(height: 8),
 
               Row(children: [
-                Text(
-                    '${inst.paidMonths}/${inst.totalMonths} months',
-                    style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 11)),
+                Text('${inst.paidMonths}/${inst.totalMonths} months',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 11)),
                 const Spacer(),
                 Text(
                     'Balance: ${CurrencyFormatter.format(inst.remainingBalance)}',
@@ -291,16 +264,11 @@ class _InstallmentScreenState extends State<InstallmentScreen>
               Row(children: [
                 Text(
                     'Monthly: ${CurrencyFormatter.format(inst.monthlyPayment)}',
-                    style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 11)),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 11)),
                 const Spacer(),
-                Text(
-                    'Due: ${DateHelper.formatDate(inst.nextDueDate)}',
+                Text('Due: ${DateHelper.formatDate(inst.nextDueDate)}',
                     style: TextStyle(
-                        color: inst.isOverdue
-                            ? Colors.red
-                            : Colors.grey[500],
+                        color: inst.isOverdue ? Colors.red : Colors.grey[500],
                         fontSize: 11,
                         fontWeight: inst.isOverdue
                             ? FontWeight.w600
@@ -317,17 +285,14 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                       backgroundColor: _blue,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 10),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     child: Text(
                         'Pay — ${CurrencyFormatter.format(inst.monthlyPayment)}',
                         style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600)),
+                            fontSize: 13, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -339,19 +304,15 @@ class _InstallmentScreenState extends State<InstallmentScreen>
   }
 
   Widget _statusBadge(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-                color: color.withValues(alpha: 0.3),
-                width: 0.5)),
+            border:
+                Border.all(color: color.withValues(alpha: 0.3), width: 0.5)),
         child: Text(text,
             style: TextStyle(
-                color: color,
-                fontSize: 10,
-                fontWeight: FontWeight.w600)),
+                color: color, fontSize: 10, fontWeight: FontWeight.w600)),
       );
 
   void _showAddForm(AppProvider prov) {
@@ -367,35 +328,30 @@ class _InstallmentScreenState extends State<InstallmentScreen>
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular(16))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) {
-          final totalAmount = selectedProducts.entries.fold(
-              0.0, (s, e) => s + e.key.sellPrice * e.value);
+          final totalAmount = CurrencyFormatter.roundCents(selectedProducts.entries
+              .fold(0.0, (s, e) => s + e.key.sellPrice * e.value));
           final down = double.tryParse(downCtrl.text) ?? 0;
-          final monthly = selectedMonths > 0
-              ? (totalAmount - down) / selectedMonths
-              : 0.0;
+          final monthly =
+              selectedMonths > 0 ? (totalAmount - down) / selectedMonths : 0.0;
 
           return Padding(
             padding: EdgeInsets.only(
-                bottom:
-                    MediaQuery.of(context).viewInsets.bottom,
+                bottom: MediaQuery.of(context).viewInsets.bottom,
                 left: 20,
                 right: 20,
                 top: 20),
             child: SingleChildScrollView(
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Container(
-                  width: 36, height: 4,
+                  width: 36,
+                  height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                       color: Colors.grey[300],
-                      borderRadius:
-                          BorderRadius.circular(2)),
+                      borderRadius: BorderRadius.circular(2)),
                 ),
                 const Text('New Installment',
                     style: TextStyle(
@@ -413,12 +369,10 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: prov.customers.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(width: 6),
+                      separatorBuilder: (_, __) => const SizedBox(width: 6),
                       itemBuilder: (_, i) {
                         final c = prov.customers[i];
-                        final sel =
-                            selectedCustomer?.id == c.id;
+                        final sel = selectedCustomer?.id == c.id;
                         return GestureDetector(
                           onTap: () => setS(() {
                             if (sel) {
@@ -430,18 +384,12 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                             }
                           }),
                           child: AnimatedContainer(
-                            duration: const Duration(
-                                milliseconds: 150),
-                            padding: const EdgeInsets
-                                .symmetric(
-                                horizontal: 12,
-                                vertical: 6),
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: sel
-                                  ? _blue
-                                  : Colors.grey.shade100,
-                              borderRadius:
-                                  BorderRadius.circular(20),
+                              color: sel ? _blue : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(c.name,
                                 style: TextStyle(
@@ -449,9 +397,8 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                                     fontWeight: sel
                                         ? FontWeight.w600
                                         : FontWeight.normal,
-                                    color: sel
-                                        ? Colors.white
-                                        : Colors.grey[700])),
+                                    color:
+                                        sel ? Colors.white : Colors.grey[700])),
                           ),
                         );
                       },
@@ -459,27 +406,19 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                   ),
                   const SizedBox(height: 8),
                   Row(children: [
-                    Expanded(
-                        child: Divider(
-                            color: Colors.grey.shade200)),
+                    Expanded(child: Divider(color: Colors.grey.shade200)),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text('or type',
-                          style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 11)),
+                          style:
+                              TextStyle(color: Colors.grey[400], fontSize: 11)),
                     ),
-                    Expanded(
-                        child: Divider(
-                            color: Colors.grey.shade200)),
+                    Expanded(child: Divider(color: Colors.grey.shade200)),
                   ]),
                   const SizedBox(height: 8),
                 ],
-                _field(nameCtrl, 'Customer name *',
-                    Icons.person_outlined,
-                    onChanged: (_) =>
-                        setS(() => selectedCustomer = null)),
+                _field(nameCtrl, 'Customer name *', Icons.person_outlined,
+                    onChanged: (_) => setS(() => selectedCustomer = null)),
                 const SizedBox(height: 20),
 
                 // Step 2
@@ -489,99 +428,71 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color:
-                          _blue.withValues(alpha: 0.05),
-                      borderRadius:
-                          BorderRadius.circular(10),
-                      border: Border.all(
-                          color:
-                              _blue.withValues(alpha: 0.2)),
+                      color: _blue.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _blue.withValues(alpha: 0.2)),
                     ),
                     child: Column(
                       children: selectedProducts.entries
                           .map((e) => Padding(
-                                padding:
-                                    const EdgeInsets.only(
-                                        bottom: 6),
+                                padding: const EdgeInsets.only(bottom: 6),
                                 child: Row(children: [
                                   Expanded(
                                     child: Text(e.key.name,
                                         style: const TextStyle(
                                             fontSize: 13,
-                                            fontWeight:
-                                                FontWeight
-                                                    .w500,
-                                            color: Colors
-                                                .black87)),
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black87)),
                                   ),
                                   GestureDetector(
                                     onTap: () => setS(() {
                                       if (e.value <= 1) {
-                                        selectedProducts
-                                            .remove(e.key);
+                                        selectedProducts.remove(e.key);
                                       } else {
-                                        selectedProducts[
-                                                e.key] =
-                                            e.value - 1;
+                                        selectedProducts[e.key] = e.value - 1;
                                       }
                                     }),
                                     child: Container(
-                                      width: 26, height: 26,
+                                      width: 26,
+                                      height: 26,
                                       decoration: BoxDecoration(
-                                          color: Colors
-                                              .grey.shade100,
+                                          color: Colors.grey.shade100,
                                           borderRadius:
-                                              BorderRadius
-                                                  .circular(
-                                                      6)),
-                                      child: const Icon(
-                                          Icons.remove,
-                                          size: 14,
-                                          color: Colors.grey),
+                                              BorderRadius.circular(6)),
+                                      child: const Icon(Icons.remove,
+                                          size: 14, color: Colors.grey),
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets
-                                        .symmetric(
+                                    padding: const EdgeInsets.symmetric(
                                         horizontal: 8),
                                     child: Text('${e.value}',
                                         style: const TextStyle(
-                                            fontWeight:
-                                                FontWeight
-                                                    .bold,
+                                            fontWeight: FontWeight.bold,
                                             fontSize: 13)),
                                   ),
                                   GestureDetector(
                                     onTap: () => setS(() =>
-                                        selectedProducts[
-                                            e.key] =
-                                            e.value + 1),
+                                        selectedProducts[e.key] = e.value + 1),
                                     child: Container(
-                                      width: 26, height: 26,
+                                      width: 26,
+                                      height: 26,
                                       decoration: BoxDecoration(
                                           color: _blue,
                                           borderRadius:
-                                              BorderRadius
-                                                  .circular(
-                                                      6)),
-                                      child: const Icon(
-                                          Icons.add,
-                                          size: 14,
-                                          color:
-                                              Colors.white),
+                                              BorderRadius.circular(6)),
+                                      child: const Icon(Icons.add,
+                                          size: 14, color: Colors.white),
                                     ),
                                   ),
                                   const SizedBox(width: 10),
                                   Text(
                                     CurrencyFormatter.format(
-                                        e.key.sellPrice *
-                                            e.value),
+                                        e.key.sellPrice * e.value),
                                     style: const TextStyle(
-                                        fontWeight:
-                                            FontWeight.w600,
+                                        fontWeight: FontWeight.w600,
                                         fontSize: 12,
-                                        color:
-                                            Colors.black87),
+                                        color: Colors.black87),
                                   ),
                                 ]),
                               ))
@@ -597,74 +508,51 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                       isScrollControlled: true,
                       backgroundColor: Colors.white,
                       shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(16))),
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(16))),
                       builder: (_) => StatefulBuilder(
                         builder: (pCtx, pSetS) {
                           String search = '';
                           return StatefulBuilder(
-                            builder: (_, sSetS) =>
-                                DraggableScrollableSheet(
+                            builder: (_, sSetS) => DraggableScrollableSheet(
                               expand: false,
                               initialChildSize: 0.75,
-                              builder: (_, ctrl) =>
-                                  Column(children: [
+                              builder: (_, ctrl) => Column(children: [
                                 Container(
-                                  margin: const EdgeInsets
-                                      .symmetric(
-                                      vertical: 10),
-                                  width: 36, height: 4,
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  width: 36,
+                                  height: 4,
                                   decoration: BoxDecoration(
                                       color: Colors.grey[300],
-                                      borderRadius:
-                                          BorderRadius
-                                              .circular(2)),
+                                      borderRadius: BorderRadius.circular(2)),
                                 ),
-                                const Text(
-                                    'Select Products',
+                                const Text('Select Products',
                                     style: TextStyle(
                                         fontSize: 15,
-                                        fontWeight:
-                                            FontWeight.w600,
-                                        color:
-                                            Colors.black87)),
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87)),
                                 const SizedBox(height: 10),
                                 Padding(
-                                  padding: const EdgeInsets
-                                      .symmetric(
+                                  padding: const EdgeInsets.symmetric(
                                       horizontal: 16),
                                   child: TextField(
-                                    onChanged: (v) =>
-                                        sSetS(
-                                            () => search = v),
-                                    decoration:
-                                        InputDecoration(
-                                      hintText:
-                                          'Search products...',
+                                    onChanged: (v) => sSetS(() => search = v),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search products...',
                                       hintStyle: TextStyle(
-                                          color: Colors
-                                              .grey[400],
+                                          color: Colors.grey[400],
                                           fontSize: 13),
-                                      prefixIcon: Icon(
-                                          Icons
-                                              .search_outlined,
-                                          color: Colors
-                                              .grey[400],
-                                          size: 18),
+                                      prefixIcon: Icon(Icons.search_outlined,
+                                          color: Colors.grey[400], size: 18),
                                       filled: true,
-                                      fillColor: Colors
-                                          .grey.shade100,
+                                      fillColor: Colors.grey.shade100,
                                       border: OutlineInputBorder(
                                           borderRadius:
-                                              BorderRadius
-                                                  .circular(
-                                                      10),
-                                          borderSide:
-                                              BorderSide
-                                                  .none),
+                                              BorderRadius.circular(10),
+                                          borderSide: BorderSide.none),
                                       contentPadding:
-                                          const EdgeInsets
-                                              .symmetric(
+                                          const EdgeInsets.symmetric(
                                               vertical: 0),
                                     ),
                                   ),
@@ -673,167 +561,133 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                                 Expanded(
                                   child: ListView(
                                     controller: ctrl,
-                                    padding:
-                                        const EdgeInsets
-                                            .fromLTRB(
-                                            16, 0, 16, 16),
+                                    padding: const EdgeInsets.fromLTRB(
+                                        16, 0, 16, 16),
                                     children: prov.products
                                         .where((p) =>
                                             !p.isOutOfStock &&
                                             (search.isEmpty ||
-                                                p.name
-                                                    .toLowerCase()
-                                                    .contains(
-                                                        search.toLowerCase())))
+                                                p.name.toLowerCase().contains(
+                                                    search.toLowerCase())))
                                         .map((p) {
-                                      final qty =
-                                          selectedProducts[
-                                                  p] ??
-                                              0;
+                                      final qty = selectedProducts[p] ?? 0;
                                       return Container(
-                                        margin: const EdgeInsets
-                                            .only(bottom: 8),
-                                        decoration:
-                                            BoxDecoration(
+                                        margin:
+                                            const EdgeInsets.only(bottom: 8),
+                                        decoration: BoxDecoration(
                                           color: qty > 0
-                                              ? _blue
-                                                  .withValues(
-                                                      alpha:
-                                                          0.05)
+                                              ? _blue.withValues(alpha: 0.05)
                                               : Colors.white,
                                           borderRadius:
-                                              BorderRadius
-                                                  .circular(
-                                                      10),
+                                              BorderRadius.circular(10),
                                           border: Border.all(
                                               color: qty > 0
-                                                  ? _blue
-                                                      .withValues(
-                                                          alpha:
-                                                              0.2)
-                                                  : Colors.grey
-                                                      .shade200),
+                                                  ? _blue.withValues(alpha: 0.2)
+                                                  : Colors.grey.shade200),
                                         ),
-                                        child: ListTile(
-                                          contentPadding:
-                                              const EdgeInsets
-                                                  .symmetric(
-                                                  horizontal:
-                                                      12,
-                                                  vertical: 4),
-                                          title: Text(p.name,
-                                              style: const TextStyle(
-                                                  fontWeight:
-                                                      FontWeight
-                                                          .w600,
-                                                  fontSize:
-                                                      13,
-                                                  color: Colors
-                                                      .black87)),
-                                          subtitle: Text(
-                                              CurrencyFormatter
-                                                  .format(p
-                                                      .sellPrice),
-                                              style: const TextStyle(
-                                                  color: _blue,
-                                                  fontWeight:
-                                                      FontWeight
-                                                          .w600,
-                                                  fontSize:
-                                                      12)),
-                                          trailing: Row(
-                                            mainAxisSize:
-                                                MainAxisSize
-                                                    .min,
-                                            children: [
-                                              if (qty > 0) ...[
-                                                GestureDetector(
-                                                  onTap: () {
-                                                    pSetS(() {
-                                                      sSetS(
-                                                          () {
-                                                        setS(
-                                                            () {
-                                                          if (qty <=
-                                                              1) {
-                                                            selectedProducts
-                                                                .remove(
-                                                                    p);
-                                                          } else {
-                                                            selectedProducts[p] =
-                                                                qty -
-                                                                    1;
-                                                          }
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            child: ListTile(
+                                              contentPadding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 4),
+                                              title: Text(p.name,
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 13,
+                                                      color: Colors.black87)),
+                                              subtitle: Text(
+                                                  CurrencyFormatter.format(
+                                                      p.sellPrice),
+                                                  style: const TextStyle(
+                                                      color: _blue,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 12)),
+                                              trailing: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  if (qty > 0) ...[
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        pSetS(() {
+                                                          sSetS(() {
+                                                            setS(() {
+                                                              if (qty <= 1) {
+                                                                selectedProducts
+                                                                    .remove(p);
+                                                              } else {
+                                                                selectedProducts[
+                                                                        p] =
+                                                                    qty - 1;
+                                                              }
+                                                            });
+                                                          });
+                                                        });
+                                                      },
+                                                      child: Container(
+                                                        width: 28,
+                                                        height: 28,
+                                                        decoration: BoxDecoration(
+                                                            color: Colors
+                                                                .grey.shade100,
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        6)),
+                                                        child: const Icon(
+                                                            Icons.remove,
+                                                            size: 14,
+                                                            color: Colors.grey),
+                                                      ),
+                                                    ),
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 8),
+                                                      child: Text('$qty',
+                                                          style:
+                                                              const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  fontSize:
+                                                                      14)),
+                                                    ),
+                                                  ],
+                                                  GestureDetector(
+                                                    onTap: () {
+                                                      pSetS(() {
+                                                        sSetS(() {
+                                                          setS(() {
+                                                            selectedProducts[
+                                                                p] = qty + 1;
+                                                          });
                                                         });
                                                       });
-                                                    });
-                                                  },
-                                                  child:
-                                                      Container(
-                                                    width: 28,
-                                                    height: 28,
-                                                    decoration: BoxDecoration(
-                                                        color: Colors
-                                                            .grey
-                                                            .shade100,
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                                6)),
-                                                    child: const Icon(
-                                                        Icons
-                                                            .remove,
-                                                        size:
-                                                            14,
-                                                        color: Colors
-                                                            .grey),
+                                                    },
+                                                    child: Container(
+                                                      width: 28,
+                                                      height: 28,
+                                                      decoration: BoxDecoration(
+                                                          color: _blue,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(6)),
+                                                      child: const Icon(
+                                                          Icons.add,
+                                                          size: 14,
+                                                          color: Colors.white),
+                                                    ),
                                                   ),
-                                                ),
-                                                Padding(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal:
-                                                          8),
-                                                  child: Text(
-                                                      '$qty',
-                                                      style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight
-                                                                  .bold,
-                                                          fontSize:
-                                                              14)),
-                                                ),
-                                              ],
-                                              GestureDetector(
-                                                onTap: () {
-                                                  pSetS(() {
-                                                    sSetS(() {
-                                                      setS(
-                                                          () {
-                                                        selectedProducts[p] =
-                                                            qty +
-                                                                1;
-                                                      });
-                                                    });
-                                                  });
-                                                },
-                                                child:
-                                                    Container(
-                                                  width: 28,
-                                                  height: 28,
-                                                  decoration: BoxDecoration(
-                                                      color:
-                                                          _blue,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              6)),
-                                                  child: const Icon(
-                                                      Icons.add,
-                                                      size: 14,
-                                                      color: Colors
-                                                          .white),
-                                                ),
+                                                ],
                                               ),
-                                            ],
+                                            ),
                                           ),
                                         ),
                                       );
@@ -841,25 +695,18 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                                   ),
                                 ),
                                 Padding(
-                                  padding:
-                                      const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(16),
                                   child: ElevatedButton(
-                                    onPressed: () =>
-                                        Navigator.pop(pCtx),
-                                    style: ElevatedButton
-                                        .styleFrom(
+                                    onPressed: () => Navigator.pop(pCtx),
+                                    style: ElevatedButton.styleFrom(
                                       backgroundColor: _blue,
-                                      foregroundColor:
-                                          Colors.white,
+                                      foregroundColor: Colors.white,
                                       elevation: 0,
-                                      minimumSize: const Size(
-                                          double.infinity, 46),
-                                      shape:
-                                          RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius
-                                                      .circular(
-                                                          10)),
+                                      minimumSize:
+                                          const Size(double.infinity, 46),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10)),
                                     ),
                                     child: Text(
                                         selectedProducts.isEmpty
@@ -867,9 +714,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                                             : 'Done (${selectedProducts.length} product${selectedProducts.length != 1 ? 's' : ''})',
                                         style: const TextStyle(
                                             fontSize: 13,
-                                            fontWeight:
-                                                FontWeight
-                                                    .w600)),
+                                            fontWeight: FontWeight.w600)),
                                   ),
                                 ),
                               ]),
@@ -881,23 +726,18 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(10),
-                      border: Border.all(
-                          color: _blue.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _blue.withValues(alpha: 0.3)),
                     ),
                     child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           selectedProducts.isEmpty
-                              ? Icons
-                                  .add_shopping_cart_outlined
+                              ? Icons.add_shopping_cart_outlined
                               : Icons.edit_outlined,
                           color: _blue,
                           size: 18,
@@ -926,40 +766,46 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                     final picked = await showDatePicker(
                       context: context,
                       initialDate: startDate,
-                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
                       lastDate: DateTime.now(),
                     );
                     if (picked != null) setS(() => startDate = picked);
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: Colors.grey.shade300),
                     ),
                     child: Row(children: [
-                      Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey[600]),
+                      Icon(Icons.calendar_today_outlined,
+                          size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 10),
                       Text('Start Date: ',
-                          style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                          style:
+                              TextStyle(fontSize: 13, color: Colors.grey[700])),
                       Text(DateHelper.formatDate(startDate),
                           style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87)),
                       const Spacer(),
-                      Icon(Icons.edit_calendar_outlined, size: 16, color: Colors.grey[400]),
+                      Icon(Icons.edit_calendar_outlined,
+                          size: 16, color: Colors.grey[400]),
                     ]),
                   ),
                 ),
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   decoration: BoxDecoration(
                     color: totalAmount > 0
                         ? _blue.withValues(alpha: 0.05)
-                        : Colors.grey
-                            .withValues(alpha: 0.05),
+                        : Colors.grey.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                         color: totalAmount > 0
@@ -975,58 +821,45 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                     const Spacer(),
                     Text(
                       totalAmount > 0
-                          ? CurrencyFormatter.format(
-                              totalAmount)
+                          ? CurrencyFormatter.format(totalAmount)
                           : '—',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
-                          color: totalAmount > 0
-                              ? _blue
-                              : Colors.grey),
+                          color: totalAmount > 0 ? _blue : Colors.grey),
                     ),
                   ]),
                 ),
                 const SizedBox(height: 10),
-                _fieldNum(downCtrl,
-                    'Down payment (optional)', '₱',
+                _fieldNum(downCtrl, 'Down payment (optional)', '₱',
                     onChanged: (_) => setS(() {})),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<int>(
                   initialValue: selectedMonths,
                   decoration: InputDecoration(
                     labelText: 'Number of months',
-                    labelStyle: TextStyle(
-                        color: Colors.grey[600], fontSize: 13),
-                    prefixIcon: Icon(
-                        Icons.calendar_month_outlined,
-                        size: 18,
-                        color: Colors.grey[500]),
+                    labelStyle:
+                        TextStyle(color: Colors.grey[600], fontSize: 13),
+                    prefixIcon: Icon(Icons.calendar_month_outlined,
+                        size: 18, color: Colors.grey[500]),
                     filled: true,
                     fillColor: Colors.grey.shade50,
                     border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                            color: Colors.grey.shade300)),
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.grey.shade300)),
                     enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                            color: Colors.grey.shade300)),
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.grey.shade300)),
                   ),
                   borderRadius: BorderRadius.circular(10),
                   items: List.generate(
                       12,
                       (i) => DropdownMenuItem(
                             value: i + 1,
-                            child: Text(
-                                '${i + 1} month${i > 0 ? 's' : ''}',
-                                style: const TextStyle(
-                                    fontSize: 13)),
+                            child: Text('${i + 1} month${i > 0 ? 's' : ''}',
+                                style: const TextStyle(fontSize: 13)),
                           )),
-                  onChanged: (v) =>
-                      setS(() => selectedMonths = v!),
+                  onChanged: (v) => setS(() => selectedMonths = v!),
                 ),
                 const SizedBox(height: 10),
                 if (totalAmount > 0) ...[
@@ -1034,13 +867,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 12),
                     decoration: BoxDecoration(
-                      color:
-                          _blue.withValues(alpha: 0.05),
-                      borderRadius:
-                          BorderRadius.circular(10),
-                      border: Border.all(
-                          color:
-                              _blue.withValues(alpha: 0.2)),
+                      color: _blue.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _blue.withValues(alpha: 0.2)),
                     ),
                     child: Row(children: [
                       Text('Monthly payment:',
@@ -1049,9 +878,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                               color: Colors.grey[700],
                               fontSize: 13)),
                       const Spacer(),
-                      Text(
-                          CurrencyFormatter.format(
-                              monthly < 0 ? 0 : monthly),
+                      Text(CurrencyFormatter.format(monthly < 0 ? 0 : monthly),
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
@@ -1066,40 +893,42 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                   child: ElevatedButton(
                     onPressed: () async {
                       final customerName =
-                          selectedCustomer?.name ??
-                              nameCtrl.text.trim();
+                          selectedCustomer?.name ?? nameCtrl.text.trim();
                       if (customerName.isEmpty) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(const SnackBar(
-                                content: Text(
-                                    'Customer name required.'),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Customer name required.'),
                                 backgroundColor: Colors.red));
                         return;
                       }
                       if (selectedProducts.isEmpty) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(const SnackBar(
-                                content: Text(
-                                    'Select at least one product.'),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Select at least one product.'),
                                 backgroundColor: Colors.red));
                         return;
                       }
                       if (totalAmount <= 0) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(const SnackBar(
-                                content: Text(
-                                    'Total cannot be zero.'),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Total cannot be zero.'),
                                 backgroundColor: Colors.red));
                         return;
                       }
-                      final down =
-                          double.tryParse(downCtrl.text) ??
-                              0;
+                      final down = double.tryParse(downCtrl.text) ?? 0;
+                      if (down < 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Down payment cannot be negative.'),
+                                backgroundColor: Colors.red));
+                        return;
+                      }
                       if (down >= totalAmount) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(const SnackBar(
-                                content: Text(
-                                    'Down payment cannot exceed total.'),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Down payment cannot exceed total.'),
                                 backgroundColor: Colors.red));
                         return;
                       }
@@ -1117,22 +946,16 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                         } else {
                           await prov.addCustomer(customerName);
                           customerId = prov.customers
-                              .firstWhere(
-                                  (c) =>
-                                      c.name == customerName,
-                                  orElse: () =>
-                                      prov.customers.last)
+                              .firstWhere((c) => c.name == customerName,
+                                  orElse: () => prov.customers.last)
                               .id;
                         }
                       }
-                      final itemDesc =
-                          selectedProducts.entries
-                              .map((e) =>
-                                  '${e.key.name} x${e.value}')
-                              .join(', ');
+                      final itemDesc = selectedProducts.entries
+                          .map((e) => '${e.key.name} x${e.value}')
+                          .join(', ');
                       final mon = selectedMonths > 0
-                          ? (totalAmount - down) /
-                              selectedMonths
+                          ? (totalAmount - down) / selectedMonths
                           : 0.0;
                       final installment = Installment(
                         id: _uuid.v4(),
@@ -1147,36 +970,29 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                         totalPaid: down,
                         status: InstallmentStatus.ongoing,
                         startDate: startDate,
-                        nextDueDate: startDate
-                            .add(const Duration(days: 30)),
+                        nextDueDate: startDate.add(const Duration(days: 30)),
                       );
-                      await InstallmentService.instance
-                          .save(installment);
+                      await InstallmentService.instance.save(installment);
                       await _load();
                       if (ctx.mounted) Navigator.pop(ctx);
                       if (mounted) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(const SnackBar(
-                                content: Text(
-                                    'Installment saved!'),
-                                backgroundColor:
-                                    Colors.green));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Installment saved!'),
+                                backgroundColor: Colors.green));
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _blue,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                     child: const Text('Save Installment',
                         style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600)),
+                            fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -1188,12 +1004,11 @@ class _InstallmentScreenState extends State<InstallmentScreen>
     );
   }
 
-  Widget _stepLabel(String num, String label) =>
-      Row(children: [
+  Widget _stepLabel(String num, String label) => Row(children: [
         Container(
-          width: 22, height: 22,
-          decoration: const BoxDecoration(
-              color: _blue, shape: BoxShape.circle),
+          width: 22,
+          height: 22,
+          decoration: const BoxDecoration(color: _blue, shape: BoxShape.circle),
           child: Center(
             child: Text(num,
                 style: const TextStyle(
@@ -1210,8 +1025,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                 color: Colors.black87)),
       ]);
 
-  Widget _field(TextEditingController ctrl, String label,
-          IconData icon,
+  Widget _field(TextEditingController ctrl, String label, IconData icon,
           {TextInputType keyboardType = TextInputType.text,
           void Function(String)? onChanged}) =>
       TextField(
@@ -1220,25 +1034,20 @@ class _InstallmentScreenState extends State<InstallmentScreen>
         onChanged: onChanged,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(
-              color: Colors.grey[600], fontSize: 13),
-          prefixIcon:
-              Icon(icon, size: 18, color: Colors.grey[500]),
+          labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+          prefixIcon: Icon(icon, size: 18, color: Colors.grey[500]),
           filled: true,
           fillColor: Colors.grey.shade50,
           border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  BorderSide(color: Colors.grey.shade300)),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  BorderSide(color: Colors.grey.shade300)),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
         ),
       );
 
-  Widget _fieldNum(TextEditingController ctrl, String label,
-          String prefix,
+  Widget _fieldNum(TextEditingController ctrl, String label, String prefix,
           {void Function(String)? onChanged}) =>
       TextField(
         controller: ctrl,
@@ -1246,19 +1055,16 @@ class _InstallmentScreenState extends State<InstallmentScreen>
         onChanged: onChanged,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(
-              color: Colors.grey[600], fontSize: 13),
+          labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
           prefixText: '$prefix ',
           filled: true,
           fillColor: Colors.grey.shade50,
           border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  BorderSide(color: Colors.grey.shade300)),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  BorderSide(color: Colors.grey.shade300)),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
         ),
       );
 
@@ -1267,8 +1073,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text('Accept Payment',
             style: TextStyle(
                 fontSize: 16,
@@ -1278,53 +1083,43 @@ class _InstallmentScreenState extends State<InstallmentScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          Text(inst.itemDescription,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: Colors.black87)),
-          Text(inst.customerName,
-              style: TextStyle(
-                  color: Colors.grey[500], fontSize: 12)),
-          const SizedBox(height: 10),
-          Divider(color: Colors.grey.shade200),
-          const SizedBox(height: 6),
-          _row('Monthly:',
-              CurrencyFormatter.format(inst.monthlyPayment)),
-          _row('Paid:',
-              CurrencyFormatter.format(inst.totalPaid)),
-          _row('Balance:',
-              CurrencyFormatter.format(inst.remainingBalance)),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: inst.progressPercent,
-              backgroundColor:
-                  Colors.grey.withValues(alpha: 0.12),
-              valueColor: const AlwaysStoppedAnimation(_blue),
-              minHeight: 8,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-              '${inst.paidMonths}/${inst.totalMonths} months',
-              style: TextStyle(
-                  color: Colors.grey[500], fontSize: 11)),
-        ]),
+              Text(inst.itemDescription,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Colors.black87)),
+              Text(inst.customerName,
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+              const SizedBox(height: 10),
+              Divider(color: Colors.grey.shade200),
+              const SizedBox(height: 6),
+              _row('Monthly:', CurrencyFormatter.format(inst.monthlyPayment)),
+              _row('Paid:', CurrencyFormatter.format(inst.totalPaid)),
+              _row('Balance:', CurrencyFormatter.format(inst.remainingBalance)),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: inst.progressPercent,
+                  backgroundColor: Colors.grey.withValues(alpha: 0.12),
+                  valueColor: const AlwaysStoppedAnimation(_blue),
+                  minHeight: 8,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text('${inst.paidMonths}/${inst.totalMonths} months',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+            ]),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text('Cancel',
-                  style: TextStyle(
-                      color: Colors.grey[600], fontSize: 13))),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13))),
           TextButton(
             onPressed: () async {
-              final newPaid =
-                  inst.totalPaid + inst.monthlyPayment;
+              final newPaid = inst.totalPaid + inst.monthlyPayment;
               final newMonths = inst.paidMonths + 1;
-              final isComplete =
-                  newMonths >= inst.totalMonths;
+              final isComplete = newMonths >= inst.totalMonths;
               final updated = inst.copyWith(
                 paidMonths: newMonths,
                 totalPaid: newPaid,
@@ -1333,29 +1128,23 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                     : InstallmentStatus.ongoing,
                 nextDueDate: isComplete
                     ? inst.nextDueDate
-                    : DateTime.now()
-                        .add(const Duration(days: 30)),
+                    : DateTime.now().add(const Duration(days: 30)),
               );
               await InstallmentService.instance.save(updated);
               await _load();
               if (mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text(isComplete
                       ? 'Installment fully paid!'
                       : 'Payment accepted!'),
-                  backgroundColor:
-                      isComplete ? Colors.green : _blue,
+                  backgroundColor: isComplete ? Colors.green : _blue,
                 ));
               }
             },
-            child: Text(
-                'Pay ${CurrencyFormatter.format(inst.monthlyPayment)}',
+            child: Text('Pay ${CurrencyFormatter.format(inst.monthlyPayment)}',
                 style: const TextStyle(
-                    color: _blue,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13)),
+                    color: _blue, fontWeight: FontWeight.w600, fontSize: 13)),
           ),
         ],
       ),
@@ -1367,8 +1156,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text('Delete Installment?',
             style: TextStyle(
                 fontSize: 16,
@@ -1378,33 +1166,28 @@ class _InstallmentScreenState extends State<InstallmentScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          Text(inst.itemDescription,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: Colors.black87)),
-          Text('Customer: ${inst.customerName}',
-              style: TextStyle(
-                  color: Colors.grey[500], fontSize: 12)),
-          const SizedBox(height: 6),
-          Text(
-              'Total: ${CurrencyFormatter.format(inst.totalAmount)}',
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: Colors.black87)),
-          const SizedBox(height: 8),
-          Text('This cannot be undone.',
-              style: TextStyle(
-                  color: Colors.grey[400], fontSize: 12)),
-        ]),
+              Text(inst.itemDescription,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Colors.black87)),
+              Text('Customer: ${inst.customerName}',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+              const SizedBox(height: 6),
+              Text('Total: ${CurrencyFormatter.format(inst.totalAmount)}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Colors.black87)),
+              const SizedBox(height: 8),
+              Text('This cannot be undone.',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+            ]),
         actions: [
           TextButton(
-              onPressed: () =>
-                  Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(context, false),
               child: Text('Cancel',
-                  style: TextStyle(
-                      color: Colors.grey[600], fontSize: 13))),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13))),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete',
@@ -1421,22 +1204,17 @@ class _InstallmentScreenState extends State<InstallmentScreen>
       await InstallmentService.instance.delete(inst.id);
       await _load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Installment deleted.'),
-                backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Installment deleted.'),
+            backgroundColor: Colors.red));
       }
     }
   }
 
-  Widget _row(String label, String value,
-          {Color? color}) =>
-      Padding(
+  Widget _row(String label, String value, {Color? color}) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(children: [
-          Text(label,
-              style: TextStyle(
-                  color: Colors.grey[600], fontSize: 12)),
+          Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
           const Spacer(),
           Text(value,
               style: TextStyle(

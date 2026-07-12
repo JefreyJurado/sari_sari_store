@@ -1,3 +1,5 @@
+import '../utils/currency_formatter.dart';
+
 enum PaymentType { cash, credit, mixed, online }
 enum TxStatus { completed, voided }
 
@@ -63,7 +65,8 @@ class Sale {
     required this.createdAt,
   });
 
-  double get totalProfit => items.fold(0, (s, i) => s + i.profit);
+  double get totalProfit =>
+      CurrencyFormatter.roundCents(items.fold(0, (s, i) => s + i.profit));
   double get change =>
       cashPaid > totalAmount ? cashPaid - totalAmount : 0;
   bool get isVoided => status == TxStatus.voided;

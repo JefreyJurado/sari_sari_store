@@ -12,8 +12,9 @@ import '../models/customer.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../utils/filipino_categories.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 // ── STEP 1: Customer Info ─────────────────────────────────────
 class CreditOrderScreen extends StatefulWidget {
@@ -268,8 +269,8 @@ class _CreditProductScreenState
     super.dispose();
   }
 
-  double get _total => _selected.entries
-      .fold(0, (s, e) => s + e.key.sellPrice * e.value);
+  double get _total => CurrencyFormatter.roundCents(_selected.entries
+      .fold(0, (s, e) => s + e.key.sellPrice * e.value));
   int get _itemCount =>
       _selected.values.fold(0, (s, q) => s + q);
 
@@ -462,8 +463,8 @@ class _CreditProductScreenState
                     padding: const EdgeInsets.fromLTRB(
                         16, 12, 16, 16),
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 200,
                       childAspectRatio: 1.05,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
@@ -473,9 +474,11 @@ class _CreditProductScreenState
                       final p = filtered[i];
                       final qty = _selected[p] ?? 0;
                       final inCart = qty > 0;
+                      final catColor =
+                          FilipinoCategories.getColor(p.category);
 
                       return GestureDetector(
-                        onTap: p.isOutOfStock
+                        onTap: (p.isOutOfStock || qty >= p.stock)
                             ? null
                             : () => setState(() =>
                                 _selected[p] = qty + 1),
@@ -485,13 +488,16 @@ class _CreditProductScreenState
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius:
-                                BorderRadius.circular(12),
+                                BorderRadius.circular(AppRadius.lg),
                             border: Border.all(
                               color: inCart
-                                  ? _blue
+                                  ? catColor
                                   : Colors.grey.shade200,
-                              width: inCart ? 1.5 : 1,
+                              width: inCart ? 1.6 : 1,
                             ),
+                            boxShadow: inCart
+                                ? AppShadows.colored(catColor)
+                                : AppShadows.soft,
                           ),
                           child: Padding(
                             padding:
@@ -501,10 +507,19 @@ class _CreditProductScreenState
                                     CrossAxisAlignment.start,
                                 children: [
                               Row(children: [
-                                Icon(
-                                  FilipinoCategories.getIcon(p.category),
-                                  size: 18,
-                                  color: _blue,
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: catColor.withValues(
+                                        alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(
+                                        AppRadius.sm),
+                                  ),
+                                  child: Icon(
+                                    FilipinoCategories.getIcon(p.category),
+                                    size: 16,
+                                    color: catColor,
+                                  ),
                                 ),
                                 const Spacer(),
                                 if (p.isOutOfStock)
@@ -514,7 +529,7 @@ class _CreditProductScreenState
                                       '${p.stock}',
                                       Colors.orange)
                                 else if (inCart)
-                                  _badge('$qty', _blue),
+                                  _badge('$qty', catColor),
                               ]),
                               const SizedBox(height: 6),
                               Expanded(
@@ -541,7 +556,7 @@ class _CreditProductScreenState
                                             FontWeight.bold,
                                         color: p.isOutOfStock
                                             ? Colors.grey[400]
-                                            : Colors.black87,
+                                            : catColor,
                                         fontSize: 14),
                                   ),
                                 ),
@@ -572,18 +587,24 @@ class _CreditProductScreenState
                                   ),
                                   _smallBtn(
                                       Icons.add,
-                                      _blue,
-                                      Colors.white,
-                                      () => setState(() =>
-                                          _selected[p] =
-                                              qty + 1)),
+                                      qty >= p.stock
+                                          ? Colors.grey.shade100
+                                          : catColor,
+                                      qty >= p.stock
+                                          ? Colors.grey.shade400
+                                          : Colors.white,
+                                      qty >= p.stock
+                                          ? () {}
+                                          : () => setState(() =>
+                                              _selected[p] =
+                                                  qty + 1)),
                                 ] else
                                   _smallBtn(
                                       Icons.add,
                                       p.isOutOfStock
                                           ? Colors.grey
                                               .shade100
-                                          : _blue,
+                                          : catColor,
                                       p.isOutOfStock
                                           ? Colors.grey
                                               .shade400
@@ -796,8 +817,8 @@ class _CreditSummaryScreenState
   bool _saved = false;
   DateTime _transactionDate = DateTime.now();
 
-  double get _total => widget.selectedItems.entries
-      .fold(0, (s, e) => s + e.key.sellPrice * e.value);
+  double get _total => CurrencyFormatter.roundCents(widget.selectedItems.entries
+      .fold(0, (s, e) => s + e.key.sellPrice * e.value));
 
   Future<Uint8List?> _capture() async {
     try {
@@ -834,6 +855,53 @@ class _CreditSummaryScreenState
   }
 
   Future<void> _saveDebt(AppProvider prov) async {
+    final existing = widget.existingCustomer;
+    final creditLimit = existing?.creditLimit ?? 500.0;
+    final currentDebt =
+        existing != null ? prov.unpaidDebtFor(existing.id) : 0.0;
+    final projected = currentDebt + _total;
+
+    if (projected > creditLimit) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14)),
+          title: const Text('Credit Limit Exceeded',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87)),
+          content: Text(
+            '${widget.customerName} already owes ${CurrencyFormatter.format(currentDebt)}. '
+            'This order adds ${CurrencyFormatter.format(_total)} more, bringing total utang to '
+            '${CurrencyFormatter.format(projected)} — over their '
+            '${CurrencyFormatter.format(creditLimit)} credit limit.\n\nProceed anyway?',
+            style: const TextStyle(fontSize: 13, color: Colors.black87),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel',
+                  style:
+                      TextStyle(color: Colors.grey[600], fontSize: 13)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Proceed',
+                  style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13)),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+      if (!mounted) return;
+    }
+
     setState(() => _saving = true);
     try {
       Customer customer;

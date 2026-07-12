@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/app_provider.dart';
 import '../services/report_service.dart';
+import '../utils/currency_formatter.dart';
 
 class PdfReportService {
   static final PdfReportService instance = PdfReportService._();
@@ -37,6 +38,31 @@ class PdfReportService {
   }
 
   Future<void> generateAndPrint({
+    required AppProvider prov,
+    required int days,
+    required String periodLabel,
+    required ReportData report,
+  }) async {
+    final pdf = await buildDocument(
+      prov: prov,
+      days: days,
+      periodLabel: periodLabel,
+      report: report,
+    );
+
+    final now = DateTime.now();
+    final dateStr = '${now.month}/${now.day}/${now.year}';
+
+    await Printing.layoutPdf(
+      onLayout: (format) async => pdf.save(),
+      name:
+          'StorePH_Report_${periodLabel.replaceAll(' ', '_')}_$dateStr.pdf',
+    );
+  }
+
+  /// Builds the report document without triggering the OS print/preview
+  /// dialog — used by [generateAndPrint] and directly testable on its own.
+  Future<pw.Document> buildDocument({
     required AppProvider prov,
     required int days,
     required String periodLabel,
@@ -89,11 +115,7 @@ class PdfReportService {
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (format) async => pdf.save(),
-      name:
-          'StorePH_Report_${periodLabel.replaceAll(' ', '_')}_$dateStr.pdf',
-    );
+    return pdf;
   }
 
   // ── HEADER ────────────────────────────────────────────
@@ -513,10 +535,11 @@ class PdfReportService {
     pw.Font bold,
     pw.Font font,
   ) {
-    final since =
-        DateTime.now().subtract(Duration(days: days));
+    final now = DateTime.now();
+    final since = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: days - 1));
     final filtered = prov.expenses
-        .where((e) => e.date.isAfter(since))
+        .where((e) => !e.date.isBefore(since))
         .toList();
 
     final Map<String, double> byCategory = {};
@@ -524,8 +547,8 @@ class PdfReportService {
       byCategory[e.category] =
           (byCategory[e.category] ?? 0) + e.amount;
     }
-    final total =
-        filtered.fold(0.0, (s, e) => s + e.amount);
+    final total = CurrencyFormatter.roundCents(
+        filtered.fold(0.0, (s, e) => s + e.amount));
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -691,8 +714,8 @@ class PdfReportService {
         .where((d) =>
             d.status.toString() != 'DebtStatus.paid')
         .toList();
-    final totalUnpaid =
-        unpaidDebts.fold(0.0, (s, d) => s + d.remaining);
+    final totalUnpaid = CurrencyFormatter.roundCents(
+        unpaidDebts.fold(0.0, (s, d) => s + d.remaining));
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -913,7 +936,7 @@ class PdfReportService {
                         fontSize: 8,
                         color: PdfColors.white))),
             pw.SizedBox(
-                width: 90,
+                width: 80,
                 child: pw.Text('TRANSACTIONS',
                     textAlign: pw.TextAlign.center,
                     style: pw.TextStyle(
@@ -921,8 +944,16 @@ class PdfReportService {
                         fontSize: 8,
                         color: PdfColors.white))),
             pw.SizedBox(
-                width: 110,
+                width: 90,
                 child: pw.Text('REVENUE',
+                    textAlign: pw.TextAlign.right,
+                    style: pw.TextStyle(
+                        font: bold,
+                        fontSize: 8,
+                        color: PdfColors.white))),
+            pw.SizedBox(
+                width: 90,
+                child: pw.Text('PROFIT',
                     textAlign: pw.TextAlign.right,
                     style: pw.TextStyle(
                         font: bold,
@@ -952,7 +983,7 @@ class PdfReportService {
                           fontSize: 9,
                           color: _black))),
               pw.SizedBox(
-                  width: 90,
+                  width: 80,
                   child: pw.Text(
                       '${day['txCount'] ?? 0}',
                       textAlign: pw.TextAlign.center,
@@ -961,7 +992,7 @@ class PdfReportService {
                           fontSize: 9,
                           color: _black))),
               pw.SizedBox(
-                  width: 110,
+                  width: 90,
                   child: pw.Text(
                       _c((day['revenue'] as num?)
                               ?.toDouble() ??
@@ -971,6 +1002,17 @@ class PdfReportService {
                           font: bold,
                           fontSize: 9,
                           color: _black))),
+              pw.SizedBox(
+                  width: 90,
+                  child: pw.Text(
+                      _c((day['profit'] as num?)
+                              ?.toDouble() ??
+                          0),
+                      textAlign: pw.TextAlign.right,
+                      style: pw.TextStyle(
+                          font: bold,
+                          fontSize: 9,
+                          color: _green))),
             ]),
           );
         }),
@@ -993,7 +1035,7 @@ class PdfReportService {
                         fontSize: 9,
                         color: PdfColors.white))),
             pw.SizedBox(
-                width: 90,
+                width: 80,
                 child: pw.Text(
                     '${report.transactionCount}',
                     textAlign: pw.TextAlign.center,
@@ -1002,9 +1044,18 @@ class PdfReportService {
                         fontSize: 9,
                         color: PdfColors.white))),
             pw.SizedBox(
-                width: 110,
+                width: 90,
                 child: pw.Text(
                     _c(report.totalRevenue),
+                    textAlign: pw.TextAlign.right,
+                    style: pw.TextStyle(
+                        font: bold,
+                        fontSize: 9,
+                        color: PdfColors.white))),
+            pw.SizedBox(
+                width: 90,
+                child: pw.Text(
+                    _c(report.totalProfit),
                     textAlign: pw.TextAlign.right,
                     style: pw.TextStyle(
                         font: bold,

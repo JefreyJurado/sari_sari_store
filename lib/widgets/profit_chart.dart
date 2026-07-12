@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../theme/app_theme.dart';
 
 // Your app's signature blue color
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class ProfitChart extends StatelessWidget {
   final List<Map<String, dynamic>> dailyData;

@@ -10,8 +10,9 @@ import 'package:gal/gal.dart';
 import '../models/transaction.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class ReceiptScreen extends StatefulWidget {
   final Sale sale;
@@ -426,7 +427,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
 
                     // Totals
                     if (sale.cashPaid > 0)
-                      _totalRow('Cash received',
+                      _totalRow(
+                          sale.type == PaymentType.online
+                              ? 'Paid (Online)'
+                              : 'Cash received',
                           CurrencyFormatter.format(
                               sale.cashPaid)),
                     if (sale.change > 0)

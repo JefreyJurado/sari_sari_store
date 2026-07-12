@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../utils/currency_formatter.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class InventoryLogScreen extends StatefulWidget {
   const InventoryLogScreen({super.key});
@@ -11,19 +12,9 @@ class InventoryLogScreen extends StatefulWidget {
 }
 
 class _InventoryLogScreenState extends State<InventoryLogScreen> {
-  final List<String> _months = _generateMonths();
   late String _selectedMonth;
   List<Map<String, dynamic>> _snapshot = [];
   bool _loading = true;
-
-  static List<String> _generateMonths() {
-    final now = DateTime.now();
-    final months = <String>[];
-    for (int i = 1; i <= 12; i++) {
-      months.add('${now.year}-${i.toString().padLeft(2, '0')}');
-    }
-    return months;
-  }
 
   @override
   void initState() {
@@ -75,7 +66,7 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
       ),
       body: Column(
         children: [
-          // Month selector
+          // Current month (historical months aren't tracked — see note below)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             color: Colors.white,
@@ -84,23 +75,24 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
               const SizedBox(width: 8),
               const Text('Month:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               const SizedBox(width: 12),
+              Text(_formatMonth(_selectedMonth),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _blue)),
+            ]),
+          ),
+          Container(
+            margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.orange.shade700),
+              const SizedBox(width: 8),
               Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedMonth,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  ),
-                  items: _months.map((m) => DropdownMenuItem(value: m, child: Text(_formatMonth(m), style: const TextStyle(fontSize: 13)))).toList(),
-                  onChanged: (v) {
-                    if (v != null) {
-                      setState(() => _selectedMonth = v);
-                      _loadSnapshot();
-                    }
-                  },
+                child: Text(
+                  'Only the current month can be shown accurately — past-month stock history isn\'t recorded yet.',
+                  style: TextStyle(fontSize: 11, color: Colors.orange.shade800),
                 ),
               ),
             ]),

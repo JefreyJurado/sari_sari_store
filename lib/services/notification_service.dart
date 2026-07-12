@@ -42,9 +42,11 @@ class NotificationService {
     final body = productNames.length == 1
         ? productNames.first
         : '${productNames.take(3).join(', ')}${productNames.length > 3 ? ' and others...' : ''}';
-    
+
     // Translated title from '⚠️ Mababang Stock!'
-    await _plugin.show(1, '⚠️ Low Stock!', body, details);
+    try {
+      await _plugin.show(1, '⚠️ Low Stock!', body, details);
+    } catch (_) {}
   }
 
   Future<void> showOutOfStockAlert(List<String> productNames) async {
@@ -60,8 +62,10 @@ class NotificationService {
     );
     
     // Translated title from '🚨 Ubos na ang Stock!'
-    await _plugin.show(
-        2, '🚨 Out of Stock!', productNames.take(3).join(', '), details);
+    try {
+      await _plugin.show(
+          2, '🚨 Out of Stock!', productNames.take(3).join(', '), details);
+    } catch (_) {}
   }
 
   Future<void> showDailySummary({
@@ -83,12 +87,14 @@ class NotificationService {
     final txLabel = transactions == 1 ? 'transaction' : 'transactions';
     
     // Translated title and metrics string content payload
-    await _plugin.show(
-      3,
-      '📊 Today\'s Sales Summary',
-      'Sales: ₱${revenue.toStringAsFixed(2)} | Profit: ₱${profit.toStringAsFixed(2)} | $transactions $txLabel',
-      details,
-    );
+    try {
+      await _plugin.show(
+        3,
+        '📊 Today\'s Sales Summary',
+        'Sales: ₱${revenue.toStringAsFixed(2)} | Profit: ₱${profit.toStringAsFixed(2)} | $transactions $txLabel',
+        details,
+      );
+    } catch (_) {}
   }
 
   Future<void> scheduleStockCheck(
@@ -124,17 +130,28 @@ class NotificationService {
     final id = (customerName + dueDate.toString()).hashCode.abs() % 100000;
 
     // Translated titles, labels, and contexts from Tagalog structures
-    await _plugin.zonedSchedule(
-      id,
-      '⏰ Payment Reminder',
-      '$customerName has an outstanding balance of ₱${amount.toStringAsFixed(2)} — due tomorrow!',
-      tz.TZDateTime.from(notifTime, tz.local),
-      details,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
+    //
+    // Best-effort: some platforms (e.g. Windows desktop) don't implement
+    // scheduled notifications and throw UnimplementedError here. A failure
+    // to schedule a reminder must never abort the sale/debt transaction
+    // that already committed to the database before this call.
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        '⏰ Payment Reminder',
+        '$customerName has an outstanding balance of ₱${amount.toStringAsFixed(2)} — due tomorrow!',
+        tz.TZDateTime.from(notifTime, tz.local),
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (_) {}
   }
 
-  Future<void> cancelAll() async => _plugin.cancelAll();
+  Future<void> cancelAll() async {
+    try {
+      await _plugin.cancelAll();
+    } catch (_) {}
+  }
 }

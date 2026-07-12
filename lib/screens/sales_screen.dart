@@ -4,12 +4,15 @@ import '../providers/app_provider.dart';
 import '../models/product.dart';
 import '../models/transaction.dart';
 import '../models/customer.dart';
+import '../models/loyalty.dart';
+import '../services/loyalty_service.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
 import '../utils/date_helper.dart';
+import '../theme/app_theme.dart';
 import 'receipt_screen.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -357,9 +360,9 @@ class _ProductSliverGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverGrid(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.82,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 190,
+        childAspectRatio: 1.05,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -368,90 +371,99 @@ class _ProductSliverGrid extends StatelessWidget {
           final p = products[i];
           final qty = cart[p] ?? 0;
           final inCart = qty > 0;
-
           final catColor = FilipinoCategories.getColor(p.category);
-          final bgColor = p.isOutOfStock ? Colors.grey.shade200 : catColor;
 
           return GestureDetector(
             onTap: p.isOutOfStock ? null : () => onAdd(p),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(10),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(
-                  color: inCart ? Colors.white : Colors.transparent,
-                  width: inCart ? 2 : 0,
+                  color: inCart ? catColor : Colors.grey.shade200,
+                  width: inCart ? 1.6 : 1,
                 ),
-                boxShadow: inCart
-                    ? [
-                        BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2))
-                      ]
-                    : null,
+                boxShadow:
+                    inCart ? AppShadows.colored(catColor) : AppShadows.soft,
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Icon(
-                        FilipinoCategories.getIcon(p.category),
-                        size: 18,
-                        color: p.isOutOfStock ? Colors.grey[500] : Colors.white,
+              child: Opacity(
+                opacity: p.isOutOfStock ? 0.55 : 1,
+                child: Padding(
+                  padding: const EdgeInsets.all(9),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: catColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Icon(
+                              FilipinoCategories.getIcon(p.category),
+                              size: 15,
+                              color: catColor),
+                        ),
+                        const Spacer(),
+                        if (p.isOutOfStock)
+                          _badge('Out', AppColors.red)
+                        else if (p.isLowStock)
+                          _badge('${p.stock}', AppColors.amber)
+                        else if (inCart)
+                          _badge('$qty', catColor),
+                      ]),
+                      const SizedBox(height: 6),
+                      Expanded(
+                        child: Text(p.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: AppColors.textPrimary),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
                       ),
-                      const Spacer(),
-                      if (p.isOutOfStock)
-                        _badge('Out', Colors.white, Colors.grey.shade700)
-                      else if (p.isLowStock)
-                        _badge('Low', Colors.white, Colors.orange.shade900)
-                      else if (inCart)
-                        _badge('$qty', Colors.white, catColor),
-                    ]),
-                    const SizedBox(height: 4),
-                    Expanded(
-                      child: Text(p.name,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                              color: p.isOutOfStock ? Colors.grey[600] : Colors.white),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      CurrencyFormatter.format(p.sellPrice),
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: p.isOutOfStock ? Colors.grey[600] : Colors.white,
-                          fontSize: 14),
-                    ),
-                    const SizedBox(height: 4),
-                    if (inCart)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _smallBtn(Icons.remove_outlined, Colors.white.withValues(alpha: 0.25), Colors.white,
-                              () => onRemove(p)),
-                          Text('$qty',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
-                          _smallBtn(Icons.add, Colors.white, catColor, () => onAdd(p)),
-                        ],
-                      )
-                    else
-                      SizedBox(
-                        width: double.infinity,
-                        child: _smallBtn(
-                            Icons.add,
-                            p.isOutOfStock ? Colors.grey.shade300 : Colors.white,
-                            p.isOutOfStock ? Colors.grey.shade500 : catColor,
-                            p.isOutOfStock ? () {} : () => onAdd(p)),
+                      const SizedBox(height: 4),
+                      Text(
+                        CurrencyFormatter.format(p.sellPrice),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: catColor,
+                            fontSize: 13),
                       ),
-                  ],
+                      const SizedBox(height: 6),
+                      if (inCart)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _smallBtn(Icons.remove, Colors.grey.shade100,
+                                Colors.grey.shade700, () => onRemove(p)),
+                            Text('$qty',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: AppColors.textPrimary)),
+                            _smallBtn(Icons.add, catColor, Colors.white,
+                                () => onAdd(p)),
+                          ],
+                        )
+                      else
+                        SizedBox(
+                          width: double.infinity,
+                          child: _smallBtn(
+                              Icons.add,
+                              p.isOutOfStock
+                                  ? Colors.grey.shade100
+                                  : catColor,
+                              p.isOutOfStock
+                                  ? Colors.grey.shade400
+                                  : Colors.white,
+                              p.isOutOfStock ? () {} : () => onAdd(p)),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -462,20 +474,24 @@ class _ProductSliverGrid extends StatelessWidget {
     );
   }
 
-  Widget _badge(String text, Color bg, Color fg) => Container(
+  Widget _badge(String text, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(6)),
-        child: Text(text, style: TextStyle(color: fg, fontSize: 10, fontWeight: FontWeight.w700)),
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(AppRadius.sm)),
+        child: Text(text,
+            style: TextStyle(
+                color: color, fontSize: 9, fontWeight: FontWeight.w700)),
       );
 
-  Widget _smallBtn(IconData icon, Color bg, Color fg, VoidCallback onTap) => GestureDetector(
+  Widget _smallBtn(IconData icon, Color bg, Color fg, VoidCallback onTap) =>
+      GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 26,
-          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(7)),
-          child: Icon(icon, size: 14, color: fg),
+          height: 24,
+          decoration: BoxDecoration(
+              color: bg, borderRadius: BorderRadius.circular(AppRadius.sm)),
+          child: Icon(icon, size: 13, color: fg),
         ),
       );
 }
@@ -495,11 +511,48 @@ class _CartSheetState extends State<_CartSheet> {
   bool _isProcessing = false;
   Customer? _selectedCustomer;
   DateTime _saleDate = DateTime.now();
+  LoyaltyAccount? _loyaltyAccount;
+  bool _useLoyaltyDiscount = false;
 
   AppProvider get prov => widget.prov;
   double get cashPaid => double.tryParse(_cashCtrl.text) ?? 0;
+
+  int get _pointsToRedeem {
+    if (!_useLoyaltyDiscount || _loyaltyAccount == null) return 0;
+    final maxDiscount = _loyaltyAccount!.pesoValue;
+    final discount =
+        maxDiscount < prov.cartTotal ? maxDiscount : prov.cartTotal;
+    final points =
+        (discount / LoyaltyAccount.pesoPerPoint).round();
+    return points > _loyaltyAccount!.availablePoints
+        ? _loyaltyAccount!.availablePoints
+        : points;
+  }
+
+  double get _loyaltyDiscount =>
+      _pointsToRedeem * LoyaltyAccount.pesoPerPoint;
+
+  double get _effectiveTotal => prov.cartTotal - _loyaltyDiscount;
+
   double get change =>
-      cashPaid > prov.cartTotal ? cashPaid - prov.cartTotal : 0;
+      cashPaid > _effectiveTotal ? cashPaid - _effectiveTotal : 0;
+
+  Future<void> _loadLoyaltyAccount(String? customerId) async {
+    if (customerId == null) {
+      setState(() {
+        _loyaltyAccount = null;
+        _useLoyaltyDiscount = false;
+      });
+      return;
+    }
+    final acct =
+        await LoyaltyService.instance.getAccount(customerId);
+    if (!mounted) return;
+    setState(() {
+      _loyaltyAccount = acct;
+      _useLoyaltyDiscount = false;
+    });
+  }
 
   @override
   void initState() {
@@ -645,20 +698,54 @@ class _CartSheetState extends State<_CartSheet> {
                     border: Border.all(
                         color: Colors.grey.shade200),
                   ),
-                  child: Row(children: [
-                    Text('Total Amount Due',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Colors.grey[700])),
-                    const Spacer(),
-                    Text(
-                        CurrencyFormatter.format(
-                            prov.cartTotal),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 22,
-                            color: _blue)),
+                  child: Column(children: [
+                    if (_loyaltyDiscount > 0) ...[
+                      Row(children: [
+                        Text('Subtotal',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600])),
+                        const Spacer(),
+                        Text(
+                            CurrencyFormatter.format(
+                                prov.cartTotal),
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600])),
+                      ]),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        Text('Points Discount',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.amber.shade800)),
+                        const Spacer(),
+                        Text(
+                            '-${CurrencyFormatter.format(_loyaltyDiscount)}',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.amber.shade800)),
+                      ]),
+                      const SizedBox(height: 8),
+                      Divider(
+                          height: 1, color: Colors.grey.shade300),
+                      const SizedBox(height: 8),
+                    ],
+                    Row(children: [
+                      Text('Total Amount Due',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: Colors.grey[700])),
+                      const Spacer(),
+                      Text(
+                          CurrencyFormatter.format(
+                              _effectiveTotal),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                              color: _blue)),
+                    ]),
                   ]),
                 ),
                 const SizedBox(height: 24),
@@ -687,15 +774,21 @@ class _CartSheetState extends State<_CartSheet> {
                         final sel =
                             _selectedCustomer?.id == c.id;
                         return GestureDetector(
-                          onTap: () => setState(() {
+                          onTap: () {
                             if (sel) {
-                              _selectedCustomer = null;
-                              _customerCtrl.clear();
+                              setState(() {
+                                _selectedCustomer = null;
+                                _customerCtrl.clear();
+                              });
+                              _loadLoyaltyAccount(null);
                             } else {
-                              _selectedCustomer = c;
-                              _customerCtrl.text = c.name;
+                              setState(() {
+                                _selectedCustomer = c;
+                                _customerCtrl.text = c.name;
+                              });
+                              _loadLoyaltyAccount(c.id);
                             }
-                          }),
+                          },
                           child: AnimatedContainer(
                             duration: const Duration(
                                 milliseconds: 150),
@@ -754,8 +847,10 @@ class _CartSheetState extends State<_CartSheet> {
                   controller: _customerCtrl,
                   textCapitalization:
                       TextCapitalization.words,
-                  onChanged: (v) => setState(
-                      () => _selectedCustomer = null),
+                  onChanged: (v) {
+                    setState(() => _selectedCustomer = null);
+                    _loadLoyaltyAccount(null);
+                  },
                   decoration: InputDecoration(
                     hintText: 'e.g. Maria, Juan...',
                     hintStyle: TextStyle(
@@ -771,11 +866,13 @@ class _CartSheetState extends State<_CartSheet> {
                                 icon: Icon(Icons.close,
                                     color: Colors.grey[400],
                                     size: 16),
-                                onPressed: () => setState(
-                                    () {
-                                  _customerCtrl.clear();
-                                  _selectedCustomer = null;
-                                }))
+                                onPressed: () {
+                                  setState(() {
+                                    _customerCtrl.clear();
+                                    _selectedCustomer = null;
+                                  });
+                                  _loadLoyaltyAccount(null);
+                                })
                             : null,
                     filled: true,
                     fillColor: Colors.grey.shade50,
@@ -794,6 +891,52 @@ class _CartSheetState extends State<_CartSheet> {
                             vertical: 0),
                   ),
                 ),
+                if (_selectedCustomer != null &&
+                    _loyaltyAccount != null &&
+                    _loyaltyAccount!.availablePoints > 0) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border:
+                          Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.star_outline,
+                          color: Colors.amber.shade700, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                          Text(
+                              '${_loyaltyAccount!.availablePoints} pts available',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: Colors.black87)),
+                          Text(
+                              'Worth ${CurrencyFormatter.format(_loyaltyAccount!.pesoValue)}',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600])),
+                        ]),
+                      ),
+                      Switch(
+                        value: _useLoyaltyDiscount,
+                        activeThumbColor: Colors.amber.shade700,
+                        onChanged: (v) {
+                          setState(() => _useLoyaltyDiscount = v);
+                          _cashCtrl.text =
+                              _effectiveTotal.toStringAsFixed(2);
+                        },
+                      ),
+                    ]),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 // ── Sale Date ──────────────────────────
                 const Text('Sale Date',
@@ -1126,7 +1269,7 @@ class _CartSheetState extends State<_CartSheet> {
     }
 
     if (_paymentType == 'cash' &&
-        cashPaid < prov.cartTotal) {
+        cashPaid < _effectiveTotal) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Insufficient cash amount.'),
@@ -1146,7 +1289,7 @@ class _CartSheetState extends State<_CartSheet> {
     final sale = await prov.completeSale(
       cashPaid: _paymentType == 'cash'
           ? cashPaid
-          : prov.cartTotal,
+          : _effectiveTotal,
       creditAmount: 0,
       type: _paymentType == 'cash'
           ? PaymentType.cash
@@ -1154,6 +1297,8 @@ class _CartSheetState extends State<_CartSheet> {
       notes: notes,
       customer: customer,
       saleDate: _saleDate,
+      discount: _loyaltyDiscount,
+      pointsToRedeem: _pointsToRedeem,
     );
 
     if (!mounted) return;

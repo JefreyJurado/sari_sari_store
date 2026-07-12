@@ -34,7 +34,8 @@ class Product {
   });
 
   double get profit => sellPrice - buyPrice;
-  double get margin => buyPrice > 0 ? (profit / buyPrice) * 100 : 0;
+  double get margin => sellPrice > 0 ? (profit / sellPrice) * 100 : 0;
+  double get markup => buyPrice > 0 ? (profit / buyPrice) * 100 : 0;
   bool get isLowStock => stock > 0 && stock <= reorderPoint;
   bool get isOutOfStock => stock <= 0;
   bool get isNearExpiry {
@@ -93,6 +94,13 @@ class Product {
         supplierContact: map['supplierContact'],
         seasonalTag: map['seasonalTag'],
       );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || (other is Product && other.id == id);
+
+  @override
+  int get hashCode => id.hashCode;
 
   Product copyWith({
     String? name,

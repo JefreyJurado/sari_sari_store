@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 // Your app's signature blue color
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class BigNumberCard extends StatelessWidget {
   final String label;

@@ -4,8 +4,9 @@ import '../providers/app_provider.dart';
 import '../models/product.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class StockAlertScreen extends StatelessWidget {
   const StockAlertScreen({super.key});

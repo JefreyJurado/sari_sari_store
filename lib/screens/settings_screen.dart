@@ -5,8 +5,10 @@ import 'pin_screen.dart';
 import '../services/database_service.dart';
 import '../providers/app_provider.dart';
 import '../models/capital_entry.dart';
+import '../utils/currency_formatter.dart';
+import '../theme/app_theme.dart';
 
-const _blue = Color(0xFF1E3A8A);
+const _blue = AppColors.blue;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -31,24 +33,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     final prov = context.read<AppProvider>();
     setState(() {
-      _nameCtrl.text =
-          prefs.getString('store_name') ?? 'My Sari-Sari Store';
+      _nameCtrl.text = prefs.getString('store_name') ?? 'My Sari-Sari Store';
       _notif = prefs.getBool('notifications') ?? true;
       _pinEnabled = prefs.getBool('pin_enabled') ?? false;
       final cap = prov.capital;
       if (cap != null) {
-        _setupItems = cap.setupItems
-            .map<Map<String, Object>>((i) {
-              final amtCtrl = TextEditingController(text: i.amount.toStringAsFixed(2));
-              amtCtrl.addListener(() => setState(() {}));
-              return {
-                'label': i.label,
-                'amount': i.amount.toStringAsFixed(2),
-                'ctrl': TextEditingController(text: i.label),
-                'amtCtrl': amtCtrl,
-              };
-            })
-            .toList();
+        _setupItems = cap.setupItems.map<Map<String, Object>>((i) {
+          final amtCtrl =
+              TextEditingController(text: i.amount.toStringAsFixed(2));
+          amtCtrl.addListener(() => setState(() {}));
+          return {
+            'label': i.label,
+            'amount': i.amount.toStringAsFixed(2),
+            'ctrl': TextEditingController(text: i.label),
+            'amtCtrl': amtCtrl,
+          };
+        }).toList();
       }
       _loaded = true;
     });
@@ -60,18 +60,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool('notifications', _notif);
 
     final prov = context.read<AppProvider>();
-    
+
     final setupItems = _setupItems
         .map((i) => SetupCostItem(
               label: (i['ctrl'] as TextEditingController).text.trim(),
-              amount: double.tryParse((i['amtCtrl'] as TextEditingController).text) ?? 0,
+              amount: double.tryParse(
+                      (i['amtCtrl'] as TextEditingController).text) ??
+                  0,
             ))
         .where((i) => i.label.isNotEmpty)
         .toList();
-        
-    final totalSetup = setupItems.fold(0.0, (s, i) => s + i.amount);
-    
-    // The provider maintains the baseline inventory value snapshot 
+
+    final totalSetup =
+        CurrencyFormatter.roundCents(setupItems.fold(0.0, (s, i) => s + i.amount));
+
+    // The provider maintains the baseline inventory value snapshot
     // instead of allowing live fluctuations to disrupt it.
     await prov.saveCapital(
       setupCosts: totalSetup,
@@ -85,35 +88,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
         barrierDismissible: false,
         builder: (_) => Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 64, height: 64,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
                     color: Colors.green.shade50,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.check_rounded, color: Colors.green.shade600, size: 36),
+                  child: Icon(Icons.check_rounded,
+                      color: Colors.green.shade600, size: 36),
                 ),
                 const SizedBox(height: 16),
                 const Text('Settings Saved!',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87)),
                 const SizedBox(height: 8),
                 Text('Your changes have been saved successfully.',
-                    textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[500], fontSize: 13)),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () async {
                       Navigator.pop(context);
-                      
+
                       // Forces state data re-hydration to prevent out-of-sync form manipulation layout crashes
-                      await prov.reload(); 
+                      await prov.reload();
                       await _load();
                     },
                     style: ElevatedButton.styleFrom(
@@ -121,9 +131,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text('Done', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    child: const Text('Done',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -138,8 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (val) {
       final result = await Navigator.push<bool>(
         context,
-        MaterialPageRoute(
-            builder: (_) => const PinScreen(isSetup: true)),
+        MaterialPageRoute(builder: (_) => const PinScreen(isSetup: true)),
       );
       if (result == true) setState(() => _pinEnabled = true);
     } else {
@@ -147,8 +159,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         context: context,
         builder: (_) => AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: const Text('Remove PIN?',
               style: TextStyle(
                   fontSize: 16,
@@ -156,19 +168,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: Colors.black87)),
           content: Text(
               'Your PIN will be removed. The app will no longer require a PIN to open.',
-              style: TextStyle(
-                  color: Colors.grey[600], fontSize: 13)),
+              style: TextStyle(color: Colors.grey[600], fontSize: 13)),
           actions: [
             TextButton(
-                onPressed: () =>
-                    Navigator.pop(context, false),
+                onPressed: () => Navigator.pop(context, false),
                 child: Text('Cancel',
-                    style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 13))),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13))),
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(context, true),
               child: const Text('Remove',
                   style: TextStyle(
                       color: Colors.red,
@@ -184,10 +191,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await prefs.remove('app_pin');
         setState(() => _pinEnabled = false);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('PIN removed.'),
-                  backgroundColor: Colors.orange));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('PIN removed.'), backgroundColor: Colors.orange));
         }
       }
     }
@@ -204,8 +209,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: const Text('Clear Specific Data',
               style: TextStyle(
                   fontSize: 16,
@@ -217,49 +222,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Select what to erase:',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500])),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                 const SizedBox(height: 12),
-                _checkItem('Sales', 'All sales history',
-                    clearSales,
-                    (v) => setS(
-                        () => clearSales = v ?? false)),
+                _checkItem('Sales', 'All sales history', clearSales,
+                    (v) => setS(() => clearSales = v ?? false)),
                 const SizedBox(height: 8),
-                _checkItem('Credit / Debts',
-                    'All credit and payment history',
-                    clearDebts,
-                    (v) => setS(
-                        () => clearDebts = v ?? false)),
+                _checkItem('Credit / Debts', 'All credit and payment history',
+                    clearDebts, (v) => setS(() => clearDebts = v ?? false)),
                 const SizedBox(height: 8),
-                _checkItem('Expenses',
-                    'All expense records', clearExpenses,
-                    (v) => setS(() =>
-                        clearExpenses = v ?? false)),
+                _checkItem('Expenses', 'All expense records', clearExpenses,
+                    (v) => setS(() => clearExpenses = v ?? false)),
                 const SizedBox(height: 8),
-                _checkItem('Customers',
-                    'All customer records', clearCustomers,
-                    (v) => setS(() =>
-                        clearCustomers = v ?? false)),
+                _checkItem('Customers', 'All customer records', clearCustomers,
+                    (v) => setS(() => clearCustomers = v ?? false)),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: Colors.grey.shade200),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: Row(children: [
-                    Icon(Icons.info_outline,
-                        color: Colors.grey[500], size: 14),
+                    Icon(Icons.info_outline, color: Colors.grey[500], size: 14),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                          'Products will not be deleted.',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[600])),
+                      child: Text('Products will not be deleted.',
+                          style:
+                              TextStyle(fontSize: 11, color: Colors.grey[600])),
                     ),
                   ]),
                 ),
@@ -268,23 +258,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           actions: [
             TextButton(
-                onPressed: () =>
-                    Navigator.pop(ctx, false),
+                onPressed: () => Navigator.pop(ctx, false),
                 child: Text('Cancel',
-                    style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 13))),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13))),
             TextButton(
               onPressed: () {
                 if (!clearSales &&
                     !clearDebts &&
                     !clearExpenses &&
                     !clearCustomers) {
-                  ScaffoldMessenger.of(ctx)
-                      .showSnackBar(const SnackBar(
-                          content:
-                              Text('Select at least one.'),
-                          backgroundColor: Colors.red));
+                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                      content: Text('Select at least one.'),
+                      backgroundColor: Colors.red));
                   return;
                 }
                 Navigator.pop(ctx, true);
@@ -328,8 +313,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text('Clear All Data?',
             style: TextStyle(
                 fontSize: 16,
@@ -343,12 +327,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: Colors.red.shade50,
                 borderRadius: BorderRadius.circular(10),
-                border:
-                    Border.all(color: Colors.red.shade200),
+                border: Border.all(color: Colors.red.shade200),
               ),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('This will delete:',
                       style: TextStyle(
@@ -363,17 +345,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Customers',
                     'Loyalty Points'
                   ].map((t) => Padding(
-                        padding:
-                            const EdgeInsets.only(bottom: 3),
+                        padding: const EdgeInsets.only(bottom: 3),
                         child: Row(children: [
                           Icon(Icons.remove,
-                              size: 12,
-                              color: Colors.red.shade400),
+                              size: 12, color: Colors.red.shade400),
                           const SizedBox(width: 6),
                           Text(t,
                               style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[700])),
+                                  fontSize: 12, color: Colors.grey[700])),
                         ]),
                       )),
                 ],
@@ -385,8 +364,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border:
-                    Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: Colors.grey.shade200),
               ),
               child: Row(children: [
                 Icon(Icons.check_circle_outline,
@@ -394,9 +372,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text('Products will be kept.',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[600])),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                 ),
               ]),
             ),
@@ -406,13 +382,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: Colors.orange.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: Colors.orange.shade200),
+                border: Border.all(color: Colors.orange.shade200),
               ),
               child: Row(children: [
                 Icon(Icons.warning_amber_outlined,
-                    color: Colors.orange.shade600,
-                    size: 14),
+                    color: Colors.orange.shade600, size: 14),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text('This cannot be undone.',
@@ -427,15 +401,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () =>
-                  Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(context, false),
               child: Text('Cancel',
-                  style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 13))),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13))),
           TextButton(
-            onPressed: () =>
-                Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Clear All',
                 style: TextStyle(
                     color: Colors.red,
@@ -451,10 +421,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _keepSettings();
     if (mounted) {
       await context.read<AppProvider>().reload();
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-        content:
-            Text('All data cleared. Products are kept.'),
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('All data cleared. Products are kept.'),
         backgroundColor: Colors.green,
         duration: Duration(seconds: 3),
       ));
@@ -482,8 +450,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Widget _checkItem(String title, String subtitle,
-          bool value, void Function(bool?) onChanged) =>
+  Widget _checkItem(String title, String subtitle, bool value,
+          void Function(bool?) onChanged) =>
       Container(
         decoration: BoxDecoration(
           color: value
@@ -495,19 +463,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ? Colors.red.withValues(alpha: 0.2)
                   : Colors.grey.withValues(alpha: 0.15)),
         ),
-        child: CheckboxListTile(
-          dense: true,
-          title: Text(title,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87)),
-          subtitle: Text(subtitle,
-              style: TextStyle(
-                  fontSize: 11, color: Colors.grey[500])),
-          value: value,
-          activeColor: Colors.red,
-          onChanged: onChanged,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Material(
+            color: Colors.transparent,
+            child: CheckboxListTile(
+              dense: true,
+              title: Text(title,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87)),
+              subtitle: Text(subtitle,
+                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              value: value,
+              activeColor: Colors.red,
+              onChanged: onChanged,
+            ),
+          ),
         ),
       );
 
@@ -535,7 +508,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Text('Settings',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black87)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
@@ -549,362 +525,342 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
               child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-              children: [
-                Text('Configure your store',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-                const SizedBox(height: 20),
-
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: _blue.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: _blue.withValues(alpha: 0.15)),
-                  ),
-                  child: Row(children: [
-                    Container(
-                      width: 44, height: 44,
-                      decoration: BoxDecoration(
-                        color: _blue.withValues(alpha: 0.1),
-                        borderRadius:
-                            BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.store_outlined,
-                          color: _blue, size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                          children: [
-                        Text(
-                            _nameCtrl.text.isEmpty
-                                ? 'My Sari-Sari Store'
-                                : _nameCtrl.text,
-                            style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 15,
-                                fontWeight:
-                                    FontWeight.w600)),
-                        Text('Configure your app',
-                            style: TextStyle(
-                                color: Colors.grey[500],
-                                fontSize: 12)),
-                      ]),
-                    ),
-                    if (_pinEnabled)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color:
-                              _blue.withValues(alpha: 0.1),
-                          borderRadius:
-                              BorderRadius.circular(8),
-                          border: Border.all(
-                              color: _blue
-                                  .withValues(alpha: 0.2)),
-                        ),
-                        child: const Row(children: [
-                          Icon(Icons.lock_outline,
-                              color: _blue, size: 12),
-                          SizedBox(width: 4),
-                          Text('PIN',
-                              style: TextStyle(
-                                  color: _blue,
-                                  fontSize: 11,
-                                  fontWeight:
-                                      FontWeight.bold)),
-                        ]),
-                      ),
-                  ]),
-                ),
-                const SizedBox(height: 20),
-
-                _label('STORE'),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.grey.shade200),
-                  ),
-                  child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                children: [
+                  Text('Configure your store',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                  const SizedBox(height: 20),
+                  Container(
                     padding: const EdgeInsets.all(14),
-                    child: TextField(
-                      controller: _nameCtrl,
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        labelText: 'Store name',
-                        labelStyle: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13),
-                        prefixIcon: Icon(
-                            Icons.store_outlined,
-                            color: Colors.grey[500],
-                            size: 18),
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
-                        border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                                color:
-                                    Colors.grey.shade300)),
-                        enabledBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                                color:
-                                    Colors.grey.shade300)),
+                    decoration: BoxDecoration(
+                      color: _blue.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _blue.withValues(alpha: 0.15)),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: _blue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.store_outlined,
+                            color: _blue, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  _nameCtrl.text.isEmpty
+                                      ? 'My Sari-Sari Store'
+                                      : _nameCtrl.text,
+                                  style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600)),
+                              Text('Configure your app',
+                                  style: TextStyle(
+                                      color: Colors.grey[500], fontSize: 12)),
+                            ]),
+                      ),
+                      if (_pinEnabled)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _blue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border:
+                                Border.all(color: _blue.withValues(alpha: 0.2)),
+                          ),
+                          child: const Row(children: [
+                            Icon(Icons.lock_outline, color: _blue, size: 12),
+                            SizedBox(width: 4),
+                            Text('PIN',
+                                style: TextStyle(
+                                    color: _blue,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold)),
+                          ]),
+                        ),
+                    ]),
+                  ),
+                  const SizedBox(height: 20),
+                  _label('STORE'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: TextField(
+                        controller: _nameCtrl,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          labelText: 'Store name',
+                          labelStyle:
+                              TextStyle(color: Colors.grey[600], fontSize: 13),
+                          prefixIcon: Icon(Icons.store_outlined,
+                              color: Colors.grey[500], size: 18),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade300)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade300)),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-
-                _label('NOTIFICATIONS'),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.grey.shade200),
-                  ),
-                  child: SwitchListTile(
-                    title: const Text(
-                        'Enable Notifications',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87)),
-                    subtitle: Text(
-                        'Low stock & credit reminders',
-                        style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 11)),
-                    secondary: Icon(
-                        Icons.notifications_outlined,
-                        color: Colors.grey[500], size: 20),
-                    value: _notif,
-                    activeThumbColor: _blue,
-                    onChanged: (v) =>
-                        setState(() => _notif = v),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                _label('SECURITY'),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.grey.shade200),
-                  ),
-                  child: SwitchListTile(
-                    title: const Text('PIN Lock',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87)),
-                    subtitle: Text(
-                      _pinEnabled
-                          ? 'Enabled — PIN required to open'
-                          : 'Disabled — no PIN required',
-                      style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 11),
+                  const SizedBox(height: 16),
+                  _label('NOTIFICATIONS'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
                     ),
-                    secondary: Icon(
-                      _pinEnabled
-                          ? Icons.lock_outline
-                          : Icons.lock_open_outlined,
-                      color: _pinEnabled
-                          ? _blue
-                          : Colors.grey[400],
-                      size: 20,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: SwitchListTile(
+                          title: const Text('Enable Notifications',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87)),
+                          subtitle: Text('Low stock & credit reminders',
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 11)),
+                          secondary: Icon(Icons.notifications_outlined,
+                              color: Colors.grey[500], size: 20),
+                          value: _notif,
+                          activeThumbColor: _blue,
+                          onChanged: (v) => setState(() => _notif = v),
+                        ),
+                      ),
                     ),
-                    value: _pinEnabled,
-                    activeThumbColor: _blue,
-                    onChanged: _togglePin,
                   ),
-                ),
-                if (_pinEnabled) ...[
+                  const SizedBox(height: 16),
+                  _label('SECURITY'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: SwitchListTile(
+                          title: const Text('PIN Lock',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87)),
+                          subtitle: Text(
+                            _pinEnabled
+                                ? 'Enabled — PIN required to open'
+                                : 'Disabled — no PIN required',
+                            style: TextStyle(
+                                color: Colors.grey[500], fontSize: 11),
+                          ),
+                          secondary: Icon(
+                            _pinEnabled
+                                ? Icons.lock_outline
+                                : Icons.lock_open_outlined,
+                            color: _pinEnabled ? _blue : Colors.grey[400],
+                            size: 20,
+                          ),
+                          value: _pinEnabled,
+                          activeThumbColor: _blue,
+                          onChanged: _togglePin,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_pinEnabled) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            leading: const Icon(Icons.password_outlined,
+                                color: _blue, size: 20),
+                            title: const Text('Change PIN',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87)),
+                            subtitle: Text('Set a new PIN',
+                                style: TextStyle(
+                                    color: Colors.grey[500], fontSize: 11)),
+                            trailing: Icon(Icons.chevron_right,
+                                color: Colors.grey[400], size: 18),
+                            onTap: () async {
+                              final result = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const PinScreen(isSetup: true)),
+                              );
+                              if (result == true && mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('PIN updated!'),
+                                        backgroundColor: Colors.green));
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  _label('DANGER ZONE'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.shade100),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          leading: Icon(Icons.delete_outline,
+                              color: Colors.orange.shade400, size: 20),
+                          title: const Text('Clear Specific Data',
+                              style: TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13)),
+                          subtitle: Text('Choose what to erase',
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 11)),
+                          trailing: Icon(Icons.chevron_right,
+                              color: Colors.grey[400], size: 18),
+                          onTap: () => _confirmClearData(),
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(12),
-                      border: Border.all(
-                          color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red.shade100),
                     ),
-                    child: ListTile(
-                      leading: const Icon(
-                          Icons.password_outlined,
-                          color: _blue, size: 20),
-                      title: const Text('Change PIN',
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87)),
-                      subtitle: Text('Set a new PIN',
-                          style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 11)),
-                      trailing: Icon(Icons.chevron_right,
-                          color: Colors.grey[400], size: 18),
-                      onTap: () async {
-                        final result =
-                            await Navigator.push<bool>(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  const PinScreen(
-                                      isSetup: true)),
-                        );
-                        if (result == true && mounted) {
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(const SnackBar(
-                                  content:
-                                      Text('PIN updated!'),
-                                  backgroundColor:
-                                      Colors.green));
-                        }
-                      },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          leading: Icon(Icons.delete_forever_outlined,
+                              color: Colors.red.shade400, size: 20),
+                          title: const Text('Clear All Data',
+                              style: TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13)),
+                          subtitle: Text(
+                              'Delete sales, credit, expenses, customers',
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 11)),
+                          trailing: Icon(Icons.chevron_right,
+                              color: Colors.grey[400], size: 18),
+                          onTap: () => _confirmClearAll(),
+                        ),
+                      ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  _label('ABOUT'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            leading: Icon(Icons.phone_android_outlined,
+                                color: Colors.grey[500], size: 20),
+                            title: const Text('StorePH',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87)),
+                            subtitle: Text('Version 1.0.0',
+                                style: TextStyle(
+                                    color: Colors.grey[500], fontSize: 11)),
+                          ),
+                        ),
+                      ),
+                      Divider(height: 1, color: Colors.grey.shade100),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            leading: Icon(Icons.favorite_outline,
+                                color: Colors.red.shade300, size: 20),
+                            title: const Text('Made for Filipino Store Owners',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87)),
+                            subtitle: Text('For your business 🇵🇭',
+                                style: TextStyle(
+                                    color: Colors.grey[500], fontSize: 11)),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _blue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Save Settings',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(height: 40),
                 ],
-                const SizedBox(height: 16),
-
-                _label('DANGER ZONE'),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.orange.shade100),
-                  ),
-                  child: ListTile(
-                    leading: Icon(Icons.delete_outline,
-                        color: Colors.orange.shade400,
-                        size: 20),
-                    title: const Text(
-                        'Clear Specific Data',
-                        style: TextStyle(
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 13)),
-                    subtitle: Text('Choose what to erase',
-                        style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 11)),
-                    trailing: Icon(Icons.chevron_right,
-                        color: Colors.grey[400], size: 18),
-                    onTap: () => _confirmClearData(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.red.shade100),
-                  ),
-                  child: ListTile(
-                    leading: Icon(
-                        Icons.delete_forever_outlined,
-                        color: Colors.red.shade400, size: 20),
-                    title: const Text('Clear All Data',
-                        style: TextStyle(
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 13)),
-                    subtitle: Text(
-                        'Delete sales, credit, expenses, customers',
-                        style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 11)),
-                    trailing: Icon(Icons.chevron_right,
-                        color: Colors.grey[400], size: 18),
-                    onTap: () => _confirmClearAll(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                _label('ABOUT'),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.grey.shade200),
-                  ),
-                  child: Column(children: [
-                    ListTile(
-                      leading: Icon(
-                          Icons.phone_android_outlined,
-                          color: Colors.grey[500], size: 20),
-                      title: const Text('StorePH',
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87)),
-                      subtitle: Text('Version 1.0.0',
-                          style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 11)),
-                    ),
-                    Divider(
-                        height: 1,
-                        color: Colors.grey.shade100),
-                    ListTile(
-                      leading: Icon(
-                          Icons.favorite_outline,
-                          color: Colors.red.shade300,
-                          size: 20),
-                      title: const Text(
-                          'Made for Filipino Store Owners',
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87)),
-                      subtitle: Text(
-                          'For your business 🇵🇭',
-                          style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 11)),
-                    ),
-                  ]),
-                ),
-                const SizedBox(height: 20),
-
-                ElevatedButton(
-                  onPressed: _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _blue,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(10)),
-                  ),
-                  child: const Text('Save Settings',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600)),
-                ),
-                const SizedBox(height: 40),
-              ],
+              ),
             ),
-          ),
     );
   }
 

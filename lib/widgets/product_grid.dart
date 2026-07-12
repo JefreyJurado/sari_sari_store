@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../utils/currency_formatter.dart';
-import '../utils/filipino_categories.dart'; // Ensure this class exposes 'getIcon'
-
-// Your app's signature blue color
-const _blue = Color(0xFF1E3A8A);
+import '../utils/filipino_categories.dart';
+import '../theme/app_theme.dart';
 
 class ProductGrid extends StatelessWidget {
   final List<Product> products;
@@ -24,12 +22,11 @@ class ProductGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridView.builder(
       padding: const EdgeInsets.all(8),
-      gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 1.05,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+        childAspectRatio: 0.92,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
       itemCount: products.length,
       itemBuilder: (context, i) => _ProductCard(
@@ -59,6 +56,7 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final oos = product.isOutOfStock;
     final inCart = cartQty > 0;
+    final accent = FilipinoCategories.getColor(product.category);
 
     return GestureDetector(
       onTap: oos ? null : onAdd,
@@ -66,85 +64,85 @@ class _ProductCard extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: inCart
-              ? Border.all(color: _blue, width: 2) // Changed from green to blue
-              : Border.all(color: Colors.transparent, width: 2),
-          boxShadow: [
-            BoxShadow(
-                color: inCart
-                    ? _blue.withValues(alpha: 0.1) // Changed from green to blue
-                    : Colors.black.withValues(alpha: 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2)),
-          ],
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          border: Border.all(
+            color: inCart ? accent : Colors.grey.shade200,
+            width: inCart ? 1.6 : 1,
+          ),
+          boxShadow: inCart ? AppShadows.colored(accent) : AppShadows.soft,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                // Swapped Text emoji element with your outline icon mapping
-                Icon(
-                  FilipinoCategories.getIcon(product.category),
-                  color: _blue,
-                  size: 22,
-                ),
-                const Spacer(),
-                if (oos)
-                  const _Badge('OOS', Colors.red) // Translated from 'Ubos'
-                else if (product.isLowStock)
-                  _Badge('${product.stock}', Colors.orange)
-                else if (inCart)
-                  _Badge('$cartQty', _blue), // Changed from green to blue
-              ]),
-              const SizedBox(height: 6),
-              Expanded(
-                child: Text(product.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
-              ),
-              const SizedBox(height: 6),
-              Row(children: [
+        child: Opacity(
+          opacity: oos ? 0.55 : 1,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: Icon(
+                        FilipinoCategories.getIcon(product.category),
+                        color: accent,
+                        size: 18),
+                  ),
+                  const Spacer(),
+                  if (oos)
+                    const _Badge('OOS', AppColors.red)
+                  else if (product.isLowStock)
+                    _Badge('${product.stock}', AppColors.amber)
+                  else if (inCart)
+                    _Badge('$cartQty', accent),
+                ]),
+                const SizedBox(height: 8),
                 Expanded(
-                  child: Text(
-                    CurrencyFormatter.format(product.sellPrice),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _blue, // Changed from green to blue
-                        fontSize: 14),
-                  ),
+                  child: Text(product.name,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: AppColors.textPrimary),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
                 ),
-                if (inCart) ...[
-                  _SmallBtn(
-                      Icons.remove,
-                      Colors.grey.shade100,
-                      Colors.grey.shade700,
-                      onRemove),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Text('$cartQty',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14)),
+                const SizedBox(height: 6),
+                Row(children: [
+                  Expanded(
+                    child: Text(
+                      CurrencyFormatter.format(product.sellPrice),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: accent,
+                          fontSize: 14),
+                    ),
                   ),
-                  _SmallBtn(
-                      Icons.add,
-                      _blue, // Changed from green to blue
-                      Colors.white,
-                      oos ? () {} : onAdd),
-                ] else
-                  _SmallBtn(
-                      Icons.add,
-                      oos ? Colors.grey.shade100 : _blue, // Changed from green to blue
-                      oos ? Colors.grey.shade400 : Colors.white,
-                      oos ? () {} : onAdd),
-              ]),
-            ],
+                  if (inCart) ...[
+                    _SmallBtn(
+                        Icons.remove,
+                        Colors.grey.shade100,
+                        Colors.grey.shade700,
+                        onRemove),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Text('$cartQty',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14)),
+                    ),
+                    _SmallBtn(Icons.add, accent, Colors.white,
+                        oos ? () {} : onAdd),
+                  ] else
+                    _SmallBtn(
+                        Icons.add,
+                        oos ? Colors.grey.shade100 : accent,
+                        oos ? Colors.grey.shade400 : Colors.white,
+                        oos ? () {} : onAdd),
+                ]),
+              ],
+            ),
           ),
         ),
       ),
@@ -161,7 +159,7 @@ class _Badge extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(
             color: color.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(8)),
+            borderRadius: BorderRadius.circular(AppRadius.sm)),
         child: Text(text,
             style: TextStyle(
                 color: color,
@@ -184,7 +182,7 @@ class _SmallBtn extends StatelessWidget {
           height: 26,
           decoration: BoxDecoration(
               color: bg,
-              borderRadius: BorderRadius.circular(8)),
+              borderRadius: BorderRadius.circular(AppRadius.sm)),
           child: Icon(icon, size: 16, color: fg),
         ),
       );

@@ -1,3 +1,5 @@
+import '../utils/currency_formatter.dart';
+
 class SetupCostItem {
   final String label;
   final double amount;
@@ -9,9 +11,9 @@ class SetupCostItem {
 SetupCostItem({
   required this.label,
   required this.amount,
-  this.category = 'Equipment',  // CHANGE BACK from '' to 'Equipment'
+  this.category = 'Equipment',
   this.vendor,
-  this.paymentMethod = 'Cash',  // CHANGE BACK from '' to 'Cash'
+  this.paymentMethod = 'Cash',
   DateTime? date,
 }) : date = date ?? DateTime.now();
 
@@ -36,9 +38,9 @@ SetupCostItem({
 factory SetupCostItem.fromMap(Map<String, dynamic> m) => SetupCostItem(
   label: m['label'] as String,
   amount: (m['amount'] as num).toDouble(),
-  category: m['category'] as String? ?? 'Equipment',  // Change from '' to 'Equipment'
+  category: m['category'] as String? ?? 'Equipment',
   vendor: m['vendor'] as String?,
-  paymentMethod: m['paymentMethod'] as String? ?? 'Cash',  // Change from '' to 'Cash'
+  paymentMethod: m['paymentMethod'] as String? ?? 'Cash',
   date: m['date'] != null
       ? DateTime.parse(m['date'] as String)
       : DateTime.now(),
@@ -64,7 +66,8 @@ class CapitalEntry {
 
   double get computedSetupCosts => setupItems.isEmpty
       ? setupCosts
-      : setupItems.fold(0.0, (s, i) => s + i.amount);
+      : CurrencyFormatter.roundCents(
+          setupItems.fold(0.0, (s, i) => s + i.amount));
 
   Map<String, dynamic> toMap() => {
     'id': id,
