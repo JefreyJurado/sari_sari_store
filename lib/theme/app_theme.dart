@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Centralized brand + accent palette. Same hex values already used
 /// throughout the app (kept unchanged by design) — this just gives every
@@ -97,12 +96,14 @@ class AppTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: AppColors.background,
       colorScheme: colorScheme,
-      textTheme: GoogleFonts.poppinsTextTheme(),
-      appBarTheme: AppBarTheme(
+      fontFamily: 'Poppins',
+      textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Poppins'),
+      appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: TextStyle(
+          fontFamily: 'Poppins',
           color: AppColors.textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w600,

@@ -21,7 +21,6 @@ dependencies:
 
   # UI
   fl_chart: ^0.68.0
-  google_fonts: ^6.2.1
 
   # Utilities
   intl: ^0.19.0
@@ -64,6 +63,10 @@ flutter:
     - family: Poppins
       fonts:
         - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
         - asset: assets/fonts/Poppins-Bold.ttf
           weight: 700
 
