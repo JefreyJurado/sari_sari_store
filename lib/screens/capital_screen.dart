@@ -28,21 +28,26 @@ class _CapitalScreenState extends State<CapitalScreen> {
   void _loadItems() {
     final prov = context.read<AppProvider>();
     final cap = prov.capital;
-    if (cap != null && cap.setupItems.isNotEmpty) {
-      _setupItems.clear(); // Prevents stacking identical data elements in state memory
-      _setupItems = cap.setupItems.map<Map<String, dynamic>>((i) {
-        final amtCtrl = TextEditingController(text: i.amount.toStringAsFixed(2));
-        amtCtrl.addListener(() => setState(() {}));
-        return {
-          'ctrl': TextEditingController(text: i.label),
-          'amtCtrl': amtCtrl,
-          'vendorCtrl': TextEditingController(text: i.vendor ?? ''),
-          'category': i.category, // Assuming category is an enum, adjust if it's a string
-          'paymentMethod': i.paymentMethod.toString().trim(),
-          'date': i.date,
-        };
-      }).toList();
+    // Dispose whatever controllers are currently loaded first — this is
+    // also called from the "Cancel" button to discard uncommitted edits
+    // (including locally-added-but-unsaved items), not just at initState.
+    for (final item in _setupItems) {
+      (item['ctrl'] as TextEditingController).dispose();
+      (item['amtCtrl'] as TextEditingController).dispose();
+      (item['vendorCtrl'] as TextEditingController).dispose();
     }
+    _setupItems = (cap?.setupItems ?? []).map<Map<String, dynamic>>((i) {
+      final amtCtrl = TextEditingController(text: i.amount.toStringAsFixed(2));
+      amtCtrl.addListener(() => setState(() {}));
+      return {
+        'ctrl': TextEditingController(text: i.label),
+        'amtCtrl': amtCtrl,
+        'vendorCtrl': TextEditingController(text: i.vendor ?? ''),
+        'category': i.category, // Assuming category is an enum, adjust if it's a string
+        'paymentMethod': i.paymentMethod.toString().trim(),
+        'date': i.date,
+      };
+    }).toList();
     setState(() => _loaded = true);
   }
 
@@ -113,7 +118,10 @@ class _CapitalScreenState extends State<CapitalScreen> {
         ),
         actions: [
           TextButton.icon(
-            onPressed: () => setState(() => _isEditing = !_isEditing),
+            onPressed: () {
+              if (_isEditing) _loadItems(); // Cancel: discard edits
+              setState(() => _isEditing = !_isEditing);
+            },
             icon: Icon(
                 _isEditing ? Icons.close : Icons.edit_outlined,
                 size: 16,

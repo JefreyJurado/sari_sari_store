@@ -646,12 +646,17 @@ class AppProvider extends ChangeNotifier {
       notes: notes,
       createdAt: DateTime.now(),
     ));
-    final newPaid = debt.paidAmount + amount;
-    final newStatus = newPaid >= debt.originalAmount
-        ? DebtStatus.paid
-        : DebtStatus.partial;
-    await _db.updateDebt(
-        debt.copyWith(paidAmount: newPaid, status: newStatus));
+    await _db.adjustDebtPaidAmount(debt.id, amount);
+    await reload();
+  }
+
+  /// Public wrapper so screens (which only ever talk to AppProvider,
+  /// never DatabaseService directly) can apply a stock delta through
+  /// the atomic, race-safe path instead of a Dart-side
+  /// `updateProduct(product.copyWith(stock: ...))` computed from a
+  /// possibly-stale snapshot.
+  Future<void> adjustProductStock(String productId, int delta) async {
+    await _db.adjustProductStock(productId, delta);
     await reload();
   }
 }

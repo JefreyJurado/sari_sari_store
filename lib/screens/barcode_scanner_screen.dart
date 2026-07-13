@@ -356,7 +356,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
               final adj = int.tryParse(ctrl.text);
               if (adj == null) return;
               final newStock = (product.stock + adj).clamp(0, 99999);
-              prov.updateProduct(product.copyWith(stock: newStock));
+              prov.adjustProductStock(product.id, adj);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text('Stock ng ${product.name} updated: $newStock ${product.unit ?? 'pcs'}'),

@@ -1017,7 +1017,7 @@ class _StockAdjustDialogState extends State<_StockAdjustDialog> {
             final adj = int.tryParse(_ctrl.text);
             if (adj == null) return;
             final newStock = (widget.product.stock + adj).clamp(0, 99999);
-            widget.prov.updateProduct(widget.product.copyWith(stock: newStock));
+            widget.prov.adjustProductStock(widget.product.id, adj);
             Navigator.pop(context);
 
             ScaffoldMessenger.of(context).showSnackBar(

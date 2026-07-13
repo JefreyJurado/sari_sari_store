@@ -265,8 +265,8 @@ class StockAlertScreen extends StatelessWidget {
               if (adj == null) return;
               
               final newStock = (product.stock + adj).clamp(0, 99999);
-              prov.updateProduct(product.copyWith(stock: newStock));
-              
+              prov.adjustProductStock(product.id, adj);
+
               // FIXED: Use localized dialog context to pop, check screen safety before showing SnackBar
               Navigator.pop(dialogCtx);
               

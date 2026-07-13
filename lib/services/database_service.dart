@@ -284,17 +284,19 @@ class DatabaseService {
       (await database).update('products', p.toMap(),
           where: 'id=?', whereArgs: [p.id]);
 
-  /// Atomically applies a stock delta in SQL (`stock = stock + ?`)
-  /// instead of a Dart-side read-modify-write, so two concurrent calls
-  /// (e.g. two near-simultaneous sales) can never lose one's update by
-  /// both computing a new value from the same stale snapshot. Also
-  /// safe to call for an archived product — unlike [updateProduct], it
-  /// never touches any other column, so it can't accidentally
+  /// Atomically applies a stock delta in SQL (`stock = stock + ?`,
+  /// clamped to [0, 99999] — the same bounds the manual "adjust stock"
+  /// dialogs already enforce) instead of a Dart-side read-modify-write,
+  /// so two concurrent calls (e.g. two near-simultaneous sales, or a
+  /// sale racing a manual restock) can never lose one's update by both
+  /// computing a new value from the same stale snapshot. Also safe to
+  /// call for an archived product — unlike [updateProduct], it never
+  /// touches any other column, so it can't accidentally
   /// resurrect/overwrite an archived row's other fields.
   Future<void> adjustProductStock(String productId, int delta) async {
     final db = await database;
     await db.rawUpdate(
-        'UPDATE products SET stock = stock + ? WHERE id = ?',
+        'UPDATE products SET stock = MAX(0, MIN(99999, stock + ?)) WHERE id = ?',
         [delta, productId]);
   }
 
@@ -407,6 +409,25 @@ class DatabaseService {
   Future<void> updateDebt(Debt d) async =>
       (await database).update('debts', d.toMap(),
           where: 'id=?', whereArgs: [d.id]);
+
+  /// Atomically applies a payment amount to a debt's paidAmount and
+  /// derives its status from the result, all in one SQL statement —
+  /// instead of a Dart-side `debt.paidAmount + amount` computed from a
+  /// possibly-stale in-memory `Debt` (e.g. a payment screen opened
+  /// before an earlier payment on the same debt landed). Rounds to
+  /// the nearest centavo and caps at `originalAmount` so an in-flight
+  /// stale overpayment attempt can't push the balance negative.
+  Future<void> adjustDebtPaidAmount(String debtId, double amount) async {
+    final db = await database;
+    await db.rawUpdate('''
+      UPDATE debts
+      SET paidAmount = MIN(ROUND(paidAmount + ?, 2), originalAmount),
+          status = CASE
+            WHEN MIN(ROUND(paidAmount + ?, 2), originalAmount) >= originalAmount
+            THEN 'paid' ELSE 'partial' END
+      WHERE id = ?
+    ''', [amount, amount, debtId]);
+  }
 
   /// Deletes any debt(s) tied to a sale (and their payment history),
   /// used when the originating sale is voided.

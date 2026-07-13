@@ -312,13 +312,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
       CenterToast.showError(context, 'Enter a valid amount.');
       return;
     }
-    if (amount > widget.debt.remaining) {
+    final prov = context.read<AppProvider>();
+    // Re-check against the freshest known balance rather than the
+    // snapshot this screen was opened with, in case another payment on
+    // this same debt landed in the meantime.
+    final currentDebt = prov.debts
+        .where((d) => d.id == widget.debt.id)
+        .firstOrNull ?? widget.debt;
+    if (amount > currentDebt.remaining) {
       CenterToast.showError(context, 'Amount cannot exceed balance.');
       return;
     }
     setState(() => _isProcessing = true);
-    await context.read<AppProvider>().recordPayment(
-          widget.debt,
+    await prov.recordPayment(
+          currentDebt,
           amount,
           notes: _notesCtrl.text.isEmpty
               ? null
