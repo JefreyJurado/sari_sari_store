@@ -21,7 +21,7 @@ class DatabaseService {
         join(await getDatabasesPath(), 'pos_system.db');
     return openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -53,7 +53,8 @@ class DatabaseService {
       customerId TEXT, customerName TEXT,
       type TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'completed',
-      notes TEXT, createdAt TEXT NOT NULL)''');
+      notes TEXT, createdAt TEXT NOT NULL,
+      receiptNumber INTEGER)''');
 
     await db.execute('''CREATE TABLE sale_items(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -216,6 +217,19 @@ class DatabaseService {
           createdAt TEXT NOT NULL)''');
       } catch (_) {}
     }
+    if (oldV < 9) {
+      try {
+        await db.execute(
+            'ALTER TABLE sales ADD COLUMN receiptNumber INTEGER');
+      } catch (_) {}
+      // Backfill existing sales with sequential numbers in
+      // chronological order so old receipts get a stable number too.
+      await db.execute('''UPDATE sales SET receiptNumber = (
+        SELECT COUNT(*) FROM sales s2
+        WHERE s2.createdAt < sales.createdAt
+           OR (s2.createdAt = sales.createdAt AND s2.id <= sales.id)
+      )''');
+    }
   }
 
   // ── CUSTOMERS ──────────────────────────────────────────
@@ -309,6 +323,13 @@ class DatabaseService {
   }
 
   // ── SALES ──────────────────────────────────────────────
+  Future<int> getNextReceiptNumber() async {
+    final db = await database;
+    final result = await db.rawQuery(
+        'SELECT COALESCE(MAX(receiptNumber), 0) + 1 AS next FROM sales');
+    return result.first['next'] as int;
+  }
+
   Future<void> insertSale(Sale sale) async {
     final db = await database;
     await db.insert('sales', sale.toMap(),

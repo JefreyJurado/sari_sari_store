@@ -50,6 +50,7 @@ class Sale {
   final TxStatus status;
   final String? notes;
   final DateTime createdAt;
+  final int? receiptNumber;
 
   Sale({
     required this.id,
@@ -63,6 +64,7 @@ class Sale {
     this.status = TxStatus.completed,
     this.notes,
     required this.createdAt,
+    this.receiptNumber,
   });
 
   double get totalProfit =>
@@ -83,6 +85,7 @@ class Sale {
         'status': status.name,
         'notes': notes,
         'createdAt': createdAt.toIso8601String(),
+        'receiptNumber': receiptNumber,
       };
 
   factory Sale.fromMap(
@@ -103,5 +106,6 @@ class Sale {
             orElse: () => TxStatus.completed),
         notes: m['notes'],
         createdAt: DateTime.parse(m['createdAt']),
+        receiptNumber: m['receiptNumber'] as int?,
       );
 }

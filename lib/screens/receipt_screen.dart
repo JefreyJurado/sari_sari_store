@@ -125,6 +125,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   }
 
   String _getReceiptNumber() {
+    final n = widget.sale.receiptNumber;
+    if (n != null) return n.toString().padLeft(6, '0');
+    // Fallback for sales saved before receipt numbers existed.
     final dt = widget.sale.createdAt;
     return '${dt.year.toString().substring(2)}${dt.month.toString().padLeft(2, '0')}${dt.day.toString().padLeft(2, '0')}-${dt.hour.toString().padLeft(2, '0')}${dt.minute.toString().padLeft(2, '0')}${dt.second.toString().padLeft(2, '0')}';
   }
@@ -543,6 +546,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                           style: TextStyle(
                               color: Colors.grey[400],
                               fontSize: 10),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'This is a personal record only — not a BIR-registered\nOfficial Receipt or Sales Invoice.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 9,
+                              fontStyle: FontStyle.italic),
                         ),
                       ]),
                     ),

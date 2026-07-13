@@ -257,6 +257,7 @@ class AppProvider extends ChangeNotifier {
       type: type,
       notes: notes,
       createdAt: saleDate ?? DateTime.now(),
+      receiptNumber: await _db.getNextReceiptNumber(),
     );
 
     await _db.insertSale(sale);
@@ -352,6 +353,7 @@ class AppProvider extends ChangeNotifier {
       type: PaymentType.credit,
       notes: notes,
       createdAt: saleDate ?? DateTime.now(),
+      receiptNumber: await _db.getNextReceiptNumber(),
     );
 
     await _db.insertSale(sale);
