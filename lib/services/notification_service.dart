@@ -2,6 +2,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/date_helper.dart';
+
+const _kLastDailySummaryKey = 'last_daily_summary_shown_at';
 
 class NotificationService {
   static final NotificationService instance = NotificationService._();
@@ -95,6 +98,45 @@ class NotificationService {
         details,
       );
     } catch (_) {}
+  }
+
+  Future<void>? _dailySummaryInFlight;
+
+  /// Notifies the owner of yesterday's totals once, the first time the
+  /// app is opened on a new day — by then that day's sales are final,
+  /// unlike today's figures which are still changing. No-op if there
+  /// were no sales yesterday, or if this already ran today.
+  Future<void> showDailySummaryIfNeeded({
+    required double revenue,
+    required double profit,
+    required int transactions,
+  }) {
+    return _dailySummaryInFlight ??= _doShowDailySummaryIfNeeded(
+      revenue: revenue,
+      profit: profit,
+      transactions: transactions,
+    ).whenComplete(() => _dailySummaryInFlight = null);
+  }
+
+  Future<void> _doShowDailySummaryIfNeeded({
+    required double revenue,
+    required double profit,
+    required int transactions,
+  }) async {
+    if (transactions == 0) return;
+    if (!await isEnabled) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    final lastIso = prefs.getString(_kLastDailySummaryKey);
+    if (lastIso != null) {
+      final last = DateTime.tryParse(lastIso);
+      if (last != null && DateHelper.isSameDay(last, now)) return;
+    }
+
+    await showDailySummary(
+        revenue: revenue, profit: profit, transactions: transactions);
+    await prefs.setString(_kLastDailySummaryKey, now.toIso8601String());
   }
 
   Future<void> scheduleStockCheck(

@@ -14,6 +14,7 @@ import '../services/notification_service.dart';
 import '../services/backup_service.dart';
 import '../services/loyalty_service.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/date_helper.dart';
 
 const _uuid = Uuid();
 
@@ -171,6 +172,27 @@ class AppProvider extends ChangeNotifier {
     // Fire-and-forget: must never delay startup or crash it.
     unawaited(BackupService.instance.autoBackupIfNeeded());
     unawaited(NotificationService.instance.scheduleWeeklyBackupReminder());
+    unawaited(_notifyYesterdaySummaryIfNeeded());
+  }
+
+  Future<void> _notifyYesterdaySummaryIfNeeded() async {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final yesterdaySales = sales.where((s) =>
+        s.status == TxStatus.completed &&
+        DateHelper.isSameDay(s.createdAt, yesterday));
+
+    final revenue = CurrencyFormatter.roundCents(
+        yesterdaySales.fold(0.0, (s, t) => s + t.totalAmount));
+    final profit = CurrencyFormatter.roundCents(
+        yesterdaySales.fold(0.0, (s, t) => s + t.totalProfit));
+
+    try {
+      await NotificationService.instance.showDailySummaryIfNeeded(
+        revenue: revenue,
+        profit: profit,
+        transactions: yesterdaySales.length,
+      );
+    } catch (_) {}
   }
 
   Future<void> _loadAll() async {

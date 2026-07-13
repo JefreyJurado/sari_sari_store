@@ -19,8 +19,7 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _selectedMonth = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    _selectedMonth = DatabaseService.currentMonthKey();
     _loadSnapshot();
   }
 
@@ -43,27 +42,17 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
     return '$monthName $year';
   }
 
-  bool get _isCurrentMonth {
-    final now = DateTime.now();
-    return _selectedMonth == '${now.year}-${now.month.toString().padLeft(2, '0')}';
-  }
+  bool get _isCurrentMonth => _selectedMonth == DatabaseService.currentMonthKey();
 
   bool get _isEstimatedMonth =>
       _snapshot.isNotEmpty && _snapshot.any((p) => p['isEstimated'] == true);
 
+  /// Only ever called with delta -1 (previous) or +1 (next) from the
+  /// chevron buttons below, so this just needs one month's step.
   void _shiftMonth(int delta) {
-    final parts = _selectedMonth.split('-');
-    var year = int.parse(parts[0]);
-    var month = int.parse(parts[1]) + delta;
-    while (month > 12) {
-      month -= 12;
-      year++;
-    }
-    while (month < 1) {
-      month += 12;
-      year--;
-    }
-    setState(() => _selectedMonth = '$year-${month.toString().padLeft(2, '0')}');
+    setState(() => _selectedMonth = delta > 0
+        ? DatabaseService.nextMonthKey(_selectedMonth)
+        : DatabaseService.prevMonthKey(_selectedMonth));
     _loadSnapshot();
   }
 

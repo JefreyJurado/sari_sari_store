@@ -550,12 +550,12 @@ class DatabaseService {
   }
 
   // ── INVENTORY SNAPSHOTS ────────────────────────────────
-  static String _currentMonthKey() {
+  static String currentMonthKey() {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}';
   }
 
-  static String _nextMonthKey(String month) {
+  static String nextMonthKey(String month) {
     final parts = month.split('-');
     var year = int.parse(parts[0]);
     var mon = int.parse(parts[1]) + 1;
@@ -566,7 +566,7 @@ class DatabaseService {
     return '$year-${mon.toString().padLeft(2, '0')}';
   }
 
-  static String _prevMonthKey(String month) {
+  static String prevMonthKey(String month) {
     final parts = month.split('-');
     var year = int.parse(parts[0]);
     var mon = int.parse(parts[1]) - 1;
@@ -595,7 +595,7 @@ class DatabaseService {
 
   Future<void> _doRecordMonthlySnapshot() async {
     final db = await database;
-    final month = _currentMonthKey();
+    final month = currentMonthKey();
     final existing = await db.query('inventory_snapshots',
         where: 'month=?', whereArgs: [month], limit: 1);
     if (existing.isNotEmpty) return;
@@ -642,12 +642,12 @@ class DatabaseService {
 
   Future<void> _doBackfillPreviousMonths() async {
     final db = await database;
-    var anchorMonth = _currentMonthKey();
+    var anchorMonth = currentMonthKey();
     final createdAt = DateTime.now().toIso8601String();
 
     // Bounded so a data issue can't turn this into a runaway loop.
     for (var i = 0; i < 60; i++) {
-      final targetMonth = _prevMonthKey(anchorMonth);
+      final targetMonth = prevMonthKey(anchorMonth);
 
       final targetExisting = await db.query('inventory_snapshots',
           where: 'month=?', whereArgs: [targetMonth], limit: 1);
@@ -704,9 +704,9 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getInventorySnapshot(String month) async {
     final db = await database;
-    final currentMonth = _currentMonthKey();
+    final currentMonth = currentMonthKey();
     final isCurrentMonth = month == currentMonth;
-    final nextMonth = _nextMonthKey(month);
+    final nextMonth = nextMonthKey(month);
 
     final products = await db.query('products', where: 'isActive=1');
     final List<Map<String, dynamic>> result = [];

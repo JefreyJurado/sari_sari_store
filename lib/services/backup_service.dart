@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
+import '../utils/date_helper.dart';
 
 const _kLastManualBackupKey = 'last_manual_backup_at';
 const _kLastAutoBackupKey = 'last_auto_backup_at';
@@ -97,7 +98,7 @@ class BackupService {
       final lastIso = prefs.getString(_kLastAutoBackupKey);
       if (lastIso != null) {
         final last = DateTime.tryParse(lastIso);
-        if (last != null && _isSameDay(last, now)) return;
+        if (last != null && DateHelper.isSameDay(last, now)) return;
       }
 
       final dir = await _autoBackupDir();
@@ -149,6 +150,4 @@ class BackupService {
     }
   }
 
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
 }
