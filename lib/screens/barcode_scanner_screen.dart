@@ -553,7 +553,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                 child: ElevatedButton(
                   onPressed: () async {
                     if (nameCtrl.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lagyan ng pangalan ang produkto!'), backgroundColor: Colors.red));
+                      CenterToast.showError(context, 'Lagyan ng pangalan ang produkto!');
                       return;
                     }
                     final product = Product(

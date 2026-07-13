@@ -11,6 +11,7 @@ import '../utils/filipino_categories.dart';
 import '../utils/date_helper.dart';
 import '../theme/app_theme.dart';
 import 'receipt_screen.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 
@@ -1271,10 +1272,7 @@ class _CartSheetState extends State<_CartSheet> {
 
     if (_paymentType == 'cash' &&
         cashPaid < _effectiveTotal) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Insufficient cash amount.'),
-              backgroundColor: Colors.red));
+      CenterToast.showError(context, 'Insufficient cash amount.');
       return;
     }
 

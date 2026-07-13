@@ -192,8 +192,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await prefs.remove('app_pin');
         setState(() => _pinEnabled = false);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('PIN removed.'), backgroundColor: Colors.orange));
+          CenterToast.showWarning(context, 'PIN removed.');
         }
       }
     }
@@ -268,9 +267,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     !clearDebts &&
                     !clearExpenses &&
                     !clearCustomers) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                      content: Text('Select at least one.'),
-                      backgroundColor: Colors.red));
+                  CenterToast.showError(ctx, 'Select at least one.');
                   return;
                 }
                 Navigator.pop(ctx, true);

@@ -455,9 +455,7 @@ class _BackupScreenState extends State<BackupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red));
+        CenterToast.showError(context, 'Error: $e');
       }
     }
     if (mounted) setState(() => _exporting = false);
@@ -484,11 +482,8 @@ class _BackupScreenState extends State<BackupScreen> {
         await context.read<AppProvider>().reload();
         CenterToast.showSuccess(context, 'Backup restored!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text(
-                    'Import failed. Make sure the file is a valid JSON backup.'),
-                backgroundColor: Colors.red));
+        CenterToast.showError(
+            context, 'Import failed. Make sure the file is a valid JSON backup.');
       }
       setState(() => _importing = false);
     }

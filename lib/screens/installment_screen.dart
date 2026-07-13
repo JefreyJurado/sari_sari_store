@@ -896,41 +896,24 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                       final customerName =
                           selectedCustomer?.name ?? nameCtrl.text.trim();
                       if (customerName.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Customer name required.'),
-                                backgroundColor: Colors.red));
+                        CenterToast.showError(context, 'Customer name required.');
                         return;
                       }
                       if (selectedProducts.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Select at least one product.'),
-                                backgroundColor: Colors.red));
+                        CenterToast.showError(context, 'Select at least one product.');
                         return;
                       }
                       if (totalAmount <= 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Total cannot be zero.'),
-                                backgroundColor: Colors.red));
+                        CenterToast.showError(context, 'Total cannot be zero.');
                         return;
                       }
                       final down = double.tryParse(downCtrl.text) ?? 0;
                       if (down < 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Down payment cannot be negative.'),
-                                backgroundColor: Colors.red));
+                        CenterToast.showError(context, 'Down payment cannot be negative.');
                         return;
                       }
                       if (down >= totalAmount) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Down payment cannot exceed total.'),
-                                backgroundColor: Colors.red));
+                        CenterToast.showError(context, 'Down payment cannot exceed total.');
                         return;
                       }
                       String customerId;
@@ -1202,9 +1185,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
       await InstallmentService.instance.delete(inst.id);
       await _load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Installment deleted.'),
-            backgroundColor: Colors.red));
+        CenterToast.showError(context, 'Installment deleted.');
       }
     }
   }

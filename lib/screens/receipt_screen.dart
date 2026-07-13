@@ -74,9 +74,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red));
+        CenterToast.showError(context, 'Error: $e');
       }
     }
     if (mounted) setState(() => _sharing = false);
@@ -91,10 +89,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       final bytes = await _captureReceipt();
       if (bytes == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Could not capture receipt.'),
-                  backgroundColor: Colors.red));
+          CenterToast.showError(context, 'Could not capture receipt.');
         }
         setState(() => _saving = false);
         return;
@@ -112,9 +107,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red));
+        CenterToast.showError(context, 'Error: $e');
       }
     }
     if (mounted) setState(() => _saving = false);

@@ -13,6 +13,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../utils/filipino_categories.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 
@@ -160,11 +161,7 @@ class _CreditOrderScreenState
               child: ElevatedButton(
                 onPressed: () {
                   if (_nameCtrl.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(const SnackBar(
-                            content:
-                                Text('Name is required.'),
-                            backgroundColor: Colors.red));
+                    CenterToast.showError(context, 'Name is required.');
                     return;
                   }
                   Navigator.push(
@@ -936,9 +933,7 @@ class _CreditSummaryScreenState
     } catch (e) {
       setState(() => _saving = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red));
+        CenterToast.showError(context, 'Error: $e');
       }
     }
   }

@@ -87,13 +87,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
               Navigator.pop(context);
               await prov.voidSale(sale);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Sale voided. Stock has been restored.'),
-                    backgroundColor: Colors.orange,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                CenterToast.showWarning(context, 'Sale voided. Stock has been restored.');
               }
             },
             child: const Text('Void Sale',
@@ -122,26 +116,16 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     final totalCount = sale.items.fold(0, (s, i) => s + i.quantity);
 
     if (prov.cart.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No items could be loaded — all products may be out of stock or archived.'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      CenterToast.showError(
+          context, 'No items could be loaded — all products may be out of stock or archived.');
       return;
     }
 
     Navigator.pop(context);
 
     if (loadedCount < totalCount) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Some items could not be loaded — out of stock or archived.'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      CenterToast.showWarning(
+          context, 'Some items could not be loaded — out of stock or archived.');
     } else {
       CenterToast.showSuccess(context, 'Items loaded to cart. Please review and re-process.');
     }

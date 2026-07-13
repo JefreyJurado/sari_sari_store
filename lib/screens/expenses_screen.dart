@@ -341,16 +341,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               child: ElevatedButton(
                 onPressed: () async {
                   if (descCtrl.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Description required.'),
-                        backgroundColor: Colors.red));
+                    CenterToast.showError(context, 'Description required.');
                     return;
                   }
                   final amount = double.tryParse(amountCtrl.text);
                   if (amount == null || amount <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Enter a valid amount.'),
-                        backgroundColor: Colors.red));
+                    CenterToast.showError(context, 'Enter a valid amount.');
                     return;
                   }
                   if (existing == null) {

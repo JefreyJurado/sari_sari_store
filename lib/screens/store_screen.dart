@@ -443,12 +443,8 @@ class _StoreScreenState extends State<StoreScreen> {
                                   _showForm(existing: store);
                                 } else if (v == 'delete') {
                                   if (_stores.length <= 1) {
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(const SnackBar(
-                                      content: Text(
-                                          'Hindi puwedeng burahin ang tanging tindahan!'),
-                                      backgroundColor: Colors.red,
-                                    ));
+                                    CenterToast.showError(
+                                        context, 'Hindi puwedeng burahin ang tanging tindahan!');
                                     return;
                                   }
                                   _stores.removeWhere((s) => s.id == store.id);

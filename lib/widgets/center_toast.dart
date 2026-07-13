@@ -1,18 +1,49 @@
 import 'package:flutter/material.dart';
 
 /// A brief, centered confirmation popup — replaces the bottom SnackBar
-/// for success messages so they're not missed off-screen or behind the
-/// keyboard/bottom nav.
+/// so messages aren't missed off-screen or behind the keyboard/bottom nav.
 class CenterToast {
   static OverlayEntry? _current;
 
-  static void showSuccess(BuildContext context, String message) {
+  static void showSuccess(BuildContext context, String message) => _show(
+        context,
+        message,
+        icon: Icons.check_circle_outline,
+        color: Colors.green,
+      );
+
+  static void showError(BuildContext context, String message) => _show(
+        context,
+        message,
+        icon: Icons.error_outline,
+        color: Colors.red,
+        duration: const Duration(milliseconds: 2000),
+      );
+
+  static void showWarning(BuildContext context, String message) => _show(
+        context,
+        message,
+        icon: Icons.warning_amber_outlined,
+        color: Colors.orange,
+        duration: const Duration(milliseconds: 1800),
+      );
+
+  static void _show(
+    BuildContext context,
+    String message, {
+    required IconData icon,
+    required Color color,
+    Duration duration = const Duration(milliseconds: 1400),
+  }) {
     _current?.remove();
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
     entry = OverlayEntry(
       builder: (_) => _CenterToastWidget(
         message: message,
+        icon: icon,
+        color: color,
+        duration: duration,
         onDone: () {
           entry.remove();
           if (identical(_current, entry)) _current = null;
@@ -26,8 +57,17 @@ class CenterToast {
 
 class _CenterToastWidget extends StatefulWidget {
   final String message;
+  final IconData icon;
+  final Color color;
+  final Duration duration;
   final VoidCallback onDone;
-  const _CenterToastWidget({required this.message, required this.onDone});
+  const _CenterToastWidget({
+    required this.message,
+    required this.icon,
+    required this.color,
+    required this.duration,
+    required this.onDone,
+  });
 
   @override
   State<_CenterToastWidget> createState() => _CenterToastWidgetState();
@@ -47,7 +87,7 @@ class _CenterToastWidgetState extends State<_CenterToastWidget>
   }
 
   Future<void> _schedule() async {
-    await Future.delayed(const Duration(milliseconds: 1400));
+    await Future.delayed(widget.duration);
     if (!mounted) return;
     await _ctrl.reverse();
     widget.onDone();
@@ -86,11 +126,10 @@ class _CenterToastWidgetState extends State<_CenterToastWidget>
                   Container(
                     width: 44, height: 44,
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
+                      color: widget.color.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check_circle_outline,
-                        color: Colors.green, size: 26),
+                    child: Icon(widget.icon, color: widget.color, size: 26),
                   ),
                   const SizedBox(height: 10),
                   Text(widget.message,

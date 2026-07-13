@@ -309,18 +309,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Future<void> _process() async {
     final amount = double.tryParse(_amountCtrl.text);
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Enter a valid amount.'),
-              backgroundColor: Colors.red));
+      CenterToast.showError(context, 'Enter a valid amount.');
       return;
     }
     if (amount > widget.debt.remaining) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Amount cannot exceed balance.'),
-              backgroundColor: Colors.red));
+      CenterToast.showError(context, 'Amount cannot exceed balance.');
       return;
     }
     setState(() => _isProcessing = true);

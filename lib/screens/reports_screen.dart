@@ -9,6 +9,7 @@ import 'sales_history_screen.dart';
 import 'daily_summary_screen.dart';
 import 'expenses_screen.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 const _green = Color(0xFF059669);
@@ -590,10 +591,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('Error: $e'),
-                backgroundColor: Colors.red));
+        CenterToast.showError(context, 'Error: $e');
       }
     }
     if (mounted) setState(() => _isPrinting = false);
