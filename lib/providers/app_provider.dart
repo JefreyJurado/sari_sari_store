@@ -60,6 +60,17 @@ class AppProvider extends ChangeNotifier {
   double get todayProfit => CurrencyFormatter.roundCents(
       todaySales.fold(0.0, (s, t) => s + t.totalProfit));
 
+  double get yesterdayRevenue {
+    final y = DateTime.now().subtract(const Duration(days: 1));
+    return CurrencyFormatter.roundCents(sales
+        .where((s) =>
+            s.status == TxStatus.completed &&
+            s.createdAt.year == y.year &&
+            s.createdAt.month == y.month &&
+            s.createdAt.day == y.day)
+        .fold(0.0, (s, t) => s + t.totalAmount));
+  }
+
   double get totalUnpaidDebt => CurrencyFormatter.roundCents(debts
       .where((d) => d.status != DebtStatus.paid)
       .fold(0.0, (s, d) => s + d.remaining));

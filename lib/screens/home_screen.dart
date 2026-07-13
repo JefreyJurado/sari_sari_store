@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../widgets/quick_action_buttons.dart';
+import '../widgets/store_mascot.dart';
 import '../models/transaction.dart';
 import '../models/debt.dart';
 import 'settings_screen.dart';
@@ -100,6 +101,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 .toList();
             return unpaid.isNotEmpty;
           }).toList();
+
+          final hour = DateTime.now().hour;
+          final hasStockIssue =
+              prov.outOfStock.isNotEmpty || prov.lowStock.isNotEmpty;
+
+          final MascotMood mascotMood;
+          final String mascotMsg;
+          if (hour < 6 || hour >= 21) {
+            mascotMood = MascotMood.sleepy;
+            mascotMsg = "The store's closed for the night. See you tomorrow!";
+          } else if (hasStockIssue) {
+            mascotMood = MascotMood.lowStock;
+            mascotMsg = prov.outOfStock.isNotEmpty
+                ? '${prov.outOfStock.length} item${prov.outOfStock.length == 1 ? '' : 's'} out of stock — restock soon!'
+                : '${prov.lowStock.length} item${prov.lowStock.length == 1 ? '' : 's'} running low on stock.';
+          } else if (prov.todayRevenue > 0 &&
+              prov.yesterdayRevenue > 0 &&
+              prov.todayRevenue >= prov.yesterdayRevenue * 1.5) {
+            mascotMood = MascotMood.celebrating;
+            mascotMsg = 'Best day yet! Sales are way up from yesterday.';
+          } else if (prov.todayRevenue > 0) {
+            mascotMood = MascotMood.happySales;
+            mascotMsg = 'Sales are coming in nicely today!';
+          } else {
+            mascotMood = MascotMood.neutralIdle;
+            mascotMsg = 'Ready for the day — no sales logged yet.';
+          }
 
           return RefreshIndicator(
             onRefresh: prov.reload,
@@ -232,6 +260,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: AppSpacing.xxl),
+
+                        // ── Mascot ─────────────────────────
+                        StoreMascot(mood: mascotMood, statusText: mascotMsg),
                         const SizedBox(height: AppSpacing.xxl),
 
                         // ── Stats ─────────────────────────
