@@ -48,6 +48,9 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
     return _selectedMonth == '${now.year}-${now.month.toString().padLeft(2, '0')}';
   }
 
+  bool get _isEstimatedMonth =>
+      _snapshot.isNotEmpty && _snapshot.any((p) => p['isEstimated'] == true);
+
   void _shiftMonth(int delta) {
     final parts = _selectedMonth.split('-');
     var year = int.parse(parts[0]);
@@ -118,7 +121,9 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Stock levels are recorded automatically at the start of each month. Months before tracking began won\'t show data.',
+                  _isEstimatedMonth
+                      ? 'Estimated from next month\'s recorded stock and this month\'s sales — restocks during the month aren\'t reflected.'
+                      : 'Stock levels are recorded automatically at the start of each month. Months before tracking began won\'t show data.',
                   style: TextStyle(fontSize: 11, color: Colors.orange.shade800),
                 ),
               ),

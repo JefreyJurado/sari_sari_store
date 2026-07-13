@@ -566,13 +566,34 @@ class DatabaseService {
     return '$year-${mon.toString().padLeft(2, '0')}';
   }
 
+  static String _prevMonthKey(String month) {
+    final parts = month.split('-');
+    var year = int.parse(parts[0]);
+    var mon = int.parse(parts[1]) - 1;
+    if (mon < 1) {
+      mon = 12;
+      year--;
+    }
+    return '$year-${mon.toString().padLeft(2, '0')}';
+  }
+
+  Future<void>? _monthlySnapshotInFlight;
+
   /// Records each active product's current stock as the "beginning of
   /// month" checkpoint, once per calendar month. This is what lets
   /// [getInventorySnapshot] show accurate figures for past months —
   /// before this existed, the screen could only ever show today's
   /// live stock regardless of which month was selected. Safe to call
   /// on every app start; a no-op after the first call each month.
-  Future<void> recordMonthlySnapshotIfNeeded() async {
+  /// Guarded in-memory too — see [BackupService.autoBackupIfNeeded] for
+  /// why AppProvider.initialize() can fire this twice in quick succession.
+  Future<void> recordMonthlySnapshotIfNeeded() {
+    return _monthlySnapshotInFlight ??= _doRecordMonthlySnapshot().whenComplete(() {
+      _monthlySnapshotInFlight = null;
+    });
+  }
+
+  Future<void> _doRecordMonthlySnapshot() async {
     final db = await database;
     final month = _currentMonthKey();
     final existing = await db.query('inventory_snapshots',
@@ -595,6 +616,90 @@ class DatabaseService {
         });
       }
     });
+  }
+
+  Future<void>? _backfillInFlight;
+
+  /// Rescue for every month the store was already selling in before
+  /// this snapshot tracking existed. Walks backward one month at a
+  /// time from whichever month first runs this code — not necessarily
+  /// "last month", since a Play Store update can reach a device weeks
+  /// after release, well after the real previous month has passed.
+  /// Each missing month's checkpoint doubles as "ending stock" for the
+  /// month before it, and that month's sales are already fully
+  /// recorded — so its beginning stock can be estimated as (next
+  /// month's beginning stock + that month's sales). Marked with
+  /// stockReceived=-1 so the UI can flag it as an estimate: it can't
+  /// account for restocks that may have happened that month, since
+  /// those were never logged. Stops at the first month that already
+  /// has a row, or shows no sales activity (i.e. before the store
+  /// started using the app at all).
+  Future<void> backfillPreviousMonthSnapshotIfPossible() {
+    return _backfillInFlight ??= _doBackfillPreviousMonths().whenComplete(() {
+      _backfillInFlight = null;
+    });
+  }
+
+  Future<void> _doBackfillPreviousMonths() async {
+    final db = await database;
+    var anchorMonth = _currentMonthKey();
+    final createdAt = DateTime.now().toIso8601String();
+
+    // Bounded so a data issue can't turn this into a runaway loop.
+    for (var i = 0; i < 60; i++) {
+      final targetMonth = _prevMonthKey(anchorMonth);
+
+      final targetExisting = await db.query('inventory_snapshots',
+          where: 'month=?', whereArgs: [targetMonth], limit: 1);
+      if (targetExisting.isNotEmpty) break;
+
+      final rawAnchorRows = await db.query('inventory_snapshots',
+          where: 'month=?', whereArgs: [anchorMonth]);
+      if (rawAnchorRows.isEmpty) break;
+
+      final hasSales = await db.rawQuery('''
+        SELECT 1 FROM sales
+        WHERE strftime('%Y-%m', createdAt) = ? AND status = 'completed'
+        LIMIT 1
+      ''', [targetMonth]);
+      if (hasSales.isEmpty) break;
+
+      // Defensive: one row per product, even if duplicates exist.
+      final seenProducts = <String>{};
+      final anchorRows = rawAnchorRows
+          .where((r) => seenProducts.add(r['productId'] as String))
+          .toList();
+
+      await db.transaction((txn) async {
+        for (final anchor in anchorRows) {
+          final productId = anchor['productId'] as String;
+          final anchorEnding = (anchor['beginningStock'] as num).toInt();
+
+          final soldResult = await txn.rawQuery('''
+            SELECT COALESCE(SUM(si.quantity), 0) as sold
+            FROM sale_items si
+            JOIN sales s ON si.saleId = s.id
+            WHERE si.productId = ?
+            AND strftime('%Y-%m', s.createdAt) = ?
+            AND s.status = 'completed'
+          ''', [productId, targetMonth]);
+          final targetSold = (soldResult.first['sold'] as num).toInt();
+
+          await txn.insert('inventory_snapshots', {
+            'productId': productId,
+            'productName': anchor['productName'],
+            'month': targetMonth,
+            'beginningStock': anchorEnding + targetSold,
+            'stockReceived': -1,
+            'stockSold': targetSold,
+            'unitCost': anchor['unitCost'],
+            'createdAt': createdAt,
+          });
+        }
+      });
+
+      anchorMonth = targetMonth;
+    }
   }
 
   Future<List<Map<String, dynamic>>> getInventorySnapshot(String month) async {
@@ -625,12 +730,16 @@ class DatabaseService {
       final stockSold = (soldResult.first['sold'] as num).toInt();
 
       // Beginning stock: the checkpoint recorded at the start of the
-      // selected month, if we have one.
+      // selected month, if we have one. stockReceived=-1 marks a
+      // backfilled estimate (see backfillPreviousMonthSnapshotIfPossible)
+      // rather than a real recorded checkpoint.
       final beginRows = await db.query('inventory_snapshots',
           where: 'productId=? AND month=?', whereArgs: [productId, month]);
       final beginningStock = beginRows.isNotEmpty
           ? (beginRows.first['beginningStock'] as num).toInt()
           : null;
+      final isEstimated = beginRows.isNotEmpty &&
+          (beginRows.first['stockReceived'] as num).toInt() == -1;
 
       // Ending stock: for the current month it's just today's live
       // stock; for a past month it's the checkpoint recorded at the
@@ -658,6 +767,7 @@ class DatabaseService {
         'endingStock': endingStock,
         'unitCost': unitCost,
         'totalInventoryValue': endingStock * unitCost,
+        'isEstimated': isEstimated,
       });
     }
     return result;
