@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../providers/app_provider.dart';
 import '../models/product.dart';
 import '../services/database_service.dart';
+import '../services/barcode_lookup_service.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
 import '../theme/app_theme.dart';
@@ -23,6 +24,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
   MobileScannerController? _controller;
   bool _isScanning = true;
   bool _torchOn = false;
+  bool _lookingUpOnline = false;
   String? _lastScanned;
 
   Color _flashColor = Colors.green;
@@ -116,8 +118,16 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
     } else {
       await _triggerFeedback(false);
       _addHistory(code, 'Bagong Produkto', false);
-      _showAddProductForm(code, prov);
+      _handleUnknownBarcode(code, prov);
     }
+  }
+
+  Future<void> _handleUnknownBarcode(String code, AppProvider prov) async {
+    setState(() => _lookingUpOnline = true);
+    final prefill = await BarcodeLookupService.lookup(code);
+    if (!mounted) return;
+    setState(() => _lookingUpOnline = false);
+    _showAddProductForm(code, prov, prefill: prefill);
   }
 
   void _addHistory(String barcode, String name, bool found) {
@@ -450,13 +460,13 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
     );
   }
 
-  void _showAddProductForm(String barcode, AppProvider prov) {
-    final nameCtrl = TextEditingController();
+  void _showAddProductForm(String barcode, AppProvider prov, {BarcodeLookupResult? prefill}) {
+    final nameCtrl = TextEditingController(text: prefill?.name ?? '');
     final buyCtrl = TextEditingController();
     final sellCtrl = TextEditingController();
     final stockCtrl = TextEditingController();
     final unitCtrl = TextEditingController(text: 'pcs');
-    String category = FilipinoCategories.productCategories.first;
+    String category = prefill?.category ?? FilipinoCategories.productCategories.first;
 
     showModalBottomSheet(
       context: context,
@@ -488,6 +498,23 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                   Expanded(child: Text('Barcode: $barcode', style: const TextStyle(color: AppColors.green, fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
                 ]),
               ),
+              if (prefill != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.blue.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.blue.withValues(alpha: 0.2)),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.cloud_done_outlined, size: 16, color: AppColors.blue),
+                    SizedBox(width: 8),
+                    Expanded(child: Text('Auto-filled from online product database. Please verify.',
+                        style: TextStyle(color: AppColors.blue, fontWeight: FontWeight.w600, fontSize: 12))),
+                  ]),
+                ),
+              ],
               const SizedBox(height: 16),
               _field(nameCtrl, 'Pangalan ng Produkto *', Icons.label_outlined, autofocus: true),
               const SizedBox(height: 12),
@@ -599,7 +626,10 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         title: const Text('Barcode Scanner',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.white)),
         actions: [
           if (_history.isNotEmpty)
             IconButton(
@@ -682,7 +712,11 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(20)),
                             child: Text(
-                              _isScanning ? 'Place barcode inside the frame' : 'Processing...',
+                              _isScanning
+                                  ? 'Place barcode inside the frame'
+                                  : _lookingUpOnline
+                                      ? 'Checking online product database...'
+                                      : 'Processing...',
                               style: TextStyle(color: _isScanning ? Colors.white : Colors.orange, fontSize: 13, fontWeight: FontWeight.w600),
                               textAlign: TextAlign.center,
                             ),
