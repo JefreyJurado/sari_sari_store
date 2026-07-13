@@ -453,6 +453,9 @@ class AppProvider extends ChangeNotifier {
   /// balance for an installment is tracked separately by
   /// [Installment.remainingBalance], so a parallel Debt row would just
   /// be a second, easily-desynced source of truth for the same amount.
+  /// `cashPaid`/`creditAmount` reflect the actual down payment and
+  /// deferred balance (not the full total as "paid"), so receipts and
+  /// daily-summary tender breakdowns stay accurate.
   /// Returns the new sale's id so the caller can link it on the
   /// [Installment] record (for stock restoration if it's later deleted).
   Future<String> recordInstallmentSale({
@@ -460,6 +463,7 @@ class AppProvider extends ChangeNotifier {
     required String customerId,
     required String customerName,
     required double totalAmount,
+    required double downPayment,
   }) async {
     final txItems = items.entries
         .map((e) => TxItem(
@@ -475,8 +479,8 @@ class AppProvider extends ChangeNotifier {
       id: _uuid.v4(),
       items: txItems,
       totalAmount: totalAmount,
-      cashPaid: totalAmount,
-      creditAmount: 0,
+      cashPaid: downPayment,
+      creditAmount: totalAmount - downPayment,
       customerId: customerId,
       customerName: customerName,
       type: PaymentType.installment,

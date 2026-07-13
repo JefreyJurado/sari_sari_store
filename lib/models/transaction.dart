@@ -67,8 +67,13 @@ class Sale {
     this.receiptNumber,
   });
 
-  double get totalProfit =>
-      CurrencyFormatter.roundCents(items.fold(0, (s, i) => s + i.profit));
+  // Not items.fold(profit) — that sums each item's (price-buyPrice)*qty at
+  // full sellPrice, ignoring any loyalty discount applied as a lump-sum
+  // reduction to totalAmount rather than distributed across item prices.
+  // totalAmount - COGS nets that discount out automatically, the same way
+  // AppProvider.grossProfit (totalRevenue - totalCOGS) already does.
+  double get totalProfit => CurrencyFormatter.roundCents(totalAmount -
+      items.fold(0.0, (s, i) => s + i.buyPrice * i.quantity));
   double get change =>
       cashPaid > totalAmount ? cashPaid - totalAmount : 0;
   bool get isVoided => status == TxStatus.voided;

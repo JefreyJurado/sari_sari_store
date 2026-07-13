@@ -91,7 +91,8 @@ class _HomeScreenState extends State<HomeScreen> {
           final cashSales = prov.sales
               .where((s) =>
                   s.status == TxStatus.completed &&
-                  s.type != PaymentType.credit)
+                  s.type != PaymentType.credit &&
+                  s.type != PaymentType.installment)
               .toList();
 
           final customersWithDebt = prov.customers.where((c) {

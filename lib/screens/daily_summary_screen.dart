@@ -49,15 +49,22 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
           sales.fold(0.0, (s, t) => s + t.totalAmount));
       final profit = CurrencyFormatter.roundCents(
           sales.fold(0.0, (s, t) => s + t.totalProfit));
+      // Installment sales carry both a cash portion (the down payment,
+      // already collected) and a deferred portion (creditAmount) — split
+      // between the two buckets below so cash+online+credit always adds
+      // back up to the day's total revenue.
       final cashSales = CurrencyFormatter.roundCents(sales
-          .where((s) => s.type == PaymentType.cash)
-          .fold(0.0, (s, t) => s + t.totalAmount));
+          .where((s) =>
+              s.type == PaymentType.cash || s.type == PaymentType.installment)
+          .fold(0.0, (s, t) => s + (t.totalAmount - t.creditAmount)));
       final onlineSales = CurrencyFormatter.roundCents(sales
           .where((s) => s.type == PaymentType.online)
           .fold(0.0, (s, t) => s + t.totalAmount));
       final creditSales = CurrencyFormatter.roundCents(sales
           .where((s) =>
-              s.type == PaymentType.credit || s.type == PaymentType.mixed)
+              s.type == PaymentType.credit ||
+              s.type == PaymentType.mixed ||
+              s.type == PaymentType.installment)
           .fold(0.0, (s, t) => s + t.creditAmount));
       final expenses = CurrencyFormatter.roundCents(prov.expenses
           .where((e) => DateHelper.isSameDay(e.date, _selectedDate))
@@ -391,9 +398,15 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
-                                    s.type == PaymentType.cash
-                                        ? Icons.payments_outlined
-                                        : Icons.phone_android_outlined,
+                                    switch (s.type) {
+                                      PaymentType.cash => Icons.payments_outlined,
+                                      PaymentType.credit => Icons.credit_card_outlined,
+                                      PaymentType.installment =>
+                                        Icons.calendar_month_outlined,
+                                      PaymentType.online ||
+                                      PaymentType.mixed =>
+                                        Icons.phone_android_outlined,
+                                    },
                                     color: Colors.black54,
                                     size: 18,
                                   ),

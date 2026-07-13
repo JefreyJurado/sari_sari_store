@@ -48,6 +48,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'amount': i.amount.toStringAsFixed(2),
             'ctrl': TextEditingController(text: i.label),
             'amtCtrl': amtCtrl,
+            // This screen has no UI for category/vendor/paymentMethod/date
+            // — kept only so _save() can carry them through unchanged
+            // instead of resetting them to defaults.
+            'original': i,
           };
         }).toList();
       }
@@ -63,12 +67,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prov = context.read<AppProvider>();
 
     final setupItems = _setupItems
-        .map((i) => SetupCostItem(
-              label: (i['ctrl'] as TextEditingController).text.trim(),
-              amount: double.tryParse(
-                      (i['amtCtrl'] as TextEditingController).text) ??
-                  0,
-            ))
+        .map((i) {
+          final original = i['original'] as SetupCostItem?;
+          return SetupCostItem(
+            label: (i['ctrl'] as TextEditingController).text.trim(),
+            amount: double.tryParse(
+                    (i['amtCtrl'] as TextEditingController).text) ??
+                0,
+            category: original?.category ?? 'Equipment',
+            vendor: original?.vendor,
+            paymentMethod: original?.paymentMethod ?? 'Cash',
+            date: original?.date,
+          );
+        })
         .where((i) => i.label.isNotEmpty)
         .toList();
 

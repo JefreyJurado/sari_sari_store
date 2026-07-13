@@ -953,6 +953,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                         customerId: customerId,
                         customerName: customerName,
                         totalAmount: totalAmount,
+                        downPayment: down,
                       );
                       final installment = Installment(
                         id: _uuid.v4(),

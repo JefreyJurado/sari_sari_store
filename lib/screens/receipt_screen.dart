@@ -422,7 +422,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       _totalRow(
                           sale.type == PaymentType.online
                               ? 'Paid (Online)'
-                              : 'Cash received',
+                              : sale.type == PaymentType.installment
+                                  ? 'Down payment'
+                                  : 'Cash received',
                           CurrencyFormatter.format(
                               sale.cashPaid)),
                     if (sale.change > 0)
@@ -430,7 +432,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                           CurrencyFormatter.format(
                               sale.change)),
                     if (sale.creditAmount > 0)
-                      _totalRow('Credit',
+                      _totalRow(
+                          sale.type == PaymentType.installment
+                              ? 'Remaining balance'
+                              : 'Credit',
                           CurrencyFormatter.format(
                               sale.creditAmount),
                           color: Colors.orange),
@@ -484,24 +489,28 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                           Icon(
-                            sale.type == PaymentType.cash
-                                ? Icons.payments_outlined
-                                : sale.type ==
-                                        PaymentType.credit
-                                    ? Icons.credit_card_outlined
-                                    : Icons
-                                        .phone_android_outlined,
+                            switch (sale.type) {
+                              PaymentType.cash => Icons.payments_outlined,
+                              PaymentType.credit => Icons.credit_card_outlined,
+                              PaymentType.installment =>
+                                Icons.calendar_month_outlined,
+                              PaymentType.online ||
+                              PaymentType.mixed =>
+                                Icons.phone_android_outlined,
+                            },
                             size: 14,
                             color: Colors.grey[600],
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            sale.type == PaymentType.cash
-                                ? 'Cash'
-                                : sale.type ==
-                                        PaymentType.credit
-                                    ? 'Credit'
-                                    : 'Online Payment',
+                            switch (sale.type) {
+                              PaymentType.cash => 'Cash',
+                              PaymentType.credit => 'Credit',
+                              PaymentType.installment => 'Installment',
+                              PaymentType.online ||
+                              PaymentType.mixed =>
+                                'Online Payment',
+                            },
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontWeight: FontWeight.w500,
