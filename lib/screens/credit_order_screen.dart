@@ -54,7 +54,7 @@ class _CreditOrderScreenState
           title: const Text('New Credit',
               style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: Colors.black87)),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
@@ -306,8 +306,8 @@ class _CreditProductScreenState
               children: [
             const Text('Select Items',
                 style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
                     color: Colors.black87)),
             Text(widget.customerName,
                 style: TextStyle(
@@ -956,7 +956,7 @@ class _CreditSummaryScreenState
           title: const Text('Credit Summary',
               style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: Colors.black87)),
           actions: [
             IconButton(

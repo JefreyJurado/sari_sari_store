@@ -179,10 +179,15 @@ class _StoreScreenState extends State<StoreScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         centerTitle: false,
         titleSpacing: 16,
         title: const Text('Mga Tindahan',
-            style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87)),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

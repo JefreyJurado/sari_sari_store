@@ -142,7 +142,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         title: const Text('Receipt',
             style: TextStyle(
                 fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: Colors.black87)),
         actions: [
           IconButton(

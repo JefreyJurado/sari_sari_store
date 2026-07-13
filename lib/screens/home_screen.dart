@@ -117,8 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: EdgeInsets.only(
                       top: topPadding + 12,
                       bottom: 16,
-                      left: 20,
-                      right: 8,
+                      left: 16,
+                      right: 4,
                     ),
                     child: Row(children: [
                       const Text(
@@ -153,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // ── Main Content ─────────────────────────
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -298,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         // ── Quick Actions ─────────────────
                         _sectionHeader(title: 'Quick Actions'),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: AppSpacing.md),
                         const QuickActionButtons(),
                         const SizedBox(height: 20),
 

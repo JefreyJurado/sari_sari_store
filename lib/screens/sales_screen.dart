@@ -70,8 +70,9 @@ class _SalesScreenState extends State<SalesScreen> {
                                   'Sales',
                                   style: TextStyle(
                                     fontSize: 24,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.bold,
                                     color: Colors.black87,
+                                    letterSpacing: -0.5,
                                   ),
                                 ),
                                 const Spacer(),

@@ -77,8 +77,9 @@ class _ListaScreenState extends State<ListaScreen>
                           'Credit Ledger',
                           style: TextStyle(
                             fontSize: 24,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                             color: Colors.black87,
+                            letterSpacing: -0.5,
                           ),
                         ),
                       ),

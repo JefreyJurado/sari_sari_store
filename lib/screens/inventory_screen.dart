@@ -135,7 +135,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             final products = _getFilteredAndSortedProducts(data.list);
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 80),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 80),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

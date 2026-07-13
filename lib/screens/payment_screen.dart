@@ -51,7 +51,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         title: const Text('Accept Payment',
             style: TextStyle(
                 fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: Colors.black87)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
