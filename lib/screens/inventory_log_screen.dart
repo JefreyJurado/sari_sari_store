@@ -43,6 +43,27 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
     return '$monthName $year';
   }
 
+  bool get _isCurrentMonth {
+    final now = DateTime.now();
+    return _selectedMonth == '${now.year}-${now.month.toString().padLeft(2, '0')}';
+  }
+
+  void _shiftMonth(int delta) {
+    final parts = _selectedMonth.split('-');
+    var year = int.parse(parts[0]);
+    var month = int.parse(parts[1]) + delta;
+    while (month > 12) {
+      month -= 12;
+      year++;
+    }
+    while (month < 1) {
+      month += 12;
+      year--;
+    }
+    setState(() => _selectedMonth = '$year-${month.toString().padLeft(2, '0')}');
+    _loadSnapshot();
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalValue = _snapshot.fold(
@@ -66,17 +87,23 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
       ),
       body: Column(
         children: [
-          // Current month (historical months aren't tracked — see note below)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             color: Colors.white,
-            child: Row(children: [
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left, color: _blue),
+                onPressed: () => _shiftMonth(-1),
+              ),
               const Icon(Icons.calendar_month_outlined, size: 16, color: _blue),
               const SizedBox(width: 8),
-              const Text('Month:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-              const SizedBox(width: 12),
               Text(_formatMonth(_selectedMonth),
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _blue)),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _blue)),
+              IconButton(
+                icon: Icon(Icons.chevron_right,
+                    color: _isCurrentMonth ? Colors.grey[300] : _blue),
+                onPressed: _isCurrentMonth ? null : () => _shiftMonth(1),
+              ),
             ]),
           ),
           Container(
@@ -91,7 +118,7 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Only the current month can be shown accurately — past-month stock history isn\'t recorded yet.',
+                  'Stock levels are recorded automatically at the start of each month. Months before tracking began won\'t show data.',
                   style: TextStyle(fontSize: 11, color: Colors.orange.shade800),
                 ),
               ),
@@ -142,7 +169,12 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
                         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                           Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[300]),
                           const SizedBox(height: 12),
-                          Text('No inventory data', style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+                          Text(
+                              _isCurrentMonth
+                                  ? 'No inventory data'
+                                  : 'No data recorded for ${_formatMonth(_selectedMonth)}',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey[400], fontSize: 14)),
                         ]),
                       )
                     : Builder(builder: (_) {

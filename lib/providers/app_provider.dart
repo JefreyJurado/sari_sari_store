@@ -161,6 +161,9 @@ class AppProvider extends ChangeNotifier {
     isLoading = true;
     _safeNotifyListeners();
     await _loadAll();
+    try {
+      await _db.recordMonthlySnapshotIfNeeded();
+    } catch (_) {}
     isLoading = false;
     _safeNotifyListeners();
 

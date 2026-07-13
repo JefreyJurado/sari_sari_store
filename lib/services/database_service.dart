@@ -550,9 +550,59 @@ class DatabaseService {
   }
 
   // ── INVENTORY SNAPSHOTS ────────────────────────────────
+  static String _currentMonthKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}';
+  }
+
+  static String _nextMonthKey(String month) {
+    final parts = month.split('-');
+    var year = int.parse(parts[0]);
+    var mon = int.parse(parts[1]) + 1;
+    if (mon > 12) {
+      mon = 1;
+      year++;
+    }
+    return '$year-${mon.toString().padLeft(2, '0')}';
+  }
+
+  /// Records each active product's current stock as the "beginning of
+  /// month" checkpoint, once per calendar month. This is what lets
+  /// [getInventorySnapshot] show accurate figures for past months —
+  /// before this existed, the screen could only ever show today's
+  /// live stock regardless of which month was selected. Safe to call
+  /// on every app start; a no-op after the first call each month.
+  Future<void> recordMonthlySnapshotIfNeeded() async {
+    final db = await database;
+    final month = _currentMonthKey();
+    final existing = await db.query('inventory_snapshots',
+        where: 'month=?', whereArgs: [month], limit: 1);
+    if (existing.isNotEmpty) return;
+
+    final products = await db.query('products', where: 'isActive=1');
+    final createdAt = DateTime.now().toIso8601String();
+    await db.transaction((txn) async {
+      for (final p in products) {
+        await txn.insert('inventory_snapshots', {
+          'productId': p['id'],
+          'productName': p['name'],
+          'month': month,
+          'beginningStock': p['stock'],
+          'stockReceived': 0,
+          'stockSold': 0,
+          'unitCost': p['buyPrice'],
+          'createdAt': createdAt,
+        });
+      }
+    });
+  }
+
   Future<List<Map<String, dynamic>>> getInventorySnapshot(String month) async {
     final db = await database;
-    // Get beginning stock from previous month snapshot or current stock
+    final currentMonth = _currentMonthKey();
+    final isCurrentMonth = month == currentMonth;
+    final nextMonth = _nextMonthKey(month);
+
     final products = await db.query('products', where: 'isActive=1');
     final List<Map<String, dynamic>> result = [];
 
@@ -560,8 +610,10 @@ class DatabaseService {
       final productId = p['id'] as String;
       final productName = p['name'] as String;
       final unitCost = (p['buyPrice'] as num).toDouble();
+      final currentStock = (p['stock'] as num).toInt();
 
-      // Stock sold this month
+      // Stock sold in the selected month — always accurate, since
+      // sales are timestamped and never rewritten.
       final soldResult = await db.rawQuery('''
         SELECT COALESCE(SUM(si.quantity), 0) as sold
         FROM sale_items si
@@ -572,10 +624,30 @@ class DatabaseService {
       ''', [productId, month]);
       final stockSold = (soldResult.first['sold'] as num).toInt();
 
-      // Current stock
-      final currentStock = (p['stock'] as num).toInt();
-      final endingStock = currentStock;
-      final beginningStock = endingStock + stockSold;
+      // Beginning stock: the checkpoint recorded at the start of the
+      // selected month, if we have one.
+      final beginRows = await db.query('inventory_snapshots',
+          where: 'productId=? AND month=?', whereArgs: [productId, month]);
+      final beginningStock = beginRows.isNotEmpty
+          ? (beginRows.first['beginningStock'] as num).toInt()
+          : null;
+
+      // Ending stock: for the current month it's just today's live
+      // stock; for a past month it's the checkpoint recorded at the
+      // start of the *following* month.
+      int? endingStock;
+      if (isCurrentMonth) {
+        endingStock = currentStock;
+      } else {
+        final endRows = await db.query('inventory_snapshots',
+            where: 'productId=? AND month=?', whereArgs: [productId, nextMonth]);
+        endingStock = endRows.isNotEmpty
+            ? (endRows.first['beginningStock'] as num).toInt()
+            : null;
+      }
+
+      // No recorded checkpoint for this month — nothing accurate to show.
+      if (beginningStock == null || endingStock == null) continue;
 
       result.add({
         'productId': productId,
