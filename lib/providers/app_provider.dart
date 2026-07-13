@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:uuid/uuid.dart';
@@ -10,6 +11,7 @@ import '../models/payment.dart';
 import '../models/capital_entry.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../services/backup_service.dart';
 import '../services/loyalty_service.dart';
 import '../utils/currency_formatter.dart';
 
@@ -161,6 +163,10 @@ class AppProvider extends ChangeNotifier {
     await _loadAll();
     isLoading = false;
     _safeNotifyListeners();
+
+    // Fire-and-forget: must never delay startup or crash it.
+    unawaited(BackupService.instance.autoBackupIfNeeded());
+    unawaited(NotificationService.instance.scheduleWeeklyBackupReminder());
   }
 
   Future<void> _loadAll() async {

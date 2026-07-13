@@ -149,6 +149,47 @@ class NotificationService {
     } catch (_) {}
   }
 
+  // ── Weekly reminder to export a backup off the device ────────
+  Future<void> scheduleWeeklyBackupReminder() async {
+    if (!await isEnabled) return;
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'backup_reminder', 'Backup Reminders',
+        channelDescription: 'Weekly reminder to export a backup of your store data',
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
+      ),
+    );
+
+    // Fixed ID: re-scheduling just replaces the same recurring reminder.
+    // Best-effort — some platforms (e.g. Windows desktop) don't implement
+    // scheduled notifications and throw here; that must never block startup.
+    try {
+      final firstFire = _nextSunday8pm();
+      await _plugin.zonedSchedule(
+        100,
+        '🗄️ Weekly Backup Reminder',
+        'Export a backup of your store data and save it somewhere safe (email, Drive, etc.)',
+        tz.TZDateTime.from(firstFire, tz.local),
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
+    } catch (_) {}
+  }
+
+  DateTime _nextSunday8pm() {
+    final now = DateTime.now();
+    var next = DateTime(now.year, now.month, now.day, 20);
+    while (next.weekday != DateTime.sunday || !next.isAfter(now)) {
+      next = next.add(const Duration(days: 1));
+    }
+    return next;
+  }
+
   Future<void> cancelAll() async {
     try {
       await _plugin.cancelAll();

@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../services/backup_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/date_helper.dart';
 
 const _blue = AppColors.blue;
 
@@ -15,6 +17,25 @@ class BackupScreen extends StatefulWidget {
 class _BackupScreenState extends State<BackupScreen> {
   bool _exporting = false;
   bool _importing = false;
+  DateTime? _lastManualBackup;
+  List<File> _autoBackups = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMeta();
+  }
+
+  Future<void> _loadMeta() async {
+    final last = await BackupService.instance.getLastManualBackupDate();
+    final autos = await BackupService.instance.listAutoBackups();
+    if (mounted) {
+      setState(() {
+        _lastManualBackup = last;
+        _autoBackups = autos;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +103,8 @@ class _BackupScreenState extends State<BackupScreen> {
                 ),
               ]),
             ),
+            const SizedBox(height: 12),
+            _lastBackupStatus(),
             const SizedBox(height: 20),
 
             // ── Export Card ────────────────────────────
@@ -262,6 +285,8 @@ class _BackupScreenState extends State<BackupScreen> {
                 ),
               ]),
             ),
+            const SizedBox(height: 12),
+            _autoBackupsCard(),
             const SizedBox(height: 16),
 
             // ── Tip ───────────────────────────────────
@@ -296,27 +321,95 @@ class _BackupScreenState extends State<BackupScreen> {
     );
   }
 
-  Future<void> _export() async {
-    setState(() => _exporting = true);
-    try {
-      await BackupService.instance.exportBackup();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Backup exported!'),
-                backgroundColor: Colors.green));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red));
-      }
-    }
-    if (mounted) setState(() => _exporting = false);
+  Widget _lastBackupStatus() {
+    final stale = _lastManualBackup == null ||
+        DateTime.now().difference(_lastManualBackup!).inDays >= 7;
+    final color = stale ? Colors.orange : Colors.green;
+    final label = _lastManualBackup == null
+        ? "You haven't exported a backup yet."
+        : 'Last exported backup: ${DateHelper.timeAgo(_lastManualBackup!)}';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(children: [
+        Icon(stale ? Icons.warning_amber_outlined : Icons.check_circle_outline,
+            color: color.shade700, size: 16),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(label,
+              style: TextStyle(
+                  color: color.shade700, fontSize: 12, fontWeight: FontWeight.w500)),
+        ),
+      ]),
+    );
   }
 
-  Future<void> _import() async {
+  Widget _autoBackupsCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color: Colors.purple.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.purple.shade100),
+            ),
+            child: Icon(Icons.history_outlined, color: Colors.purple.shade600, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Local Auto-Backups',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black87)),
+            Text('Saved automatically on this device',
+                style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+          ]),
+        ]),
+        const SizedBox(height: 10),
+        Text(
+            'A safety net only — stays on this phone, so still export a copy off-device regularly.',
+            style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+        const SizedBox(height: 12),
+        if (_autoBackups.isEmpty)
+          Text('None yet — one is saved automatically once a day.',
+              style: TextStyle(color: Colors.grey[400], fontSize: 12))
+        else
+          ..._autoBackups.map((f) {
+            final modified = f.statSync().modified;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(children: [
+                Expanded(
+                  child: Text(DateHelper.timeAgo(modified),
+                      style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                ),
+                TextButton(
+                  onPressed: _importing ? null : () => _restoreFromAuto(f),
+                  style: TextButton.styleFrom(
+                      foregroundColor: _blue, padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  child: const Text('Restore', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
+              ]),
+            );
+          }),
+      ]),
+    );
+  }
+
+  Future<bool> _confirmRestore() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -349,9 +442,45 @@ class _BackupScreenState extends State<BackupScreen> {
         ],
       ),
     );
-    if (confirm != true) return;
+    return confirm == true;
+  }
+
+  Future<void> _export() async {
+    setState(() => _exporting = true);
+    try {
+      await BackupService.instance.exportBackup();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Backup exported!'),
+                backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red));
+      }
+    }
+    if (mounted) setState(() => _exporting = false);
+    await _loadMeta();
+  }
+
+  Future<void> _import() async {
+    if (!await _confirmRestore()) return;
     setState(() => _importing = true);
     final ok = await BackupService.instance.importBackup();
+    await _finishRestore(ok);
+  }
+
+  Future<void> _restoreFromAuto(File file) async {
+    if (!await _confirmRestore()) return;
+    setState(() => _importing = true);
+    final ok = await BackupService.instance.restoreFromFile(file);
+    await _finishRestore(ok);
+  }
+
+  Future<void> _finishRestore(bool ok) async {
     if (mounted) {
       if (ok) {
         await context.read<AppProvider>().reload();
