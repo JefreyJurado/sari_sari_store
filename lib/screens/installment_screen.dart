@@ -230,7 +230,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                   ],
                   onSelected: (v) {
                     if (v == 'delete') {
-                      _confirmDelete(inst);
+                      _confirmDelete(inst, prov);
                     }
                   },
                 ),
@@ -662,7 +662,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                                                     ),
                                                   ],
                                                   GestureDetector(
-                                                    onTap: () {
+                                                    onTap: qty >= p.stock
+                                                        ? null
+                                                        : () {
                                                       pSetS(() {
                                                         sSetS(() {
                                                           setS(() {
@@ -676,7 +678,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                                                       width: 28,
                                                       height: 28,
                                                       decoration: BoxDecoration(
-                                                          color: _blue,
+                                                          color: qty >= p.stock
+                                                              ? Colors.grey.shade300
+                                                              : _blue,
                                                           borderRadius:
                                                               BorderRadius
                                                                   .circular(6)),
@@ -941,6 +945,15 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                       final mon = selectedMonths > 0
                           ? (totalAmount - down) / selectedMonths
                           : 0.0;
+                      // Records the actual sale (stock decrement, revenue,
+                      // profit) now — the goods leave the shelf today even
+                      // though the customer pays it off over time.
+                      final saleId = await prov.recordInstallmentSale(
+                        items: selectedProducts,
+                        customerId: customerId,
+                        customerName: customerName,
+                        totalAmount: totalAmount,
+                      );
                       final installment = Installment(
                         id: _uuid.v4(),
                         customerId: customerId,
@@ -955,6 +968,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                         status: InstallmentStatus.ongoing,
                         startDate: startDate,
                         nextDueDate: startDate.add(const Duration(days: 30)),
+                        saleId: saleId,
                       );
                       await InstallmentService.instance.save(installment);
                       await _load();
@@ -1132,7 +1146,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
     );
   }
 
-  Future<void> _confirmDelete(Installment inst) async {
+  Future<void> _confirmDelete(Installment inst, AppProvider prov) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -1182,6 +1196,13 @@ class _InstallmentScreenState extends State<InstallmentScreen>
     );
 
     if (confirm == true) {
+      // Give back the stock this plan took, unless it's already fully
+      // paid off — those goods were legitimately sold.
+      if (inst.status != InstallmentStatus.completed && inst.saleId != null) {
+        final sale =
+            prov.sales.where((s) => s.id == inst.saleId && !s.isVoided).firstOrNull;
+        if (sale != null) await prov.voidSale(sale);
+      }
       await InstallmentService.instance.delete(inst.id);
       await _load();
       if (mounted) {

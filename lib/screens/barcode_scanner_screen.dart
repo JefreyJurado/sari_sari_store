@@ -108,6 +108,19 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
       return;
     }
 
+    // Barcode isn't unique across archived rows, so check for an
+    // archived match before offering to create a new product with the
+    // same code — otherwise future scans of this barcode could resolve
+    // to either row unpredictably.
+    final archived = await DatabaseService.instance
+        .getProductByBarcode(code, includeInactive: true);
+    if (archived != null) {
+      await _triggerFeedback(true);
+      _addHistory(code, archived.name, true);
+      _showArchivedProductFound(archived, prov);
+      return;
+    }
+
     final byName = prov.products
         .where((p) => p.name.toLowerCase().contains(code.toLowerCase()))
         .toList();
@@ -228,6 +241,63 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
               ),
             ),
           ]),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.qr_code_scanner_outlined, size: 18),
+              label: const Text('I-scan Ulit'),
+            ),
+          ),
+        ]),
+      ),
+    ).then((_) => _resume());
+  }
+
+  void _showArchivedProductFound(Product product, AppProvider prov) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.background,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 40, height: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+          ),
+          Container(
+            width: 56, height: 56,
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.archive_outlined, color: Colors.orange, size: 32),
+          ),
+          const SizedBox(height: 12),
+          Text(product.name,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center),
+          Text('This barcode belongs to an archived product',
+              style: TextStyle(color: Colors.grey[500], fontSize: 13),
+              textAlign: TextAlign.center),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                prov.updateProduct(product.copyWith(isActive: true));
+                Navigator.pop(context);
+                CenterToast.showSuccess(context, '${product.name} reactivated!');
+              },
+              icon: const Icon(Icons.unarchive_outlined, size: 18),
+              label: const Text('Reactivate Product'),
+              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 13)),
+            ),
+          ),
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,

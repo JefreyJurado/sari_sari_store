@@ -284,6 +284,20 @@ class DatabaseService {
       (await database).update('products', p.toMap(),
           where: 'id=?', whereArgs: [p.id]);
 
+  /// Atomically applies a stock delta in SQL (`stock = stock + ?`)
+  /// instead of a Dart-side read-modify-write, so two concurrent calls
+  /// (e.g. two near-simultaneous sales) can never lose one's update by
+  /// both computing a new value from the same stale snapshot. Also
+  /// safe to call for an archived product — unlike [updateProduct], it
+  /// never touches any other column, so it can't accidentally
+  /// resurrect/overwrite an archived row's other fields.
+  Future<void> adjustProductStock(String productId, int delta) async {
+    final db = await database;
+    await db.rawUpdate(
+        'UPDATE products SET stock = stock + ? WHERE id = ?',
+        [delta, productId]);
+  }
+
   Future<void> archiveProduct(String id) async =>
       (await database).update('products', {'isActive': 0},
           where: 'id=?', whereArgs: [id]);
@@ -314,9 +328,9 @@ class DatabaseService {
   }
 
   Future<Product?> getProductByBarcode(
-      String barcode) async {
+      String barcode, {bool includeInactive = false}) async {
     final maps = await (await database).query('products',
-        where: 'barcode=? AND isActive=1',
+        where: includeInactive ? 'barcode=?' : 'barcode=? AND isActive=1',
         whereArgs: [barcode]);
     if (maps.isEmpty) return null;
     return Product.fromMap(maps.first);
@@ -332,12 +346,14 @@ class DatabaseService {
 
   Future<void> insertSale(Sale sale) async {
     final db = await database;
-    await db.insert('sales', sale.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
-    for (final item in sale.items) {
-      await db.insert('sale_items',
-          {'saleId': sale.id, ...item.toMap()});
-    }
+    await db.transaction((txn) async {
+      await txn.insert('sales', sale.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      for (final item in sale.items) {
+        await txn.insert('sale_items',
+            {'saleId': sale.id, ...item.toMap()});
+      }
+    });
   }
 
   Future<List<Sale>> getSales({int limit = 300}) async {

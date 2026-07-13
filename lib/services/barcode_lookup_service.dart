@@ -17,7 +17,7 @@ class BarcodeLookupService {
   static Future<BarcodeLookupResult?> lookup(String barcode) async {
     try {
       final uri = Uri.parse(
-          'https://world.openfoodfacts.org/api/v2/product/$barcode.json'
+          'https://world.openfoodfacts.org/api/v2/product/${Uri.encodeComponent(barcode)}.json'
           '?fields=product_name,product_name_en,brands,categories_tags,quantity');
       final response = await http
           .get(uri, headers: {'User-Agent': 'StorePH-SariSariApp/1.0'})

@@ -1,6 +1,6 @@
 import '../utils/currency_formatter.dart';
 
-enum PaymentType { cash, credit, mixed, online }
+enum PaymentType { cash, credit, mixed, online, installment }
 enum TxStatus { completed, voided }
 
 class TxItem {

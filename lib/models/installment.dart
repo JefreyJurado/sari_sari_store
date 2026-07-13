@@ -15,6 +15,10 @@ class Installment {
   final DateTime startDate;
   final DateTime nextDueDate;
   final String? notes;
+  /// Links to the Sale created when this plan was set up (null for
+  /// plans saved before that linkage existed), so deleting the plan
+  /// can restore the stock it took via [AppProvider.voidSale].
+  final String? saleId;
 
   Installment({
     required this.id,
@@ -31,6 +35,7 @@ class Installment {
     required this.startDate,
     required this.nextDueDate,
     this.notes,
+    this.saleId,
   });
 
   double get remainingBalance => totalAmount - totalPaid;
@@ -57,6 +62,7 @@ class Installment {
         'startDate': startDate.toIso8601String(),
         'nextDueDate': nextDueDate.toIso8601String(),
         'notes': notes,
+        'saleId': saleId,
       };
 
   factory Installment.fromMap(Map<String, dynamic> m) => Installment(
@@ -76,6 +82,7 @@ class Installment {
         startDate: DateTime.parse(m['startDate']),
         nextDueDate: DateTime.parse(m['nextDueDate']),
         notes: m['notes'],
+        saleId: m['saleId'] as String?,
       );
 
   Installment copyWith({
@@ -99,5 +106,6 @@ class Installment {
         startDate: startDate,
         nextDueDate: nextDueDate ?? this.nextDueDate,
         notes: notes,
+        saleId: saleId,
       );
 }

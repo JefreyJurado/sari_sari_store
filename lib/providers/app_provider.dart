@@ -9,10 +9,12 @@ import '../models/expense.dart';
 import '../models/debt.dart';
 import '../models/payment.dart';
 import '../models/capital_entry.dart';
+import '../models/installment.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../services/backup_service.dart';
 import '../services/loyalty_service.dart';
+import '../services/installment_service.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 
@@ -289,8 +291,7 @@ class AppProvider extends ChangeNotifier {
     await _db.insertSale(sale);
 
     for (final e in cart.entries) {
-      await _db.updateProduct(
-          e.key.copyWith(stock: e.key.stock - e.value));
+      await _db.adjustProductStock(e.key.id, -e.value);
     }
 
     if (creditAmount > 0 && customer != null) {
@@ -387,8 +388,7 @@ class AppProvider extends ChangeNotifier {
     for (final e in items) {
       final product = e['product'] as Product;
       final qty = e['qty'] as int;
-      await _db.updateProduct(
-          product.copyWith(stock: product.stock - qty));
+      await _db.adjustProductStock(product.id, -qty);
     }
 
     if (creditAmount > 0 && customer != null) {
@@ -428,20 +428,12 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> voidSale(Sale sale) async {
+    // Adjusts stock in place by id rather than looking the product up in
+    // the (active-only) in-memory list and rewriting the whole row — that
+    // used to fabricate a blank stand-in for archived products and wipe
+    // out their real price/category data when the update landed.
     for (final item in sale.items) {
-      final p = products.firstWhere(
-          (p) => p.id == item.productId,
-          orElse: () => Product(
-                id: item.productId,
-                name: item.productName,
-                category: '',
-                buyPrice: 0,
-                sellPrice: 0,
-                stock: 0,
-                createdAt: DateTime.now(),
-              ));
-      await _db.updateProduct(
-          p.copyWith(stock: p.stock + item.quantity));
+      await _db.adjustProductStock(item.productId, item.quantity);
     }
     await _db.voidSale(sale.id);
     await _db.deleteDebtsBySale(sale.id);
@@ -452,6 +444,65 @@ class AppProvider extends ChangeNotifier {
       );
     }
     await reload();
+  }
+
+  /// Records the sale side of a new installment plan: creates a real
+  /// `Sale`/`sale_items` row (so revenue, profit, and stock are correct
+  /// immediately, since the goods leave the shelf right away) and
+  /// decrements stock, without creating a `Debt` — the outstanding
+  /// balance for an installment is tracked separately by
+  /// [Installment.remainingBalance], so a parallel Debt row would just
+  /// be a second, easily-desynced source of truth for the same amount.
+  /// Returns the new sale's id so the caller can link it on the
+  /// [Installment] record (for stock restoration if it's later deleted).
+  Future<String> recordInstallmentSale({
+    required Map<Product, int> items,
+    required String customerId,
+    required String customerName,
+    required double totalAmount,
+  }) async {
+    final txItems = items.entries
+        .map((e) => TxItem(
+              productId: e.key.id,
+              productName: e.key.name,
+              quantity: e.value,
+              price: e.key.sellPrice,
+              buyPrice: e.key.buyPrice,
+            ))
+        .toList();
+
+    final sale = Sale(
+      id: _uuid.v4(),
+      items: txItems,
+      totalAmount: totalAmount,
+      cashPaid: totalAmount,
+      creditAmount: 0,
+      customerId: customerId,
+      customerName: customerName,
+      type: PaymentType.installment,
+      notes: 'Installment sale',
+      createdAt: DateTime.now(),
+      receiptNumber: await _db.getNextReceiptNumber(),
+    );
+
+    await _db.insertSale(sale);
+    for (final e in items.entries) {
+      await _db.adjustProductStock(e.key.id, -e.value);
+    }
+
+    final customer = customers.where((c) => c.id == customerId).firstOrNull;
+    if (customer != null) {
+      await LoyaltyService.instance.addPointsFromSale(
+        customerId: customer.id,
+        customerName: customer.name,
+        saleAmount: totalAmount,
+        saleDate: sale.createdAt,
+        saleId: sale.id,
+      );
+    }
+
+    await reload();
+    return sale.id;
   }
 
   // ── Customers ──────────────────────────────────────────────────
@@ -474,7 +525,24 @@ class AppProvider extends ChangeNotifier {
     await reload();
   }
 
+  /// Deletes a customer's installment plans too, since they live in
+  /// SharedPreferences (installments never got a debts-table row) and
+  /// would otherwise keep showing up in the Installment tab pointing at
+  /// a customer that no longer exists anywhere else in the app. Any
+  /// still-unpaid plan also has its sold stock restored — a completed
+  /// one is left alone, since those goods were already fully paid for.
   Future<void> deleteCustomer(String id) async {
+    final theirInstallments = (await InstallmentService.instance.getAll())
+        .where((i) => i.customerId == id);
+    for (final inst in theirInstallments) {
+      if (inst.status != InstallmentStatus.completed &&
+          inst.saleId != null) {
+        final sale = sales.where((s) => s.id == inst.saleId && !s.isVoided).firstOrNull;
+        if (sale != null) await voidSale(sale);
+      }
+      await InstallmentService.instance.delete(inst.id);
+    }
+
     await _db.deleteCustomer(id);
     await reload();
   }
