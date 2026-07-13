@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 class PinScreen extends StatefulWidget {
   final bool isSetup;
@@ -89,11 +90,7 @@ class _PinScreenState extends State<PinScreen>
       await prefs.setBool('pin_enabled', true);
       if (mounted) {
         Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-          content: Text('PIN set successfully!'),
-          backgroundColor: Colors.green,
-        ));
+        CenterToast.showSuccess(context, 'PIN set successfully!');
       }
     } else {
       _shakeCtrl.forward(from: 0);

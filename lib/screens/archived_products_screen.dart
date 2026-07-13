@@ -5,6 +5,7 @@ import '../models/product.dart';
 import '../services/database_service.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
+import '../widgets/center_toast.dart';
 
 class ArchivedProductsScreen extends StatefulWidget {
   const ArchivedProductsScreen({super.key});
@@ -52,13 +53,7 @@ class _ArchivedProductsScreenState extends State<ArchivedProductsScreen> {
               await context.read<AppProvider>().restoreProduct(product.id);
               await _load();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('"${product.name}" restored successfully.'),
-                    backgroundColor: Colors.green,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                CenterToast.showSuccess(context, '"${product.name}" restored successfully.');
               }
             },
             child: const Text('Restore',

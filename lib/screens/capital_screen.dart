@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../models/capital_entry.dart';
 import '../utils/currency_formatter.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 
@@ -90,14 +91,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
     );
     if (mounted) {
       setState(() => _isEditing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Capital settings saved!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      CenterToast.showSuccess(context, 'Capital settings saved!');
     }
   }
 

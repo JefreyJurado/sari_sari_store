@@ -9,6 +9,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _uuid = Uuid();
 const _blue = AppColors.blue;
@@ -976,10 +977,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                       await _load();
                       if (ctx.mounted) Navigator.pop(ctx);
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Installment saved!'),
-                                backgroundColor: Colors.green));
+                        CenterToast.showSuccess(context, 'Installment saved!');
                       }
                     },
                     style: ElevatedButton.styleFrom(

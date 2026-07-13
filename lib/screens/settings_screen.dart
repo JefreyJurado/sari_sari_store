@@ -7,6 +7,7 @@ import '../providers/app_provider.dart';
 import '../models/capital_entry.dart';
 import '../utils/currency_formatter.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 
@@ -300,11 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (clearExpenses) cleared.add('Expenses');
       if (clearCustomers) cleared.add('Customers');
       await context.read<AppProvider>().reload();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Cleared: ${cleared.join(', ')}'),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 3),
-      ));
+      CenterToast.showSuccess(context, 'Cleared: ${cleared.join(', ')}');
     }
   }
 
@@ -421,11 +418,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _keepSettings();
     if (mounted) {
       await context.read<AppProvider>().reload();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('All data cleared. Products are kept.'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 3),
-      ));
+      CenterToast.showSuccess(context, 'All data cleared. Products are kept.');
     }
   }
 
@@ -723,10 +716,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         const PinScreen(isSetup: true)),
                               );
                               if (result == true && mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('PIN updated!'),
-                                        backgroundColor: Colors.green));
+                                CenterToast.showSuccess(context, 'PIN updated!');
                               }
                             },
                           ),

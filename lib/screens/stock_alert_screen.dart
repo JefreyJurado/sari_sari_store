@@ -5,6 +5,7 @@ import '../models/product.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 
@@ -270,10 +271,8 @@ class StockAlertScreen extends StatelessWidget {
               Navigator.pop(dialogCtx);
               
               if (screenCtx.mounted) {
-                ScaffoldMessenger.of(screenCtx).showSnackBar(SnackBar(
-                  content: Text('${product.name} updated: $newStock ${product.unit ?? 'pcs'}'),
-                  backgroundColor: Colors.green,
-                ));
+                CenterToast.showSuccess(
+                    screenCtx, '${product.name} updated: $newStock ${product.unit ?? 'pcs'}');
               }
             },
             child: const Text('Apply',

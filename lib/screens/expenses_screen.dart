@@ -6,6 +6,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../utils/filipino_categories.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 
@@ -373,12 +374,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   }
                   if (ctx.mounted) {
                     Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(existing == null
-                          ? 'Expense added!'
-                          : 'Expense updated!'),
-                      backgroundColor: Colors.green,
-                    ));
+                    CenterToast.showSuccess(
+                        context, existing == null ? 'Expense added!' : 'Expense updated!');
                   }
                 },
                 style: ElevatedButton.styleFrom(

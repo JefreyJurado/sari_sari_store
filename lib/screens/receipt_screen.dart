@@ -11,6 +11,7 @@ import '../models/transaction.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 
@@ -107,12 +108,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       await Gal.putImage(file.path, album: 'StorePH Receipts');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-          content: Text('Saved to Gallery!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ));
+        CenterToast.showSuccess(context, 'Saved to Gallery!');
       }
     } catch (e) {
       if (mounted) {

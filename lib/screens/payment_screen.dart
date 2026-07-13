@@ -5,6 +5,7 @@ import '../models/debt.dart';
 import '../models/customer.dart';
 import '../utils/currency_formatter.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 
@@ -332,9 +333,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         );
     if (!mounted) return;
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-            'Payment of ${CurrencyFormatter.format(amount)} recorded!'),
-        backgroundColor: Colors.green));
+    CenterToast.showSuccess(
+        context, 'Payment of ${CurrencyFormatter.format(amount)} recorded!');
   }
 }

@@ -10,6 +10,7 @@ import '../services/barcode_lookup_service.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _uuid = Uuid();
 
@@ -192,10 +193,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
               onPressed: product.isOutOfStock ? null : () {
                 prov.addToCart(product);
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('${product.name} added to cart!'),
-                  backgroundColor: Colors.green,
-                ));
+                CenterToast.showSuccess(context, '${product.name} added to cart!');
               },
               icon: const Icon(Icons.add_shopping_cart_outlined, size: 18),
               label: Text(product.isOutOfStock ? 'Out of Stock' : 'Add to Cart'),
@@ -389,10 +387,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                     await prov.updateProduct(updated);
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('${updated.name} na-update na!'),
-                        backgroundColor: Colors.green,
-                      ));
+                      CenterToast.showSuccess(context, '${updated.name} na-update na!');
                     }
                     _resume();
                   },
@@ -575,7 +570,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                     await prov.addProduct(product);
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${product.name} nai-save na!'), backgroundColor: Colors.green));
+                      CenterToast.showSuccess(context, '${product.name} nai-save na!');
                     }
                     _resume();
                   },

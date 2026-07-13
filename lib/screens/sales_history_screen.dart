@@ -5,6 +5,7 @@ import '../models/transaction.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 
@@ -16,6 +17,14 @@ class SalesHistoryScreen extends StatefulWidget {
 
 class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   String _filter = 'all';
+  String _search = '';
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   void _confirmVoid(BuildContext context, AppProvider prov, Sale sale) {
     showDialog(
@@ -134,14 +143,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Items loaded to cart. Please review and re-process.'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 3),
-        ),
-      );
+      CenterToast.showSuccess(context, 'Items loaded to cart. Please review and re-process.');
     }
   }
 
@@ -150,11 +152,22 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     return Consumer<AppProvider>(
       builder: (context, prov, _) {
         final all = prov.sales;
-        final filtered = _filter == 'all'
+        final statusFiltered = _filter == 'all'
             ? all
             : _filter == 'completed'
                 ? all.where((s) => s.status == TxStatus.completed).toList()
                 : all.where((s) => s.status == TxStatus.voided).toList();
+        final query = _search.trim().toLowerCase();
+        final filtered = query.isEmpty
+            ? statusFiltered
+            : statusFiltered.where((s) {
+                final itemNames = s.items.map((i) => i.productName).join(' ').toLowerCase();
+                final customerName = (s.customerName ?? '').toLowerCase();
+                final receiptNo = s.receiptNumber?.toString() ?? '';
+                return itemNames.contains(query) ||
+                    customerName.contains(query) ||
+                    receiptNo.contains(query);
+              }).toList();
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -174,6 +187,23 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
           ),
           body: Column(
             children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: (v) => setState(() => _search = v),
+                  decoration: InputDecoration(
+                    hintText: 'Search by item, customer, or receipt #...',
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                    prefixIcon: Icon(Icons.search_outlined, color: Colors.grey[400], size: 20),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  ),
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(children: [

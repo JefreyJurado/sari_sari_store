@@ -10,6 +10,7 @@ import 'inventory_log_screen.dart';
 import 'archived_products_screen.dart';
 import '../services/database_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _uuid = Uuid();
 const _blue = AppColors.blue;
@@ -73,13 +74,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 await prov.archiveProduct(product.id);
               }
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('All products cleared successfully.'),
-                    backgroundColor: Colors.green,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                CenterToast.showSuccess(context, 'All products cleared successfully.');
               }
             },
             child: const Text('Clear All',
@@ -430,14 +425,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       stockCtrl.dispose();
       unitCtrl.dispose();
       if (saved == true && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Product saved successfully!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        CenterToast.showSuccess(context, 'Product saved successfully!');
       }
     });
   }

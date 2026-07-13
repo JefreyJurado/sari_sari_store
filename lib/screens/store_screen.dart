@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'dart:convert';
 import '../models/store.dart';
 import '../theme/app_theme.dart';
+import '../widgets/center_toast.dart';
 
 const _uuid = Uuid();
 
@@ -358,12 +359,8 @@ class _StoreScreenState extends State<StoreScreen> {
                               setState(() => _activeStoreId = store.id);
                               await _save();
                               if (mounted) {
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(SnackBar(
-                                  content: Text(
-                                      '${store.name} ang aktibong tindahan na!'),
-                                  backgroundColor: Colors.green,
-                                ));
+                                CenterToast.showSuccess(
+                                    context, '${store.name} ang aktibong tindahan na!');
                               }
                             },
                             contentPadding: const EdgeInsets.symmetric(

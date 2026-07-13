@@ -5,6 +5,7 @@ import '../providers/app_provider.dart';
 import '../services/backup_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_helper.dart';
+import '../widgets/center_toast.dart';
 
 const _blue = AppColors.blue;
 
@@ -450,10 +451,7 @@ class _BackupScreenState extends State<BackupScreen> {
     try {
       await BackupService.instance.exportBackup();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Backup exported!'),
-                backgroundColor: Colors.green));
+        CenterToast.showSuccess(context, 'Backup exported!');
       }
     } catch (e) {
       if (mounted) {
@@ -484,10 +482,7 @@ class _BackupScreenState extends State<BackupScreen> {
     if (mounted) {
       if (ok) {
         await context.read<AppProvider>().reload();
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Backup restored!'),
-                backgroundColor: Colors.green));
+        CenterToast.showSuccess(context, 'Backup restored!');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
