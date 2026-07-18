@@ -203,60 +203,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                 BorderRadius.circular(AppRadius.xxl),
                             boxShadow: AppShadows.colored(AppColors.blue),
                           ),
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    DateHelper.todayFormatted()
-                                        .toUpperCase(),
-                                    style: TextStyle(
-                                        color: Colors.white
-                                            .withValues(alpha: 0.7),
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.8),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _userName.isEmpty
-                                        ? 'Good ${DateHelper.greeting()}'
-                                        : 'Good ${DateHelper.greeting()}, $_userName',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.5),
-                                  ),
-                                ],
+                              Text(
+                                DateHelper.todayFormatted()
+                                    .toUpperCase(),
+                                style: TextStyle(
+                                    color: Colors.white
+                                        .withValues(alpha: 0.7),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.8),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white
-                                      .withValues(alpha: 0.15),
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.pill),
-                                  border: Border.all(
-                                      color: Colors.white
-                                          .withValues(alpha: 0.25)),
-                                ),
-                                child: const Row(children: [
-                                  Icon(Icons.storefront_rounded,
-                                      size: 14, color: Colors.white),
-                                  SizedBox(width: 6),
-                                  Text('Live Store',
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700)),
-                                ]),
+                              const SizedBox(height: 4),
+                              Text(
+                                _userName.isEmpty
+                                    ? 'Good ${DateHelper.greeting()}'
+                                    : 'Good ${DateHelper.greeting()}, $_userName',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.5),
                               ),
                             ],
                           ),
