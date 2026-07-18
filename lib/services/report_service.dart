@@ -1,4 +1,3 @@
-import '../models/transaction.dart';
 import '../models/expense.dart';
 import '../services/database_service.dart';
 import '../utils/currency_formatter.dart';
@@ -30,37 +29,38 @@ class ReportService {
   final _db = DatabaseService.instance;
 
   Future<ReportData> generateReport({
-    required List<Sale> sales,
     required List<Expense> expenses,
     required int days,
   }) async {
     final now = DateTime.now();
     final since = DateTime(now.year, now.month, now.day)
         .subtract(Duration(days: days - 1));
-    final filteredSales = sales
-        .where((s) =>
-            s.status == TxStatus.completed &&
-            !s.createdAt.isBefore(since))
-        .toList();
     final filteredExpenses =
         expenses.where((e) => !e.date.isBefore(since)).toList();
 
-    final revenue = CurrencyFormatter.roundCents(
-        filteredSales.fold(0.0, (s, t) => s + t.totalAmount));
-    final profit = CurrencyFormatter.roundCents(
-        filteredSales.fold(0.0, (s, t) => s + t.totalProfit));
     final expTotal = CurrencyFormatter.roundCents(
         filteredExpenses.fold(0.0, (s, e) => s + e.amount));
 
     final daily = await _db.getDailyRevenue(days);
     final top = await _db.getTopProducts(days);
 
+    // Period totals are summed from the SQL per-day rows rather than the
+    // provider's in-memory sales list — that list is capped to recent
+    // entries, so folding it would undercount longer periods (1 month+)
+    // once the store has more sales than the cap.
+    final revenue = CurrencyFormatter.roundCents(daily.fold(
+        0.0, (s, d) => s + ((d['revenue'] as num?)?.toDouble() ?? 0)));
+    final profit = CurrencyFormatter.roundCents(daily.fold(
+        0.0, (s, d) => s + ((d['profit'] as num?)?.toDouble() ?? 0)));
+    final txCount = daily.fold(
+        0, (s, d) => s + ((d['txCount'] as num?)?.toInt() ?? 0));
+
     return ReportData(
       totalRevenue: revenue,
       totalProfit: profit,
       totalExpenses: expTotal,
       netIncome: CurrencyFormatter.roundCents(profit - expTotal),
-      transactionCount: filteredSales.length,
+      transactionCount: txCount,
       dailyRevenue: daily,
       topProducts: top,
     );

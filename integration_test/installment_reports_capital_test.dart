@@ -198,7 +198,6 @@ void main() {
     // equal Home/AppProvider's calendar-day todayRevenue, not a rolling
     // 24h window that could double-count or miss part of today's sales.
     final todayReport = await ReportService.instance.generateReport(
-      sales: prov.sales,
       expenses: prov.expenses,
       days: 1,
     );

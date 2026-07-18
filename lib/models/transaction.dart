@@ -79,6 +79,21 @@ class Sale {
   bool get isVoided => status == TxStatus.voided;
   bool get isCreditSale => creditAmount > 0;
 
+  Sale copyWith({int? receiptNumber}) => Sale(
+        id: id,
+        items: items,
+        totalAmount: totalAmount,
+        cashPaid: cashPaid,
+        creditAmount: creditAmount,
+        customerId: customerId,
+        customerName: customerName,
+        type: type,
+        status: status,
+        notes: notes,
+        createdAt: createdAt,
+        receiptNumber: receiptNumber ?? this.receiptNumber,
+      );
+
   Map<String, dynamic> toMap() => {
         'id': id,
         'totalAmount': totalAmount,

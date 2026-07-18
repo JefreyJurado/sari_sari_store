@@ -49,9 +49,11 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    sale.isCreditSale
-                        ? 'This will void the sale, restore the stock, cancel the customer\'s utang for this sale, and reverse any loyalty points earned. This cannot be undone.'
-                        : 'This will void the sale and restore the stock. This cannot be undone.',
+                    sale.type == PaymentType.installment
+                        ? 'This will void the sale, restore the stock, delete the linked installment plan, and reverse any loyalty points earned. This cannot be undone.'
+                        : sale.isCreditSale
+                            ? 'This will void the sale, restore the stock, cancel the customer\'s utang for this sale, and reverse any loyalty points earned. This cannot be undone.'
+                            : 'This will void the sale and restore the stock. This cannot be undone.',
                     style: TextStyle(fontSize: 12, color: Colors.red.shade700),
                   ),
                 ),
@@ -85,9 +87,13 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await prov.voidSale(sale);
+              final error = await prov.voidSale(sale);
               if (context.mounted) {
-                CenterToast.showWarning(context, 'Sale voided. Stock has been restored.');
+                if (error != null) {
+                  CenterToast.showError(context, error);
+                } else {
+                  CenterToast.showWarning(context, 'Sale voided. Stock has been restored.');
+                }
               }
             },
             child: const Text('Void Sale',

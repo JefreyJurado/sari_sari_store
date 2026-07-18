@@ -920,7 +920,6 @@ class _CreditSummaryScreenState
         items: items,
         cashPaid: 0,
         creditAmount: _total,
-        type: _PaymentTypeCredit(),
         customer: customer,
         dueDate: widget.dueDate,
         saleDate: _transactionDate,
@@ -1271,46 +1270,42 @@ class _CreditSummaryScreenState
                   );
                   if (picked != null) setState(() => _transactionDate = picked);
                 },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _transactionDate.day != DateTime.now().day
-                          ? _blue
-                          : Colors.grey.shade200,
-                    ),
-                  ),
-                  child: Row(children: [
-                    Icon(Icons.calendar_today_outlined,
-                        size: 18,
-                        color: _transactionDate.day != DateTime.now().day
-                            ? _blue
-                            : Colors.grey[500]),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _transactionDate.day == DateTime.now().day &&
-                                _transactionDate.month == DateTime.now().month &&
-                                _transactionDate.year == DateTime.now().year
-                            ? 'Transaction Date: Today'
-                            : 'Transaction Date: ${DateHelper.formatDate(_transactionDate)}',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: _transactionDate.day != DateTime.now().day
-                                ? _blue
-                                : Colors.black87),
+                child: Builder(builder: (context) {
+                  final isToday =
+                      DateHelper.isSameDay(_transactionDate, DateTime.now());
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isToday ? Colors.grey.shade200 : _blue,
                       ),
                     ),
-                    if (_transactionDate.day != DateTime.now().day)
-                      GestureDetector(
-                        onTap: () => setState(() => _transactionDate = DateTime.now()),
-                        child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
+                    child: Row(children: [
+                      Icon(Icons.calendar_today_outlined,
+                          size: 18,
+                          color: isToday ? Colors.grey[500] : _blue),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          isToday
+                              ? 'Transaction Date: Today'
+                              : 'Transaction Date: ${DateHelper.formatDate(_transactionDate)}',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: isToday ? Colors.black87 : _blue),
+                        ),
                       ),
-                  ]),
-                ),
+                      if (!isToday)
+                        GestureDetector(
+                          onTap: () => setState(() => _transactionDate = DateTime.now()),
+                          child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
+                        ),
+                    ]),
+                  );
+                }),
               ),
             const SizedBox(height: 12),
 
@@ -1458,5 +1453,3 @@ class _CreditSummaryScreenState
     });
   }
 }
-
-class _PaymentTypeCredit {}

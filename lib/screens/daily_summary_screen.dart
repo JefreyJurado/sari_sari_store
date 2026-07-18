@@ -18,33 +18,35 @@ class DailySummaryScreen extends StatefulWidget {
 class _DailySummaryScreenState extends State<DailySummaryScreen> {
   DateTime _selectedDate = DateTime.now();
   List<Map<String, dynamic>> _hourlyData = [];
+  // Loaded from SQL per selected day (not filtered from the provider's
+  // in-memory list, which only holds recent sales — an older date would
+  // silently show an empty/partial day).
+  List<Sale> _daySales = [];
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadHourlyData();
+    _loadDayData();
   }
 
-  Future<void> _loadHourlyData() async {
+  Future<void> _loadDayData() async {
     setState(() => _loading = true);
-    final data = await DatabaseService.instance.getHourlySales(_selectedDate);
+    final hourly = await DatabaseService.instance.getHourlySales(_selectedDate);
+    final daySales =
+        await DatabaseService.instance.getSalesForDay(_selectedDate);
+    if (!mounted) return;
     setState(() {
-      _hourlyData = data;
+      _hourlyData = hourly;
+      _daySales = daySales;
       _loading = false;
     });
   }
 
-  List<Sale> _salesForDate(List<Sale> all) => all
-      .where((s) =>
-          s.status == TxStatus.completed &&
-          DateHelper.isSameDay(s.createdAt, _selectedDate))
-      .toList();
-
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(builder: (context, prov, _) {
-      final sales = _salesForDate(prov.sales);
+      final sales = _daySales;
       final revenue = CurrencyFormatter.roundCents(
           sales.fold(0.0, (s, t) => s + t.totalAmount));
       final profit = CurrencyFormatter.roundCents(
@@ -117,7 +119,7 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
                 );
                 if (picked != null) {
                   setState(() => _selectedDate = picked);
-                  _loadHourlyData();
+                  _loadDayData();
                 }
               },
             ),
@@ -129,7 +131,7 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
         ),
         body: SafeArea(
           child: RefreshIndicator(
-            onRefresh: _loadHourlyData,
+            onRefresh: _loadDayData,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),

@@ -45,6 +45,14 @@ class _InstallmentScreenState extends State<InstallmentScreen>
     setState(() => _loading = false);
   }
 
+  /// The rounded monthly amount, except on the final month where it's
+  /// the exact remaining balance — so centavo rounding drift across the
+  /// earlier months never leaves the plan over- or under-collected.
+  double _nextPaymentAmount(Installment inst) =>
+      inst.paidMonths + 1 >= inst.totalMonths
+          ? CurrencyFormatter.roundCents(inst.remainingBalance)
+          : inst.monthlyPayment;
+
   List<Installment> get _ongoing => _installments
       .where((i) => i.status == InstallmentStatus.ongoing)
       .toList();
@@ -291,7 +299,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                           borderRadius: BorderRadius.circular(8)),
                     ),
                     child: Text(
-                        'Pay — ${CurrencyFormatter.format(inst.monthlyPayment)}',
+                        'Pay — ${CurrencyFormatter.format(_nextPaymentAmount(inst))}',
                         style: const TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w600)),
                   ),
@@ -335,8 +343,10 @@ class _InstallmentScreenState extends State<InstallmentScreen>
           final totalAmount = CurrencyFormatter.roundCents(selectedProducts.entries
               .fold(0.0, (s, e) => s + e.key.sellPrice * e.value));
           final down = double.tryParse(downCtrl.text) ?? 0;
-          final monthly =
-              selectedMonths > 0 ? (totalAmount - down) / selectedMonths : 0.0;
+          final monthly = selectedMonths > 0
+              ? CurrencyFormatter.roundCents(
+                  (totalAmount - down) / selectedMonths)
+              : 0.0;
 
           return Padding(
             padding: EdgeInsets.only(
@@ -473,13 +483,22 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                                             fontSize: 13)),
                                   ),
                                   GestureDetector(
-                                    onTap: () => setS(() =>
-                                        selectedProducts[e.key] = e.value + 1),
+                                    // Same stock cap as the product picker
+                                    // sheet — without it this stepper could
+                                    // sell more units than exist, silently
+                                    // corrupting the inventory count.
+                                    onTap: e.value >= e.key.stock
+                                        ? null
+                                        : () => setS(() =>
+                                            selectedProducts[e.key] =
+                                                e.value + 1),
                                     child: Container(
                                       width: 26,
                                       height: 26,
                                       decoration: BoxDecoration(
-                                          color: _blue,
+                                          color: e.value >= e.key.stock
+                                              ? Colors.grey.shade300
+                                              : _blue,
                                           borderRadius:
                                               BorderRadius.circular(6)),
                                       child: const Icon(Icons.add,
@@ -943,7 +962,8 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                           .map((e) => '${e.key.name} x${e.value}')
                           .join(', ');
                       final mon = selectedMonths > 0
-                          ? (totalAmount - down) / selectedMonths
+                          ? CurrencyFormatter.roundCents(
+                              (totalAmount - down) / selectedMonths)
                           : 0.0;
                       // Records the actual sale (stock decrement, revenue,
                       // profit) now — the goods leave the shelf today even
@@ -1113,7 +1133,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                   style: TextStyle(color: Colors.grey[600], fontSize: 13))),
           TextButton(
             onPressed: () async {
-              final newPaid = inst.totalPaid + inst.monthlyPayment;
+              final payAmount = _nextPaymentAmount(inst);
+              final newPaid = CurrencyFormatter.roundCents(
+                  inst.totalPaid + payAmount);
               final newMonths = inst.paidMonths + 1;
               final isComplete = newMonths >= inst.totalMonths;
               final updated = inst.copyWith(
@@ -1138,7 +1160,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                 ));
               }
             },
-            child: Text('Pay ${CurrencyFormatter.format(inst.monthlyPayment)}',
+            child: Text('Pay ${CurrencyFormatter.format(_nextPaymentAmount(inst))}',
                 style: const TextStyle(
                     color: _blue, fontWeight: FontWeight.w600, fontSize: 13)),
           ),
@@ -1198,11 +1220,11 @@ class _InstallmentScreenState extends State<InstallmentScreen>
 
     if (confirm == true) {
       // Give back the stock this plan took, unless it's already fully
-      // paid off — those goods were legitimately sold.
+      // paid off — those goods were legitimately sold. Looked up by id
+      // straight from the DB: the provider's in-memory list only holds
+      // recent sales, so an old plan's sale may not be in it.
       if (inst.status != InstallmentStatus.completed && inst.saleId != null) {
-        final sale =
-            prov.sales.where((s) => s.id == inst.saleId && !s.isVoided).firstOrNull;
-        if (sale != null) await prov.voidSale(sale);
+        await prov.voidSaleById(inst.saleId!);
       }
       await InstallmentService.instance.delete(inst.id);
       await _load();

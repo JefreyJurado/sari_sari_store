@@ -339,22 +339,27 @@ class DatabaseService {
   }
 
   // ── SALES ──────────────────────────────────────────────
-  Future<int> getNextReceiptNumber() async {
+  /// Inserts the sale and returns its receipt number. The number is
+  /// assigned inside the same transaction as the insert (MAX+1), so two
+  /// near-simultaneous sales can never be handed the same number — which
+  /// could happen when the fetch was a separate query before the insert.
+  Future<int> insertSale(Sale sale) async {
     final db = await database;
-    final result = await db.rawQuery(
-        'SELECT COALESCE(MAX(receiptNumber), 0) + 1 AS next FROM sales');
-    return result.first['next'] as int;
-  }
-
-  Future<void> insertSale(Sale sale) async {
-    final db = await database;
-    await db.transaction((txn) async {
-      await txn.insert('sales', sale.toMap(),
+    return db.transaction<int>((txn) async {
+      var receiptNumber = sale.receiptNumber;
+      if (receiptNumber == null) {
+        final result = await txn.rawQuery(
+            'SELECT COALESCE(MAX(receiptNumber), 0) + 1 AS next FROM sales');
+        receiptNumber = result.first['next'] as int;
+      }
+      await txn.insert(
+          'sales', {...sale.toMap(), 'receiptNumber': receiptNumber},
           conflictAlgorithm: ConflictAlgorithm.replace);
       for (final item in sale.items) {
         await txn.insert('sale_items',
             {'saleId': sale.id, ...item.toMap()});
       }
+      return receiptNumber;
     });
   }
 
@@ -370,6 +375,62 @@ class DatabaseService {
           m, itemMaps.map(TxItem.fromMap).toList()));
     }
     return result;
+  }
+
+  /// Fetches a single sale (with its items) straight from the DB, so
+  /// callers restoring stock for an old sale (e.g. deleting a months-old
+  /// installment plan) aren't at the mercy of the recency-limited
+  /// in-memory list in AppProvider.
+  Future<Sale?> getSaleById(String id) async {
+    final db = await database;
+    final maps =
+        await db.query('sales', where: 'id=?', whereArgs: [id], limit: 1);
+    if (maps.isEmpty) return null;
+    final itemMaps =
+        await db.query('sale_items', where: 'saleId=?', whereArgs: [id]);
+    return Sale.fromMap(
+        maps.first, itemMaps.map(TxItem.fromMap).toList());
+  }
+
+  /// Completed sales for one calendar day, computed in SQL so any past
+  /// day is accurate regardless of how many sales exist in total.
+  Future<List<Sale>> getSalesForDay(DateTime day) async {
+    final db = await database;
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+    final saleMaps = await db.query('sales',
+        where: "createdAt >= ? AND createdAt < ? AND status = 'completed'",
+        whereArgs: [start.toIso8601String(), end.toIso8601String()],
+        orderBy: 'createdAt DESC');
+    final List<Sale> result = [];
+    for (final m in saleMaps) {
+      final itemMaps = await db.query('sale_items',
+          where: 'saleId=?', whereArgs: [m['id']]);
+      result.add(Sale.fromMap(
+          m, itemMaps.map(TxItem.fromMap).toList()));
+    }
+    return result;
+  }
+
+  /// All-time revenue and cost of goods sold across every completed
+  /// sale, computed in SQL. The in-memory sales list is capped for UI
+  /// performance, so lifetime figures (gross profit, ROI, capital) must
+  /// come from here — folding the capped list silently shrinks them
+  /// once the store outgrows the cap.
+  Future<Map<String, double>> getAllTimeTotals() async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT
+        (SELECT COALESCE(SUM(totalAmount), 0) FROM sales
+          WHERE status = 'completed') as revenue,
+        (SELECT COALESCE(SUM(si.buyPrice * si.quantity), 0)
+          FROM sale_items si JOIN sales s ON si.saleId = s.id
+          WHERE s.status = 'completed') as cogs
+    ''');
+    return {
+      'revenue': (result.first['revenue'] as num).toDouble(),
+      'cogs': (result.first['cogs'] as num).toDouble(),
+    };
   }
 
   Future<void> voidSale(String id) async =>
@@ -427,6 +488,16 @@ class DatabaseService {
             THEN 'paid' ELSE 'partial' END
       WHERE id = ?
     ''', [amount, amount, debtId]);
+  }
+
+  /// Total already paid on any debt tied to this sale. Used to block
+  /// voiding a credit sale that has payments recorded — deleting those
+  /// debts would silently erase cash the store already collected.
+  Future<double> getDebtPaidAmountBySale(String saleId) async {
+    final result = await (await database).rawQuery(
+        'SELECT COALESCE(SUM(paidAmount), 0) as paid FROM debts WHERE saleId = ?',
+        [saleId]);
+    return (result.first['paid'] as num).toDouble();
   }
 
   /// Deletes any debt(s) tied to a sale (and their payment history),
@@ -814,7 +885,7 @@ class DatabaseService {
   Future<Map<String, dynamic>> exportAll() async {
     final db = await database;
     return {
-      'version': 4,
+      'version': 5,
       'exportedAt': DateTime.now().toIso8601String(),
       'customers': await db.query('customers'),
       'products': await db.query('products'),
@@ -824,6 +895,8 @@ class DatabaseService {
       'debts': await db.query('debts'),
       'payments': await db.query('payments'),
       'capital': await db.query('capital'),
+      'setup_cost_items': await db.query('setup_cost_items'),
+      'inventory_snapshots': await db.query('inventory_snapshots'),
     };
   }
 
@@ -852,8 +925,24 @@ class DatabaseService {
       await ins('expenses', data['expenses'] as List);
       await ins('debts', data['debts'] as List);
       await ins('payments', data['payments'] as List);
+      // Older backups lack these sections — only replace a table when
+      // the backup actually carries it, so restoring an old file never
+      // wipes data it didn't know about. Capital is cleared before
+      // insert because rows keep their own ids: a leftover local row
+      // with a newer createdAt would otherwise shadow the restored one
+      // (getCapital picks the latest).
       if (data['capital'] != null) {
+        await txn.delete('capital');
         await ins('capital', data['capital'] as List);
+      }
+      if (data['setup_cost_items'] != null) {
+        await txn.delete('setup_cost_items');
+        await ins('setup_cost_items', data['setup_cost_items'] as List);
+      }
+      if (data['inventory_snapshots'] != null) {
+        await txn.delete('inventory_snapshots');
+        await ins('inventory_snapshots',
+            data['inventory_snapshots'] as List);
       }
     });
   }

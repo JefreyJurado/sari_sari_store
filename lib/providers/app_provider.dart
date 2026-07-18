@@ -128,15 +128,19 @@ class AppProvider extends ChangeNotifier {
   double get totalExpensesAmount => CurrencyFormatter.roundCents(
       expenses.fold(0.0, (s, e) => s + e.amount));
 
+  // All-time revenue/COGS come from SQL aggregates (loaded in _loadAll),
+  // not from folding `sales` — that list is capped to the most recent
+  // entries for UI performance, so folding it would silently understate
+  // lifetime figures (and everything derived: profit, ROI, capital)
+  // once the store logs more sales than the cap.
+  double _allTimeRevenue = 0;
+  double _allTimeCOGS = 0;
+
   // Gross Revenue — total sales amount
-  double get grossRevenue => CurrencyFormatter.roundCents(sales
-      .where((s) => s.status == TxStatus.completed)
-      .fold(0.0, (s, t) => s + t.totalAmount));
+  double get grossRevenue => CurrencyFormatter.roundCents(_allTimeRevenue);
 
   // Total COGS — total cost of all sold items
-  double get totalCOGS => CurrencyFormatter.roundCents(sales
-      .where((s) => s.status == TxStatus.completed)
-      .fold(0.0, (s, t) => s + t.items.fold(0.0, (si, i) => si + (i.buyPrice * i.quantity))));
+  double get totalCOGS => CurrencyFormatter.roundCents(_allTimeCOGS);
 
   // Gross Profit = Revenue - COGS
   double get grossProfit =>
@@ -213,6 +217,9 @@ class AppProvider extends ChangeNotifier {
     debts = results[4] as List<Debt>;
     payments = results[5] as List<DebtPayment>;
     capital = await _db.getCapital();
+    final totals = await _db.getAllTimeTotals();
+    _allTimeRevenue = totals['revenue'] ?? 0;
+    _allTimeCOGS = totals['cogs'] ?? 0;
   }
 
   Future<void> reload() async {
@@ -271,11 +278,26 @@ class AppProvider extends ChangeNotifier {
             ))
         .toList();
 
-    final discountedTotal =
-        (cartTotal - discount).clamp(0, cartTotal).toDouble();
+    // Redeem loyalty points BEFORE pricing the sale: if the redemption
+    // fails (e.g. the balance was stale and the points are gone), the
+    // discount must not be applied — otherwise the customer gets money
+    // off without any points being deducted.
+    final saleId = _uuid.v4();
+    var appliedDiscount = discount;
+    if (customer != null && pointsToRedeem > 0) {
+      final redeemed = await LoyaltyService.instance.redeemPoints(
+        customerId: customer.id,
+        points: pointsToRedeem,
+        saleId: saleId,
+      );
+      if (!redeemed) appliedDiscount = 0;
+    }
 
-    final sale = Sale(
-      id: _uuid.v4(),
+    final discountedTotal = CurrencyFormatter.roundCents(
+        (cartTotal - appliedDiscount).clamp(0, cartTotal).toDouble());
+
+    var sale = Sale(
+      id: saleId,
       items: items,
       totalAmount: discountedTotal,
       cashPaid: cashPaid,
@@ -285,10 +307,9 @@ class AppProvider extends ChangeNotifier {
       type: type,
       notes: notes,
       createdAt: saleDate ?? DateTime.now(),
-      receiptNumber: await _db.getNextReceiptNumber(),
     );
 
-    await _db.insertSale(sale);
+    sale = sale.copyWith(receiptNumber: await _db.insertSale(sale));
 
     for (final e in cart.entries) {
       await _db.adjustProductStock(e.key.id, -e.value);
@@ -316,13 +337,6 @@ class AppProvider extends ChangeNotifier {
     }
 
     if (customer != null) {
-      if (pointsToRedeem > 0) {
-        await LoyaltyService.instance.redeemPoints(
-          customerId: customer.id,
-          points: pointsToRedeem,
-          saleId: sale.id,
-        );
-      }
       await LoyaltyService.instance.addPointsFromSale(
         customerId: customer.id,
         customerName: customer.name,
@@ -344,11 +358,12 @@ class AppProvider extends ChangeNotifier {
     return sale;
   }
 
+  /// Records a credit ("utang") sale from pre-picked items. Always a
+  /// [PaymentType.credit] sale — the credit-order flow is its only caller.
   Future<Sale?> completeSaleWithItems({
     required List<dynamic> items,
     required double cashPaid,
     required double creditAmount,
-    required dynamic type,
     Customer? customer,
     String? notes,
     DateTime? dueDate,
@@ -369,7 +384,7 @@ class AppProvider extends ChangeNotifier {
     final total =
         CurrencyFormatter.roundCents(txItems.fold(0.0, (s, i) => s + i.subtotal));
 
-    final sale = Sale(
+    var sale = Sale(
       id: _uuid.v4(),
       items: txItems,
       totalAmount: total,
@@ -380,10 +395,9 @@ class AppProvider extends ChangeNotifier {
       type: PaymentType.credit,
       notes: notes,
       createdAt: saleDate ?? DateTime.now(),
-      receiptNumber: await _db.getNextReceiptNumber(),
     );
 
-    await _db.insertSale(sale);
+    sale = sale.copyWith(receiptNumber: await _db.insertSale(sale));
 
     for (final e in items) {
       final product = e['product'] as Product;
@@ -427,7 +441,20 @@ class AppProvider extends ChangeNotifier {
     return sale;
   }
 
-  Future<void> voidSale(Sale sale) async {
+  /// Voids a sale: restores stock, removes its debts, reverses loyalty
+  /// points, and deletes any installment plan created from it (the plan
+  /// tracks goods this void just put back on the shelf — leaving it
+  /// active would keep collecting payments against a dead sale).
+  ///
+  /// Returns an error message (and does nothing) when the sale's debt
+  /// already has payments recorded: voiding would delete those payment
+  /// rows and silently erase cash the store actually collected.
+  Future<String?> voidSale(Sale sale) async {
+    final alreadyPaid = await _db.getDebtPaidAmountBySale(sale.id);
+    if (alreadyPaid > 0) {
+      return 'Cannot void: ${CurrencyFormatter.format(alreadyPaid)} has '
+          'already been paid on this credit. Settle or record it first.';
+    }
     // Adjusts stock in place by id rather than looking the product up in
     // the (active-only) in-memory list and rewriting the whole row — that
     // used to fabricate a blank stand-in for archived products and wipe
@@ -443,7 +470,24 @@ class AppProvider extends ChangeNotifier {
         saleId: sale.id,
       );
     }
+    if (sale.type == PaymentType.installment) {
+      final plans = await InstallmentService.instance.getAll();
+      for (final plan in plans.where((p) => p.saleId == sale.id)) {
+        await InstallmentService.instance.delete(plan.id);
+      }
+    }
     await reload();
+    return null;
+  }
+
+  /// Void by id, fetching the sale straight from the DB — the in-memory
+  /// `sales` list only holds recent entries, so an old installment sale
+  /// (e.g. a months-old plan being deleted) may not be in it; using the
+  /// list would silently skip the void and never restore stock.
+  Future<String?> voidSaleById(String saleId) async {
+    final sale = await _db.getSaleById(saleId);
+    if (sale == null || sale.isVoided) return null;
+    return voidSale(sale);
   }
 
   /// Records the sale side of a new installment plan: creates a real
@@ -486,7 +530,6 @@ class AppProvider extends ChangeNotifier {
       type: PaymentType.installment,
       notes: 'Installment sale',
       createdAt: DateTime.now(),
-      receiptNumber: await _db.getNextReceiptNumber(),
     );
 
     await _db.insertSale(sale);
@@ -541,8 +584,7 @@ class AppProvider extends ChangeNotifier {
     for (final inst in theirInstallments) {
       if (inst.status != InstallmentStatus.completed &&
           inst.saleId != null) {
-        final sale = sales.where((s) => s.id == inst.saleId && !s.isVoided).firstOrNull;
-        if (sale != null) await voidSale(sale);
+        await voidSaleById(inst.saleId!);
       }
       await InstallmentService.instance.delete(inst.id);
     }

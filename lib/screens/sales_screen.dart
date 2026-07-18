@@ -524,8 +524,10 @@ class _CartSheetState extends State<_CartSheet> {
     final maxDiscount = _loyaltyAccount!.pesoValue;
     final discount =
         maxDiscount < prov.cartTotal ? maxDiscount : prov.cartTotal;
+    // floor, not round: rounding up could redeem a discount slightly
+    // larger than the cart total (e.g. ₱7.15 cart → 72 pts → ₱7.20 off).
     final points =
-        (discount / LoyaltyAccount.pesoPerPoint).round();
+        (discount / LoyaltyAccount.pesoPerPoint).floor();
     return points > _loyaltyAccount!.availablePoints
         ? _loyaltyAccount!.availablePoints
         : points;
@@ -957,42 +959,41 @@ class _CartSheetState extends State<_CartSheet> {
                     );
                     if (picked != null) setState(() => _saleDate = picked);
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _saleDate.day != DateTime.now().day
-                          ? _blue
-                          : Colors.grey.shade200),
-                    ),
-                    child: Row(children: [
-                      Icon(Icons.calendar_today_outlined,
-                          size: 18,
-                          color: _saleDate.day != DateTime.now().day ? _blue : Colors.grey[500]),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _saleDate.day == DateTime.now().day &&
-                                  _saleDate.month == DateTime.now().month &&
-                                  _saleDate.year == DateTime.now().year
-                              ? 'Today — ${DateHelper.formatDate(_saleDate)}'
-                              : 'Past Date — ${DateHelper.formatDate(_saleDate)}',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: _saleDate.day != DateTime.now().day
-                                  ? _blue
-                                  : Colors.black87),
-                        ),
+                  child: Builder(builder: (context) {
+                    final isToday =
+                        DateHelper.isSameDay(_saleDate, DateTime.now());
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: isToday ? Colors.grey.shade200 : _blue),
                       ),
-                      if (_saleDate.day != DateTime.now().day)
-                        GestureDetector(
-                          onTap: () => setState(() => _saleDate = DateTime.now()),
-                          child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
+                      child: Row(children: [
+                        Icon(Icons.calendar_today_outlined,
+                            size: 18,
+                            color: isToday ? Colors.grey[500] : _blue),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            isToday
+                                ? 'Today — ${DateHelper.formatDate(_saleDate)}'
+                                : 'Past Date — ${DateHelper.formatDate(_saleDate)}',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: isToday ? Colors.black87 : _blue),
+                          ),
                         ),
-                    ]),
-                  ),
+                        if (!isToday)
+                          GestureDetector(
+                            onTap: () => setState(() => _saleDate = DateTime.now()),
+                            child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
+                          ),
+                      ]),
+                    );
+                  }),
                 ),
                 const SizedBox(height: 24),
                 const Text('Choose Settlement Mode',

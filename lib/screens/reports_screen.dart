@@ -68,7 +68,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     setState(() => _loading = true);
     try {
       final r = await ReportService.instance.generateReport(
-        sales: prov.sales,
         expenses: prov.expenses,
         days: _days,
       );

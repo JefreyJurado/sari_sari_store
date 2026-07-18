@@ -12,12 +12,32 @@ const _kLastAutoBackupKey = 'last_auto_backup_at';
 const _kAutoBackupSubdir = 'auto_backups';
 const _kMaxAutoBackups = 5;
 
+// SharedPreferences keys carried inside backups so loyalty points and
+// installment plans survive a restore — they live outside the SQLite DB.
+const _kPrefsBackupKeys = [
+  'loyalty_accounts',
+  'loyalty_transactions',
+  'installments',
+];
+
 class BackupService {
   static final BackupService instance = BackupService._();
   BackupService._();
 
-  Future<String> exportBackup() async {
+  /// DB tables plus the SharedPreferences-backed stores (loyalty,
+  /// installments) — everything a restore needs to fully rebuild state.
+  Future<Map<String, dynamic>> _fullExport() async {
     final data = await DatabaseService.instance.exportAll();
+    final prefs = await SharedPreferences.getInstance();
+    data['prefs'] = {
+      for (final key in _kPrefsBackupKeys)
+        if (prefs.getString(key) != null) key: prefs.getString(key),
+    };
+    return data;
+  }
+
+  Future<String> exportBackup() async {
+    final data = await _fullExport();
     final json = jsonEncode(data);
 
     final dir = await getTemporaryDirectory();
@@ -64,6 +84,16 @@ class BackupService {
       final content = await file.readAsString();
       final data = jsonDecode(content) as Map<String, dynamic>;
       await DatabaseService.instance.importAll(data);
+      // Older backups have no 'prefs' section — leave existing loyalty/
+      // installment data alone rather than wiping it.
+      final prefsData = data['prefs'];
+      if (prefsData is Map) {
+        final prefs = await SharedPreferences.getInstance();
+        for (final key in _kPrefsBackupKeys) {
+          final value = prefsData[key];
+          if (value is String) await prefs.setString(key, value);
+        }
+      }
       return true;
     } catch (_) {
       return false;
@@ -102,7 +132,7 @@ class BackupService {
       }
 
       final dir = await _autoBackupDir();
-      final data = await DatabaseService.instance.exportAll();
+      final data = await _fullExport();
       final stamp = '${now.year}${now.month.toString().padLeft(2, '0')}'
           '${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}'
           '${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
