@@ -356,8 +356,11 @@ class PdfReportService {
                       font, bold,
                       valueColor: _green),
                   pw.SizedBox(height: 4),
-                  _capitalRow('Total Expenses',
-                      '- ${_c(prov.totalExpensesAmount)}',
+                  _capitalRow(
+                      'Total Expenses',
+                      prov.totalExpensesAmount > 0
+                          ? '- ${_c(prov.totalExpensesAmount)}'
+                          : _c(prov.totalExpensesAmount),
                       font, bold,
                       valueColor: _red),
                   pw.SizedBox(height: 4),

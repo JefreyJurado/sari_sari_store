@@ -101,26 +101,23 @@ class AppProvider extends ChangeNotifier {
   double get totalInvestment => businessSetupCosts;
 
   // ── Break-Even Computed ────────────────────────────────────────
-  double get avgSellPrice {
-    if (products.isEmpty) return 0;
-    final active = products.where((p) => p.isActive).toList();
-    if (active.isEmpty) return 0;
-    return CurrencyFormatter.roundCents(
-        active.fold(0.0, (s, p) => s + p.sellPrice) / active.length);
+  // Real weighted profit margin from actual sales (grossProfit /
+  // grossRevenue), not an average of catalog prices — a sari-sari
+  // store's shelf spans ₱7 sachets to ₱500 goods, so an "average
+  // unit price" across every listed product never corresponded to
+  // anything real. The margin actual sales produce does.
+  double get profitMarginPercent {
+    if (grossRevenue <= 0) return 0;
+    return (grossProfit / grossRevenue) * 100;
   }
 
-  double get avgUnitCost {
-    if (products.isEmpty) return 0;
-    final active = products.where((p) => p.isActive).toList();
-    if (active.isEmpty) return 0;
-    return CurrencyFormatter.roundCents(
-        active.fold(0.0, (s, p) => s + p.buyPrice) / active.length);
-  }
-
-  double get breakEvenUnits {
-    final margin = avgSellPrice - avgUnitCost;
-    if (margin <= 0) return 0;
-    return totalExpensesAmount / margin;
+  // Peso revenue needed (at the store's real margin) to fully cover
+  // total logged expenses. 0 both when there's no sales history yet
+  // and when the store is running at an overall loss (margin <= 0) —
+  // callers should check grossRevenue separately to tell those apart.
+  double get breakEvenRevenue {
+    if (grossRevenue <= 0 || grossProfit <= 0) return 0;
+    return totalExpensesAmount / (grossProfit / grossRevenue);
   }
 
   double get totalSalesProfit => grossProfit;
@@ -135,6 +132,10 @@ class AppProvider extends ChangeNotifier {
   // once the store logs more sales than the cap.
   double _allTimeRevenue = 0;
   double _allTimeCOGS = 0;
+
+  // Consecutive days with a completed sale, ending today (or still
+  // "alive" through today if today just hasn't sold anything yet).
+  int streak = 0;
 
   // Gross Revenue — total sales amount
   double get grossRevenue => CurrencyFormatter.roundCents(_allTimeRevenue);
@@ -220,6 +221,7 @@ class AppProvider extends ChangeNotifier {
     final totals = await _db.getAllTimeTotals();
     _allTimeRevenue = totals['revenue'] ?? 0;
     _allTimeCOGS = totals['cogs'] ?? 0;
+    streak = await _db.getCurrentStreak();
   }
 
   Future<void> reload() async {

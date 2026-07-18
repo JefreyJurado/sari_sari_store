@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
+import '../services/biometric_service.dart';
 
 class PinScreen extends StatefulWidget {
   final bool isSetup;
@@ -19,6 +20,7 @@ class _PinScreenState extends State<PinScreen>
   String _errorMsg = '';
   late AnimationController _shakeCtrl;
   late Animation<double> _shakeAnim;
+  bool _biometricEnabled = false;
 
   @override
   void initState() {
@@ -30,6 +32,32 @@ class _PinScreenState extends State<PinScreen>
     _shakeAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _shakeCtrl, curve: Curves.elasticIn),
     );
+    // Only the lock screen (not PIN setup/change) offers biometric unlock.
+    if (!widget.isSetup) _initBiometric();
+  }
+
+  Future<void> _initBiometric() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('biometric_enabled') ?? false;
+    if (!mounted) return;
+    setState(() => _biometricEnabled = enabled);
+    if (enabled) {
+      // Brief delay so the lock screen is visible for a moment before the
+      // system biometric prompt overlays it, rather than popping up
+      // instantly on a still-blank screen.
+      await Future.delayed(const Duration(milliseconds: 400));
+      if (mounted) _tryBiometric();
+    }
+  }
+
+  Future<void> _tryBiometric() async {
+    final success =
+        await BiometricService.instance.authenticate('Unlock StorePH');
+    if (success && mounted) {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
+    // On failure/cancel: no error shown — the PIN keypad underneath is
+    // always the expected fallback, not an error state.
   }
 
   @override
@@ -286,6 +314,10 @@ class _PinScreenState extends State<PinScreen>
                         MainAxisAlignment.spaceEvenly,
                     children: row.map((k) {
                       if (k.isEmpty) {
+                        if (!widget.isSetup && _biometricEnabled) {
+                          return _KeyButton(
+                              label: 'bio', onTap: _tryBiometric);
+                        }
                         return const SizedBox(width: 72);
                       }
                       return _KeyButton(
@@ -314,6 +346,7 @@ class _KeyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDel = label == 'del';
+    final isBio = label == 'bio';
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -330,14 +363,17 @@ class _KeyButton extends StatelessWidget {
           child: isDel
               ? const Icon(Icons.backspace_outlined,
                   color: Colors.white, size: 24)
-              : Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+              : isBio
+                  ? const Icon(Icons.fingerprint,
+                      color: Colors.white, size: 28)
+                  : Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
         ),
       ),
     );

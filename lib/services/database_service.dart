@@ -550,6 +550,36 @@ class DatabaseService {
     ''', [sinceStr]);
   }
 
+  /// Cash/online/credit split across an entire period, aggregated in SQL
+  /// rather than by fetching every individual sale row — cheap even for
+  /// a 365-day window. Mirrors the exact per-sale logic the single-day
+  /// Daily Summary screen already computes in Dart (cash bucket also
+  /// nets out installment sales' credit portion; credit bucket also
+  /// covers mixed/installment types) so a period total and a same-day
+  /// single-day total never disagree over how a sale type is bucketed.
+  Future<Map<String, double>> getPaymentTypeBreakdown(int days) async {
+    final now = DateTime.now();
+    final since = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: days - 1));
+    final result = await (await database).rawQuery('''
+      SELECT
+        COALESCE(SUM(CASE WHEN type IN ('cash','installment')
+          THEN totalAmount - creditAmount ELSE 0 END), 0) as cash,
+        COALESCE(SUM(CASE WHEN type = 'online'
+          THEN totalAmount ELSE 0 END), 0) as online,
+        COALESCE(SUM(CASE WHEN type IN ('credit','mixed','installment')
+          THEN creditAmount ELSE 0 END), 0) as credit
+      FROM sales
+      WHERE createdAt >= ? AND status = 'completed'
+    ''', [since.toIso8601String()]);
+    final row = result.first;
+    return {
+      'cash': (row['cash'] as num).toDouble(),
+      'online': (row['online'] as num).toDouble(),
+      'credit': (row['credit'] as num).toDouble(),
+    };
+  }
+
   Future<List<Map<String, dynamic>>> getTopProducts(
       int days) async {
     final now = DateTime.now();
@@ -594,6 +624,48 @@ class DatabaseService {
               'txCount': r['txCount'],
             })
         .toList();
+  }
+
+  /// Consecutive days with at least one completed sale, counting
+  /// backward from today. Computed from distinct sale dates in SQL
+  /// (not by folding the capped in-memory sales list) so a busy store
+  /// with more than the UI's recency cap of sales can't silently
+  /// truncate its own streak.
+  ///
+  /// Today doesn't need a sale yet for the streak to still be "alive" —
+  /// it only breaks once a full day passes with zero sales. So if
+  /// today has no sale yet, the count starts from yesterday instead;
+  /// if yesterday has none either, the streak is over (0).
+  Future<int> getCurrentStreak() async {
+    final db = await database;
+    final rows = await db.rawQuery('''
+      SELECT DISTINCT date(createdAt) as day
+      FROM sales
+      WHERE status = 'completed'
+      ORDER BY day DESC
+      LIMIT 1000
+    ''');
+    if (rows.isEmpty) return 0;
+
+    final days = rows.map((r) => r['day'] as String).toSet();
+    String dateKey(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+
+    final today = DateTime.now();
+    var cursor = DateTime(today.year, today.month, today.day);
+    if (!days.contains(dateKey(cursor))) {
+      cursor = cursor.subtract(const Duration(days: 1));
+      if (!days.contains(dateKey(cursor))) return 0;
+    }
+
+    var streak = 0;
+    while (days.contains(dateKey(cursor))) {
+      streak++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    return streak;
   }
 
   Future<void> clearAllData() async {

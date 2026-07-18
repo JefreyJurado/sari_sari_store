@@ -6,8 +6,8 @@ import '../utils/currency_formatter.dart';
 import '../widgets/profit_chart.dart';
 import '../services/pdf_report_service.dart';
 import 'sales_history_screen.dart';
-import 'daily_summary_screen.dart';
 import 'expenses_screen.dart';
+import 'period_summary_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 
@@ -304,8 +304,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) =>
-                                    const DailySummaryScreen()))),
+                                builder: (_) => PeriodSummaryScreen(
+                                    periodLabel: _periodLabel,
+                                    report: _report!)))),
                   ]),
                   const SizedBox(height: 10),
                   Row(children: [
@@ -334,8 +335,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) =>
-                                    const DailySummaryScreen()))),
+                                builder: (_) => PeriodSummaryScreen(
+                                    periodLabel: _periodLabel,
+                                    report: _report!)))),
                   ]),
                   const SizedBox(height: 12),
 

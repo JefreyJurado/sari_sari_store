@@ -10,6 +10,13 @@ class ReportData {
   final int transactionCount;
   final List<Map<String, dynamic>> dailyRevenue;
   final List<Map<String, dynamic>> topProducts;
+  final double cashSales;
+  final double onlineSales;
+  final double creditSales;
+  // The exact expense entries the period window included — exposed (not
+  // just their sum) so a detail screen can break Total Expenses down by
+  // category without re-deriving its own, possibly different, date window.
+  final List<Expense> expenses;
 
   ReportData({
     required this.totalRevenue,
@@ -19,6 +26,10 @@ class ReportData {
     required this.transactionCount,
     required this.dailyRevenue,
     required this.topProducts,
+    required this.cashSales,
+    required this.onlineSales,
+    required this.creditSales,
+    required this.expenses,
   });
 }
 
@@ -43,6 +54,7 @@ class ReportService {
 
     final daily = await _db.getDailyRevenue(days);
     final top = await _db.getTopProducts(days);
+    final paymentSplit = await _db.getPaymentTypeBreakdown(days);
 
     // Period totals are summed from the SQL per-day rows rather than the
     // provider's in-memory sales list — that list is capped to recent
@@ -63,6 +75,10 @@ class ReportService {
       transactionCount: txCount,
       dailyRevenue: daily,
       topProducts: top,
+      cashSales: CurrencyFormatter.roundCents(paymentSplit['cash'] ?? 0),
+      onlineSales: CurrencyFormatter.roundCents(paymentSplit['online'] ?? 0),
+      creditSales: CurrencyFormatter.roundCents(paymentSplit['credit'] ?? 0),
+      expenses: filteredExpenses,
     );
   }
 }

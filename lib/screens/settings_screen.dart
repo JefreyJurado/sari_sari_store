@@ -3,9 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'pin_screen.dart';
 import '../services/database_service.dart';
+import '../services/biometric_service.dart';
 import '../providers/app_provider.dart';
-import '../models/capital_entry.dart';
-import '../utils/currency_formatter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 
@@ -21,8 +20,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _nameCtrl = TextEditingController();
   bool _notif = true;
   bool _pinEnabled = false;
+  bool _biometricEnabled = false;
+  bool _biometricAvailable = false;
   bool _loaded = false;
-  List<Map<String, Object>> _setupItems = [];
 
   @override
   void initState() {
@@ -32,29 +32,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    final prov = context.read<AppProvider>();
+    final biometricAvailable = await BiometricService.instance.isAvailable();
+    if (!mounted) return;
     setState(() {
       _nameCtrl.text = prefs.getString('store_name') ?? 'My Sari-Sari Store';
       _notif = prefs.getBool('notifications') ?? true;
       _pinEnabled = prefs.getBool('pin_enabled') ?? false;
-      final cap = prov.capital;
-      if (cap != null) {
-        _setupItems = cap.setupItems.map<Map<String, Object>>((i) {
-          final amtCtrl =
-              TextEditingController(text: i.amount.toStringAsFixed(2));
-          amtCtrl.addListener(() => setState(() {}));
-          return {
-            'label': i.label,
-            'amount': i.amount.toStringAsFixed(2),
-            'ctrl': TextEditingController(text: i.label),
-            'amtCtrl': amtCtrl,
-            // This screen has no UI for category/vendor/paymentMethod/date
-            // — kept only so _save() can carry them through unchanged
-            // instead of resetting them to defaults.
-            'original': i,
-          };
-        }).toList();
-      }
+      _biometricAvailable = biometricAvailable;
+      _biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
       _loaded = true;
     });
   }
@@ -65,34 +50,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool('notifications', _notif);
 
     final prov = context.read<AppProvider>();
-
-    final setupItems = _setupItems
-        .map((i) {
-          final original = i['original'] as SetupCostItem?;
-          return SetupCostItem(
-            label: (i['ctrl'] as TextEditingController).text.trim(),
-            amount: double.tryParse(
-                    (i['amtCtrl'] as TextEditingController).text) ??
-                0,
-            category: original?.category ?? 'Equipment',
-            vendor: original?.vendor,
-            paymentMethod: original?.paymentMethod ?? 'Cash',
-            date: original?.date,
-          );
-        })
-        .where((i) => i.label.isNotEmpty)
-        .toList();
-
-    final totalSetup =
-        CurrencyFormatter.roundCents(setupItems.fold(0.0, (s, i) => s + i.amount));
-
-    // The provider maintains the baseline inventory value snapshot
-    // instead of allowing live fluctuations to disrupt it.
-    await prov.saveCapital(
-      setupCosts: totalSetup,
-      inventoryValue: prov.inventoryValue,
-      setupItems: setupItems,
-    );
 
     if (mounted) {
       showDialog(
@@ -201,11 +158,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('pin_enabled', false);
         await prefs.remove('app_pin');
-        setState(() => _pinEnabled = false);
+        // Biometric unlock is only meaningful as a shortcut on top of a
+        // PIN — removing the PIN removes the thing it was a shortcut for,
+        // so leaving it "on" would dangle with nothing backing it.
+        await prefs.setBool('biometric_enabled', false);
+        setState(() {
+          _pinEnabled = false;
+          _biometricEnabled = false;
+        });
         if (mounted) {
           CenterToast.showWarning(context, 'PIN removed.');
         }
       }
+    }
+  }
+
+  Future<void> _toggleBiometric(bool val) async {
+    if (val) {
+      // Require a successful scan before turning it on — otherwise a
+      // device with hardware present but nothing enrolled (or a user who
+      // just doesn't want to scan right now) would enable a setting that
+      // silently never works on the actual lock screen.
+      final success = await BiometricService.instance
+          .authenticate('Confirm to enable biometric unlock');
+      if (!success) {
+        if (mounted) {
+          CenterToast.showError(context, 'Could not verify biometrics.');
+        }
+        return;
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('biometric_enabled', true);
+      setState(() => _biometricEnabled = true);
+      if (mounted) {
+        CenterToast.showSuccess(context, 'Biometric unlock enabled!');
+      }
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('biometric_enabled', false);
+      setState(() => _biometricEnabled = false);
     }
   }
 
@@ -488,16 +479,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    if (_setupItems.isNotEmpty) {
-      for (final item in _setupItems) {
-        if (item['ctrl'] is TextEditingController) {
-          (item['ctrl'] as TextEditingController).dispose();
-        }
-        if (item['amtCtrl'] is TextEditingController) {
-          (item['amtCtrl'] as TextEditingController).dispose();
-        }
-      }
-    }
     super.dispose();
   }
 
@@ -731,6 +712,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ),
+                    // Only offered when the device actually has usable
+                    // biometric hardware + an enrolled fingerprint/face —
+                    // otherwise this would be a switch that can never work.
+                    if (_biometricAvailable) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: SwitchListTile(
+                              title: const Text('Biometric Unlock',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black87)),
+                              subtitle: Text(
+                                _biometricEnabled
+                                    ? 'Enabled — fingerprint or face to unlock'
+                                    : 'Disabled — PIN only',
+                                style: TextStyle(
+                                    color: Colors.grey[500], fontSize: 11),
+                              ),
+                              secondary: Icon(Icons.fingerprint,
+                                  color:
+                                      _biometricEnabled ? _blue : Colors.grey[400],
+                                  size: 20),
+                              value: _biometricEnabled,
+                              activeThumbColor: _blue,
+                              onChanged: _toggleBiometric,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                   const SizedBox(height: 16),
                   _label('DANGER ZONE'),

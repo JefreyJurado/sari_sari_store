@@ -2,11 +2,13 @@ import 'package:intl/intl.dart';
 
 class DateHelper {
   static final _date = DateFormat('MMM d, yyyy');
+  static final _dateWithDay = DateFormat('EEE, MMM d, yyyy');
   static final _time = DateFormat('h:mm a');
 
   static String formatDate(DateTime d) => _date.format(d);
   static String formatTime(DateTime d) => _time.format(d);
   static String todayFormatted() => _date.format(DateTime.now());
+  static String todayFormattedWithDay() => _dateWithDay.format(DateTime.now());
 
   static String greeting() {
     final h = DateTime.now().hour;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
@@ -57,17 +58,35 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _userName = '';
+  String _storeName = '';
+  Timer? _clockTimer;
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+    _loadPrefs();
+    // Keeps the header's day/time display live while the screen stays
+    // open, rather than freezing at whatever moment the screen loaded.
+    _clockTimer = Timer.periodic(
+        const Duration(seconds: 30), (_) => setState(() {}));
   }
 
-  Future<void> _loadUserName() async {
+  @override
+  void dispose() {
+    _clockTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
-      setState(() => _userName = prefs.getString('user_name') ?? '');
+      setState(() {
+        _userName = prefs.getString('user_name') ?? '';
+        // Store Name previously only ever showed up on receipts/PDF
+        // reports — surfaced here too so configuring it in Settings
+        // actually shows up somewhere the owner looks every day.
+        _storeName = prefs.getString('store_name') ?? 'My Sari-Sari Store';
+      });
     }
   }
 
@@ -174,8 +193,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       _appBarButton(
                         icon: Icons.settings_rounded,
                         tooltip: 'Settings',
-                        onPressed: () => Navigator.push(context,
-                            CrossFadePageRoute(child: const SettingsScreen())),
+                        onPressed: () async {
+                          await Navigator.push(context,
+                              CrossFadePageRoute(child: const SettingsScreen()));
+                          // Store/user name may have just changed there —
+                          // without this, Home would keep showing the
+                          // stale value until the app restarts.
+                          _loadPrefs();
+                        },
                       ),
                     ]),
                   ),
@@ -203,30 +228,68 @@ class _HomeScreenState extends State<HomeScreen> {
                                 BorderRadius.circular(AppRadius.xxl),
                             boxShadow: AppShadows.colored(AppColors.blue),
                           ),
-                          child: Column(
+                          child: Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                DateHelper.todayFormatted()
-                                    .toUpperCase(),
-                                style: TextStyle(
-                                    color: Colors.white
-                                        .withValues(alpha: 0.7),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${DateHelper.todayFormattedWithDay()} • ${DateHelper.formatTime(DateTime.now())}'
+                                          .toUpperCase(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.7),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.8),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _userName.isEmpty
+                                          ? 'Good ${DateHelper.greeting()}'
+                                          : 'Good ${DateHelper.greeting()}, $_userName',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.5),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(children: [
+                                      Icon(Icons.storefront_rounded,
+                                          size: 12,
+                                          color: Colors.white
+                                              .withValues(alpha: 0.7)),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          _storeName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.7),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ]),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _userName.isEmpty
-                                    ? 'Good ${DateHelper.greeting()}'
-                                    : 'Good ${DateHelper.greeting()}, $_userName',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.5),
-                              ),
+                              if (prov.streak > 0) ...[
+                                const SizedBox(width: 12),
+                                _streakBadge(prov.streak),
+                              ],
                             ],
                           ),
                         ),
@@ -520,6 +583,29 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icon(icon, color: Colors.blueGrey.shade700, size: 20),
         tooltip: tooltip,
         onPressed: onPressed,
+      ),
+    );
+  }
+
+  Widget _streakBadge(int streak) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('🔥', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          Text('$streak-day streak',
+              style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }
