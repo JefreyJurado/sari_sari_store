@@ -1244,10 +1244,43 @@ class _CreditSummaryScreenState
 
                       // Footer
                       Center(
-                        child: Text('TindaPH',
+                        child: Text('StorePH',
                             style: TextStyle(
                                 color: Colors.grey[400],
                                 fontSize: 11)),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Compliance notice — kept inside the captured/shared
+                      // image itself, same rationale as the Order Slip: this
+                      // is a personal utang ledger entry, not a BIR-official
+                      // document.
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline,
+                                size: 14, color: Colors.amber.shade800),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Personal credit record only — not an Official Receipt or Sales Invoice.',
+                                style: TextStyle(
+                                    color: Colors.amber.shade900,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 6),
                     ]),

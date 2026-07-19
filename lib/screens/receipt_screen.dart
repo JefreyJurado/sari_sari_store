@@ -64,12 +64,12 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       if (bytes == null) return;
       final dir = await getTemporaryDirectory();
       final file = File(
-          '${dir.path}/receipt_${widget.sale.id.substring(0, 8)}.png');
+          '${dir.path}/order_slip_${widget.sale.id.substring(0, 8)}.png');
       await file.writeAsBytes(bytes);
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],
-          text: 'Receipt from $_storeName\n${DateHelper.formatDate(widget.sale.createdAt)}',
+          text: 'Order slip from $_storeName (personal record, not an official receipt)\n${DateHelper.formatDate(widget.sale.createdAt)}',
         ),
       );
     } catch (e) {
@@ -97,10 +97,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
 
       final dir = await getTemporaryDirectory();
       final filename =
-          'receipt_${widget.sale.id.substring(0, 8)}_${DateTime.now().millisecondsSinceEpoch}.png';
+          'order_slip_${widget.sale.id.substring(0, 8)}_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File('${dir.path}/$filename');
       await file.writeAsBytes(bytes);
-      await Gal.putImage(file.path, album: 'StorePH Receipts');
+      await Gal.putImage(file.path, album: 'StorePH Order Slips');
 
       if (mounted) {
         CenterToast.showSuccess(context, 'Saved to Gallery!');
@@ -131,7 +131,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         elevation: 0,
         centerTitle: false,
         titleSpacing: 16,
-        title: const Text('Receipt',
+        title: const Text('Order Slip',
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -244,7 +244,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                             BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'OR-${_getReceiptNumber()}',
+                        'REF-${_getReceiptNumber()}',
                         style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 11,
@@ -545,18 +545,43 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                               color: Colors.grey[400],
                               fontSize: 10),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'This is a personal record only — not a BIR-registered\nOfficial Receipt or Sales Invoice.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 9,
-                              fontStyle: FontStyle.italic),
-                        ),
                       ]),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 14),
+
+                    // Compliance notice — kept inside the captured/shared
+                    // image itself (not just the app UI) since that image is
+                    // what actually reaches the customer. Deliberately more
+                    // visible than a small footer line: this is a proof of
+                    // purchase for the buyer's and owner's own records, not
+                    // a BIR-accredited Official Receipt or Sales Invoice.
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber.shade200),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 14, color: Colors.amber.shade800),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Not an Official Receipt or Sales Invoice — this is a personal proof-of-purchase record only.',
+                              style: TextStyle(
+                                  color: Colors.amber.shade900,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ]),
                 ),
               ]),

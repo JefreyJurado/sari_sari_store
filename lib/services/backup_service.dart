@@ -42,17 +42,15 @@ class BackupService {
 
     final dir = await getTemporaryDirectory();
     final now = DateTime.now();
-    // Translated prefix from 'sari_backup_' to 'pos_backup_'
     final filename =
-        'pos_backup_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.json';
+        'storeph_backup_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.json';
     final file = File('${dir.path}/$filename');
     await file.writeAsString(json);
 
-    // Translated dialog sheet title text from 'Sari Store Backup'
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path)],
-        text: 'POS System Backup',
+        text: 'StorePH Data Backup',
       ),
     );
 

@@ -176,7 +176,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                 // App name
                 const Text(
-                  'TindaPH',
+                  'StorePH',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 30,

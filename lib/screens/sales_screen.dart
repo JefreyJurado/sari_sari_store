@@ -1438,7 +1438,7 @@ class _CartSheetState extends State<_CartSheet> {
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('View Receipt',
+              child: const Text('View Order Slip',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14)),

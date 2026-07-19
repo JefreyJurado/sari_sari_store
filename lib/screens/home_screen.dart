@@ -228,66 +228,60 @@ class _HomeScreenState extends State<HomeScreen> {
                                 BorderRadius.circular(AppRadius.xxl),
                             boxShadow: AppShadows.colored(AppColors.blue),
                           ),
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${DateHelper.todayFormattedWithDay()} • ${DateHelper.formatTime(DateTime.now())}'
-                                          .toUpperCase(),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          color: Colors.white
-                                              .withValues(alpha: 0.7),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.8),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _userName.isEmpty
-                                          ? 'Good ${DateHelper.greeting()}'
-                                          : 'Good ${DateHelper.greeting()}, $_userName',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: -0.5),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(children: [
-                                      Icon(Icons.storefront_rounded,
-                                          size: 12,
-                                          color: Colors.white
-                                              .withValues(alpha: 0.7)),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          _storeName,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.7),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                      ),
-                                    ]),
-                                  ],
-                                ),
+                              Text(
+                                '${DateHelper.todayFormattedWithDay()} • ${DateHelper.formatTime(DateTime.now())}'
+                                    .toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: Colors.white
+                                        .withValues(alpha: 0.7),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.8),
                               ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _userName.isEmpty
+                                    ? 'Good ${DateHelper.greeting()}'
+                                    : 'Good ${DateHelper.greeting()}, $_userName',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.5),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(children: [
+                                Icon(Icons.storefront_rounded,
+                                    size: 12,
+                                    color: Colors.white
+                                        .withValues(alpha: 0.7)),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    _storeName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.7),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ]),
+                              // Streak badge sits on its own line so its
+                              // width can never squeeze the name/greeting
+                              // text above — that Row-sharing setup is what
+                              // caused the name to truncate to one letter.
                               if (prov.streak > 0) ...[
-                                const SizedBox(width: 12),
+                                const SizedBox(height: 10),
                                 _streakBadge(prov.streak),
                               ],
                             ],
@@ -1405,7 +1399,7 @@ class _SaleTile extends StatelessWidget {
                         CrossFadePageRoute(child: ReceiptScreen(sale: sale)),
                       );
                     },
-                    icon: const Icon(Icons.print_rounded, size: 18),
+                    icon: const Icon(Icons.description_outlined, size: 18),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey.shade900,
                       foregroundColor: Colors.white,
@@ -1413,7 +1407,7 @@ class _SaleTile extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    label: const Text('Generate Full Audit Receipt',
+                    label: const Text('View Order Slip',
                         style: TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w700)),
                   ),
