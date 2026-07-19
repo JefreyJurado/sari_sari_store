@@ -60,6 +60,57 @@ class _PinScreenState extends State<PinScreen>
     // always the expected fallback, not an error state.
   }
 
+  Future<void> _forgotPin() async {
+    final secured = await BiometricService.instance.isDeviceSecured();
+    if (!mounted) return;
+    if (!secured) {
+      _showNoRecoveryDialog();
+      return;
+    }
+
+    final verified = await BiometricService.instance.authenticateForReset(
+        "Verify it's you to reset your StorePH PIN");
+    if (!verified || !mounted) return;
+
+    // Setup screen pops with `true` on success (see _verifySetup) — that
+    // pop lands back here, so we finish the job by continuing to Home.
+    final createdNewPin = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const PinScreen(isSetup: true)),
+    );
+    if (createdNewPin == true && mounted) {
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
+  }
+
+  void _showNoRecoveryDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('No Screen Lock Found',
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+        content: const Text(
+          "StorePH resets your PIN by verifying your phone's own screen lock "
+          "(fingerprint, face, PIN, or pattern) — but this phone doesn't have "
+          "one set up, so there's no way to confirm it's you.\n\n"
+          "The only way back in is clearing StorePH's app data or reinstalling "
+          "it, which will erase all sales, inventory, and other data. To avoid "
+          "this in the future, set up a screen lock on your phone.",
+          style: TextStyle(fontSize: 13, color: Colors.black87),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Understood',
+                style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _shakeCtrl.dispose();
@@ -293,6 +344,18 @@ class _PinScreenState extends State<PinScreen>
                   color: Colors.redAccent, fontSize: 14),
             ),
           ),
+
+          if (!widget.isSetup) ...[
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _forgotPin,
+              child: const Text('Forgot PIN?',
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ),
+          ],
 
           const Spacer(),
 

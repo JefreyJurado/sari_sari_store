@@ -41,4 +41,33 @@ class BiometricService {
       return false;
     }
   }
+
+  /// Whether the device has ANY secure lock at all (biometric, PIN,
+  /// pattern, or password) — used to gate the "Forgot PIN" flow. Unlike
+  /// [isAvailable], this doesn't require a biometric to be enrolled, since
+  /// device PIN/pattern/password are equally valid proof of identity here.
+  Future<bool> isDeviceSecured() async {
+    try {
+      return await _auth.isDeviceSupported();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Used only for "Forgot PIN" recovery. Unlike [authenticate],
+  /// `biometricOnly: false` deliberately allows the phone's own PIN/
+  /// pattern/password as a fallback here — at this point the user has
+  /// already lost the app's PIN, so the phone's own lock screen is the
+  /// only remaining proof that this is really the device owner.
+  Future<bool> authenticateForReset(String reason) async {
+    try {
+      return await _auth.authenticate(
+        localizedReason: reason,
+        biometricOnly: false,
+        persistAcrossBackgrounding: true,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
 }
