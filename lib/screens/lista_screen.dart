@@ -9,6 +9,7 @@ import '../utils/date_helper.dart';
 import 'payment_screen.dart';
 import 'credit_order_screen.dart';
 import '../theme/app_theme.dart';
+import '../widgets/help_sheet.dart';
 
 const _blue = AppColors.blue;
 
@@ -73,15 +74,28 @@ class _ListaScreenState extends State<ListaScreen>
                       // Non-sticky Title Bar
                       const Padding(
                         padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
-                        child: Text(
-                          'Credit Ledger',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                            letterSpacing: -0.5,
+                        child: Row(children: [
+                          Expanded(
+                            child: Text(
+                              'Credit Ledger',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
                           ),
-                        ),
+                          HelpIconButton(
+                            title: 'Tracking Utang',
+                            points: [
+                              "Start a customer's credit here from Products or the cart — it records what they bought, how much they owe, and when it's due.",
+                              'The Unpaid tab lists everyone with an active balance; Paid shows customers who\'ve settled everything.',
+                              'Each customer has a credit limit — StorePH warns you before a new charge would push them over it, but lets you proceed if you choose to.',
+                              'Tap a customer to see their full itemized history and record a payment (full or partial) against their balance.',
+                            ],
+                          ),
+                        ]),
                       ),
                       // KPI Container & Search Inputs
                       Padding(

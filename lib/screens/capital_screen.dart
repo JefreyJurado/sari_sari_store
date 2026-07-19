@@ -5,6 +5,7 @@ import '../models/capital_entry.dart';
 import '../utils/currency_formatter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
+import '../widgets/help_sheet.dart';
 
 const _blue = AppColors.blue;
 
@@ -372,6 +373,17 @@ class _CapitalScreenState extends State<CapitalScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: const [
+          HelpIconButton(
+            title: 'Understanding Capital Overview',
+            points: [
+              'Setup Costs are what you spent to start the business (shelving, initial stock, permits, etc.) — add each one here; tap an item to edit or delete it.',
+              'ROI (Return on Investment) shows how much of that setup cost your profits have earned back so far.',
+              'Profit Margin is what percentage of your sales revenue is actual profit, based on your real sales history.',
+              "Break-Even Sales is how much you'd need to sell to cover all your logged expenses, given your current profit margin — it's in pesos, not units, since a sari-sari store sells many different items at different prices.",
+            ],
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(height: 1, color: Colors.grey.shade200),

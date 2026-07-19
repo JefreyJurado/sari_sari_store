@@ -11,6 +11,7 @@ import 'archived_products_screen.dart';
 import '../services/database_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
+import '../widgets/help_sheet.dart';
 
 const _uuid = Uuid();
 const _blue = AppColors.blue;
@@ -156,6 +157,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       ),
                       const SizedBox(width: 12),
                       Row(children: [
+                        _iconBtn(
+                          icon: Icons.help_outline,
+                          onPressed: () => HelpSheet.show(
+                            context,
+                            title: 'Managing Your Products',
+                            points: const [
+                              'Add a product with its cost price, sell price, and starting stock — the app tracks quantity automatically as you make sales.',
+                              'Low Stock and Out of Stock chips up top warn you before you run out of something customers want.',
+                              'Scan a barcode to quickly find or add a product instead of typing its name.',
+                              'Archived products are hidden from the sales grid but keep their sales history intact — nothing is deleted.',
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         _iconBtn(
                           icon: Icons.qr_code_scanner_outlined,
                           onPressed: () => Navigator.push(

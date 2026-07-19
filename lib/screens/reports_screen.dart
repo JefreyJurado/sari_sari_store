@@ -10,6 +10,7 @@ import 'expenses_screen.dart';
 import 'period_summary_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
+import '../widgets/help_sheet.dart';
 
 const _blue = AppColors.blue;
 const _green = Color(0xFF059669);
@@ -137,12 +138,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
               children: [
 
                 // ── Non-sticky Header ─────────────────
-                const Text('Reports',
-                    style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                        letterSpacing: -0.5)),
+                const Row(children: [
+                  Expanded(
+                    child: Text('Reports',
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                            letterSpacing: -0.5)),
+                  ),
+                  HelpIconButton(
+                    title: 'Reading Your Reports',
+                    points: [
+                      'Pick a period (today, week, month, etc.) at the top — every card and chart below recalculates for that exact window.',
+                      'Total Profit is revenue minus cost of goods sold; Net Income subtracts your logged expenses from that profit too, so it can be lower — or even negative if expenses outweigh profit.',
+                      'Tap Total Profit or Net Income to see a full breakdown: where sales came from, profit by product, and expenses by category for that same period.',
+                      'Export PDF Report generates a shareable summary of everything on this screen for your own records.',
+                    ],
+                  ),
+                ]),
                 Text(
                     'Analyze business performance trends',
                     style: TextStyle(

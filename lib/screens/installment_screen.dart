@@ -10,6 +10,7 @@ import '../utils/date_helper.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
+import '../widgets/help_sheet.dart';
 
 const _uuid = Uuid();
 const _blue = AppColors.blue;
@@ -78,6 +79,17 @@ class _InstallmentScreenState extends State<InstallmentScreen>
             icon: const Icon(Icons.arrow_back, color: Colors.black87),
             onPressed: () => Navigator.pop(context),
           ),
+          actions: const [
+            HelpIconButton(
+              title: 'Installment Plans (Hulugan)',
+              points: [
+                'Use this for big-ticket items a customer pays off over time — record the item, a down payment, and the monthly term.',
+                "Each plan tracks progress automatically as you record payments, so you always know what's left to collect.",
+                "Overdue plans are flagged here so nothing slips through — check in with those customers first.",
+                "This is separate from the Credit Ledger's utang tracking, which is for everyday small purchases on credit rather than a fixed payment schedule.",
+              ],
+            ),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
             child: Divider(height: 1, color: Colors.grey.shade200),

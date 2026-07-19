@@ -12,6 +12,7 @@ import '../utils/date_helper.dart';
 import '../theme/app_theme.dart';
 import 'receipt_screen.dart';
 import '../widgets/center_toast.dart';
+import '../widgets/help_sheet.dart';
 
 const _blue = AppColors.blue;
 
@@ -598,6 +599,15 @@ class _CartSheetState extends State<_CartSheet> {
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87)),
+              const HelpIconButton(
+                title: 'Checking Out a Sale',
+                points: [
+                  'Review the items and quantities here before settling — swipe or use the delete icon on a row to remove something.',
+                  'Cash Settlement: type in exactly what the customer handed you; the app works out their change automatically.',
+                  "Online E-Wallet: use this when the customer already paid you via GCash, Maya, or bank transfer on their own phone. This doesn't send or receive any payment — it just logs the sale as paid online, with an optional reference number for your records.",
+                  'Always check the customer\'s GCash/Maya app or SMS confirmation yourself before finalizing an Online E-Wallet sale — StorePH has no way to verify the money actually arrived.',
+                ],
+              ),
               const Spacer(),
               TextButton(
                 onPressed: () {

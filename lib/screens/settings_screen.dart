@@ -7,6 +7,7 @@ import '../services/biometric_service.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
+import '../widgets/help_sheet.dart';
 
 const _blue = AppColors.blue;
 
@@ -498,6 +499,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: const [
+          HelpIconButton(
+            title: 'Settings, Security & Backup',
+            points: [
+              'Store Name shows up on your Home screen and on every Order Slip — set it to whatever your customers know your tindahan as.',
+              'PIN Lock requires a 4-digit code to open the app; Biometric Unlock (fingerprint/face) is an optional shortcut on top of it, never a replacement.',
+              "Forgot your PIN? Use \"Forgot PIN?\" on the lock screen — it verifies you through your phone's own screen lock, then lets you set a new one.",
+              'Clear Specific Data lets you wipe just one category (e.g. only sales); Clear All Data erases everything — both are permanent, so back up first if unsure.',
+              'A backup is a JSON file with all your data — keep a copy somewhere safe (email, cloud drive) so switching phones never means starting over.',
+            ],
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(height: 1, color: Colors.grey.shade200),

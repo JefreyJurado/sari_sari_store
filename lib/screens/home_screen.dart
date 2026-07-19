@@ -19,6 +19,7 @@ import 'daily_summary_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'sales_history_screen.dart';
 import '../theme/app_theme.dart';
+import '../widgets/help_sheet.dart';
 
 const _brandBlue = AppColors.blue;
 const _brandGreen = AppColors.green;
@@ -178,6 +179,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: _brandBlue),
                       ),
                       const Spacer(),
+                      _appBarButton(
+                        icon: Icons.help_outline,
+                        tooltip: 'How this works',
+                        onPressed: () => HelpSheet.show(
+                          context,
+                          title: 'Your Home Dashboard',
+                          points: const [
+                            "This is your daily snapshot — today's sales, profit, transactions, and total outstanding credit at a glance.",
+                            'The mascot up top reacts to how your day is going (slow, good sales, low stock, etc.) — tap the Quick Actions grid below to jump straight to Credit, Inventory, Expenses, and more.',
+                            'If you have any active customer debts, they show up under Credit Accounts so you never lose track of an utang.',
+                            "The streak badge (when it appears) counts consecutive days you've logged at least one sale.",
+                          ],
+                        ),
+                      ),
                       _appBarButton(
                         icon: Icons.receipt_long_rounded,
                         tooltip: 'Expenses',
