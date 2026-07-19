@@ -60,6 +60,12 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _userName = '';
   String _storeName = '';
+  // Minutes-since-midnight; defaults match the app's original hardcoded
+  // 6 AM-9 PM "open" window, so existing users see no behavior change
+  // until they actually set their real hours in Settings.
+  int _openMinutes = 6 * 60;
+  int _closeMinutes = 21 * 60;
+  Set<int> _closedWeekdays = {};
   Timer? _clockTimer;
 
   @override
@@ -87,8 +93,40 @@ class _HomeScreenState extends State<HomeScreen> {
         // reports — surfaced here too so configuring it in Settings
         // actually shows up somewhere the owner looks every day.
         _storeName = prefs.getString('store_name') ?? 'My Sari-Sari Store';
+        _openMinutes = prefs.getInt('store_open_minutes') ?? 6 * 60;
+        _closeMinutes = prefs.getInt('store_close_minutes') ?? 21 * 60;
+        final closedDaysStr = prefs.getString('store_closed_weekdays') ?? '';
+        _closedWeekdays = closedDaysStr.isEmpty
+            ? {}
+            : closedDaysStr.split(',').map(int.parse).toSet();
       });
     }
+  }
+
+  // Renders the configured operating days as "Daily", a contiguous range
+  // like "Mon-Sat", or a comma list for non-contiguous schedules.
+  String _formatOperatingDays() {
+    if (_closedWeekdays.isEmpty) return 'Daily';
+    const labels = {
+      1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu',
+      5: 'Fri', 6: 'Sat', 7: 'Sun',
+    };
+    final openDays = [
+      for (var d = 1; d <= 7; d++)
+        if (!_closedWeekdays.contains(d)) d
+    ];
+    if (openDays.isEmpty) return 'Closed';
+    if (openDays.length == 1) return labels[openDays.first]!;
+    var isContiguous = true;
+    for (var i = 1; i < openDays.length; i++) {
+      if (openDays[i] != openDays[i - 1] + 1) {
+        isContiguous = false;
+        break;
+      }
+    }
+    return isContiguous
+        ? '${labels[openDays.first]}-${labels[openDays.last]}'
+        : openDays.map((d) => labels[d]).join(', ');
   }
 
   @override
@@ -123,15 +161,22 @@ class _HomeScreenState extends State<HomeScreen> {
             return unpaid.isNotEmpty;
           }).toList();
 
-          final hour = DateTime.now().hour;
+          final now = DateTime.now();
+          final nowMinutes = now.hour * 60 + now.minute;
+          final isClosedToday = _closedWeekdays.contains(now.weekday);
+          final isOutsideStoreHours = isClosedToday ||
+              nowMinutes < _openMinutes ||
+              nowMinutes >= _closeMinutes;
           final hasStockIssue =
               prov.outOfStock.isNotEmpty || prov.lowStock.isNotEmpty;
 
           final MascotMood mascotMood;
           final String mascotMsg;
-          if (hour < 6 || hour >= 21) {
+          if (isOutsideStoreHours) {
             mascotMood = MascotMood.sleepy;
-            mascotMsg = "The store's closed for the night. See you tomorrow!";
+            mascotMsg = isClosedToday
+                ? "Closed today — see you on your next business day!"
+                : "The store's closed for the night. See you tomorrow!";
           } else if (hasStockIssue) {
             mascotMood = MascotMood.lowStock;
             mascotMsg = prov.outOfStock.isNotEmpty
@@ -289,6 +334,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600),
                                   ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${TimeOfDay(hour: _openMinutes ~/ 60, minute: _openMinutes % 60).format(context)} - ${TimeOfDay(hour: _closeMinutes ~/ 60, minute: _closeMinutes % 60).format(context)} • ${_formatOperatingDays()}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: Colors.white
+                                          .withValues(alpha: 0.55),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500),
                                 ),
                               ]),
                               // Streak badge sits on its own line so its

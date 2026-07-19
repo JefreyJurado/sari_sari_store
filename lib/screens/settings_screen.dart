@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'pin_screen.dart';
 import '../services/database_service.dart';
 import '../services/biometric_service.dart';
@@ -24,6 +25,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _biometricEnabled = false;
   bool _biometricAvailable = false;
   bool _loaded = false;
+  String _appVersion = '';
+  TimeOfDay _openTime = const TimeOfDay(hour: 6, minute: 0);
+  TimeOfDay _closeTime = const TimeOfDay(hour: 21, minute: 0);
+  // DateTime.weekday values (Mon=1 ... Sun=7) the store does NOT operate.
+  // Defaults to empty (open every day) so existing users see no change
+  // until they actually mark a day off.
+  Set<int> _closedWeekdays = {};
 
   @override
   void initState() {
@@ -34,6 +42,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     final biometricAvailable = await BiometricService.instance.isAvailable();
+    final packageInfo = await PackageInfo.fromPlatform();
     if (!mounted) return;
     setState(() {
       _nameCtrl.text = prefs.getString('store_name') ?? 'My Sari-Sari Store';
@@ -41,14 +50,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _pinEnabled = prefs.getBool('pin_enabled') ?? false;
       _biometricAvailable = biometricAvailable;
       _biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
+      _appVersion =
+          '${packageInfo.version} (${packageInfo.buildNumber})';
+      final openMin = prefs.getInt('store_open_minutes') ?? 6 * 60;
+      final closeMin = prefs.getInt('store_close_minutes') ?? 21 * 60;
+      _openTime = TimeOfDay(hour: openMin ~/ 60, minute: openMin % 60);
+      _closeTime = TimeOfDay(hour: closeMin ~/ 60, minute: closeMin % 60);
+      final closedDaysStr = prefs.getString('store_closed_weekdays') ?? '';
+      _closedWeekdays = closedDaysStr.isEmpty
+          ? {}
+          : closedDaysStr.split(',').map(int.parse).toSet();
       _loaded = true;
     });
+  }
+
+  Future<void> _pickOpenTime() async {
+    final picked =
+        await showTimePicker(context: context, initialTime: _openTime);
+    if (picked != null && mounted) setState(() => _openTime = picked);
+  }
+
+  Future<void> _pickCloseTime() async {
+    final picked =
+        await showTimePicker(context: context, initialTime: _closeTime);
+    if (picked != null && mounted) setState(() => _closeTime = picked);
+  }
+
+  Widget _dayChip(int weekday, String label) {
+    final isOpen = !_closedWeekdays.contains(weekday);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: GestureDetector(
+        onTap: () => setState(() {
+          if (isOpen) {
+            _closedWeekdays.add(weekday);
+          } else {
+            _closedWeekdays.remove(weekday);
+          }
+        }),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isOpen ? _blue : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: isOpen ? _blue : Colors.grey.shade300),
+          ),
+          child: Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: isOpen ? Colors.white : Colors.grey[500])),
+        ),
+      ),
+    );
   }
 
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('store_name', _nameCtrl.text.trim());
     await prefs.setBool('notifications', _notif);
+    await prefs.setInt(
+        'store_open_minutes', _openTime.hour * 60 + _openTime.minute);
+    await prefs.setInt(
+        'store_close_minutes', _closeTime.hour * 60 + _closeTime.minute);
+    await prefs.setString(
+        'store_closed_weekdays', _closedWeekdays.join(','));
 
     final prov = context.read<AppProvider>();
 
@@ -504,6 +572,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Settings, Security & Backup',
             points: [
               'Store Name shows up on your Home screen and on every Order Slip — set it to whatever your customers know your tindahan as.',
+              'Store Hours tells the app when you\'re actually open — set your real opening and closing time so the Home screen mascot reflects it accurately instead of guessing.',
               'PIN Lock requires a 4-digit code to open the app; Biometric Unlock (fingerprint/face) is an optional shortcut on top of it, never a replacement.',
               "Forgot your PIN? Use \"Forgot PIN?\" on the lock screen — it verifies you through your phone's own screen lock, then lets you set a new one.",
               'Clear Specific Data lets you wipe just one category (e.g. only sales); Clear All Data erases everything — both are permanent, so back up first if unsure.',
@@ -615,6 +684,94 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  _label('STORE HOURS'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(12)),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            onTap: _pickOpenTime,
+                            leading: Icon(Icons.wb_sunny_outlined,
+                                color: Colors.grey[500], size: 20),
+                            title: const Text('Opening time',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87)),
+                            trailing: Text(_openTime.format(context),
+                                style: const TextStyle(
+                                    color: _blue,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13)),
+                          ),
+                        ),
+                      ),
+                      Divider(
+                          height: 1,
+                          indent: 14,
+                          endIndent: 14,
+                          color: Colors.grey.shade200),
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(12)),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            onTap: _pickCloseTime,
+                            leading: Icon(Icons.nights_stay_outlined,
+                                color: Colors.grey[500], size: 20),
+                            title: const Text('Closing time',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87)),
+                            trailing: Text(_closeTime.format(context),
+                                style: const TextStyle(
+                                    color: _blue,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13)),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 10),
+                  Text('Open on these days',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[500])),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      for (final entry in const [
+                        MapEntry(1, 'M'),
+                        MapEntry(2, 'T'),
+                        MapEntry(3, 'W'),
+                        MapEntry(4, 'Th'),
+                        MapEntry(5, 'F'),
+                        MapEntry(6, 'Sa'),
+                        MapEntry(7, 'Su'),
+                      ])
+                        Expanded(child: _dayChip(entry.key, entry.value)),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10, left: 4, right: 4),
+                    child: Text(
+                        "The Home screen mascot uses these hours and days to know when your store is actually open — set them to match your real schedule.",
+                        style:
+                            TextStyle(fontSize: 11, color: Colors.grey[500])),
                   ),
                   const SizedBox(height: 16),
                   _label('NOTIFICATIONS'),
@@ -847,7 +1004,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
                                     color: Colors.black87)),
-                            subtitle: Text('Version 1.0.0',
+                            subtitle: Text('Version $_appVersion',
                                 style: TextStyle(
                                     color: Colors.grey[500], fontSize: 11)),
                           ),

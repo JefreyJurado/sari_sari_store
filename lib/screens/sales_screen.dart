@@ -77,6 +77,16 @@ class _SalesScreenState extends State<SalesScreen> {
                                     letterSpacing: -0.5,
                                   ),
                                 ),
+                                const SizedBox(width: 8),
+                                const HelpIconButton(
+                                  title: 'Making a Sale',
+                                  points: [
+                                    'Tap a product to add it to the cart — use the search bar or category filters to find it faster.',
+                                    'The cart icon (top right) shows how many items you\'ve added. Tap it to review the cart and check out.',
+                                    'Use the barcode scanner to add products by scanning instead of searching.',
+                                    'Need to sell on credit instead? Use the Credit tab — it keeps utang separate from cash/online sales here.',
+                                  ],
+                                ),
                                 const Spacer(),
                                 if (prov.cartItemCount > 0)
                                   TweenAnimationBuilder<double>(
@@ -1332,16 +1342,22 @@ class _CartSheetState extends State<_CartSheet> {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16)),
           title: Row(children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(10),
+            Image.asset(
+              'assets/mascot/storeph_mascot_celebrating.png',
+              width: 40,
+              height: 40,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.green,
+                    size: 20),
               ),
-              child: const Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.green,
-                  size: 20),
             ),
             const SizedBox(width: 12),
             Text(

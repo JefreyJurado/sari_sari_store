@@ -170,8 +170,17 @@ class _StartupRouterState extends State<_StartupRouter> {
         title: const Text('Welcome! 👋',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Image.asset(
+            'assets/mascot/storeph_mascot_happy_sales.png',
+            width: 88,
+            height: 88,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const SizedBox(height: 88),
+          ),
+          const SizedBox(height: 12),
           Text(
             'What is your name?\nThis will be used for your greeting.',
+            textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: Colors.grey[600]),
           ),
           const SizedBox(height: 16),

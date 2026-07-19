@@ -159,7 +159,12 @@ class _InstallmentScreenState extends State<InstallmentScreen>
     if (list.isEmpty) {
       return Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.credit_score_outlined, size: 48, color: Colors.grey[300]),
+          Image.asset(
+            'assets/mascot/storeph_mascot_neutral_idle.png',
+            width: 72, height: 72, fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Icon(Icons.credit_score_outlined,
+                size: 48, color: Colors.grey[300]),
+          ),
           const SizedBox(height: 12),
           Text('No installments yet',
               style: TextStyle(color: Colors.grey[400], fontSize: 14)),

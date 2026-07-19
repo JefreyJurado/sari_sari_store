@@ -232,7 +232,12 @@ class _ListaScreenState extends State<ListaScreen>
     if (customers.isEmpty) {
       return Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.check_circle_outline, size: 48, color: Colors.grey[300]),
+          Image.asset(
+            'assets/mascot/storeph_mascot_neutral_idle.png',
+            width: 72, height: 72, fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Icon(Icons.check_circle_outline,
+                size: 48, color: Colors.grey[300]),
+          ),
           const SizedBox(height: 12),
           Text(
               _search.isEmpty
@@ -335,7 +340,12 @@ class _ListaScreenState extends State<ListaScreen>
     if (customers.isEmpty) {
       return Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.history_outlined, size: 48, color: Colors.grey[300]),
+          Image.asset(
+            'assets/mascot/storeph_mascot_neutral_idle.png',
+            width: 72, height: 72, fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Icon(Icons.history_outlined,
+                size: 48, color: Colors.grey[300]),
+          ),
           const SizedBox(height: 12),
           Text(
               _search.isEmpty
@@ -372,6 +382,8 @@ class _ListaScreenState extends State<ListaScreen>
             child: Material(
               color: Colors.transparent,
               child: ListTile(
+                onTap: () =>
+                    _showCustomerDebts(context, c, prov.debtsFor(c.id), prov),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 leading: CircleAvatar(
