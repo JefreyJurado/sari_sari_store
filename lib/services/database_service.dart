@@ -14,15 +14,13 @@ class DatabaseService {
   DatabaseService._();
 
   Database? _db;
-  Future<Database> get database async =>
-      _db ??= await _init();
+  Future<Database> get database async => _db ??= await _init();
 
   Future<Database> _init() async {
-    final path =
-        join(await getDatabasesPath(), 'pos_system.db');
+    final path = join(await getDatabasesPath(), 'pos_system.db');
     return openDatabase(
       path,
-      version: 12,
+      version: 13,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -126,20 +124,18 @@ class DatabaseService {
       liquidAccount TEXT NOT NULL DEFAULT 'Cash',
       accountKind TEXT NOT NULL DEFAULT 'wallet',
       customerName TEXT,
-      customerPhone TEXT)''');
+      customerPhone TEXT,
+      transferAccount TEXT)''');
   }
 
-  Future<void> _onUpgrade(Database db, int oldV,
-      int newV) async {
+  Future<void> _onUpgrade(Database db, int oldV, int newV) async {
     if (oldV < 2) {
       try {
-        await db.execute(
-            'ALTER TABLE products ADD COLUMN barcode TEXT');
+        await db.execute('ALTER TABLE products ADD COLUMN barcode TEXT');
       } catch (_) {}
     }
     if (oldV < 3) {
-      await db.execute(
-          '''CREATE TABLE IF NOT EXISTS capital(
+      await db.execute('''CREATE TABLE IF NOT EXISTS capital(
         id TEXT PRIMARY KEY,
         cashInvestment REAL NOT NULL DEFAULT 0,
         inventoryValue REAL NOT NULL DEFAULT 0,
@@ -184,20 +180,17 @@ class DatabaseService {
             'ALTER TABLE products ADD COLUMN reorderPoint INTEGER NOT NULL DEFAULT 5');
       } catch (_) {}
       try {
-        await db.execute(
-            'ALTER TABLE products ADD COLUMN expiryDate TEXT');
+        await db.execute('ALTER TABLE products ADD COLUMN expiryDate TEXT');
       } catch (_) {}
       try {
-        await db.execute(
-            'ALTER TABLE products ADD COLUMN supplierName TEXT');
+        await db.execute('ALTER TABLE products ADD COLUMN supplierName TEXT');
       } catch (_) {}
       try {
-        await db.execute(
-            'ALTER TABLE products ADD COLUMN supplierContact TEXT');
+        await db
+            .execute('ALTER TABLE products ADD COLUMN supplierContact TEXT');
       } catch (_) {}
       try {
-        await db.execute(
-            'ALTER TABLE products ADD COLUMN seasonalTag TEXT');
+        await db.execute('ALTER TABLE products ADD COLUMN seasonalTag TEXT');
       } catch (_) {}
     }
     if (oldV < 8) {
@@ -206,16 +199,14 @@ class DatabaseService {
             'ALTER TABLE setup_cost_items ADD COLUMN category TEXT DEFAULT "Equipment"');
       } catch (_) {}
       try {
-        await db.execute(
-            'ALTER TABLE setup_cost_items ADD COLUMN vendor TEXT');
+        await db.execute('ALTER TABLE setup_cost_items ADD COLUMN vendor TEXT');
       } catch (_) {}
       try {
         await db.execute(
             'ALTER TABLE setup_cost_items ADD COLUMN paymentMethod TEXT DEFAULT "Cash"');
       } catch (_) {}
       try {
-        await db.execute(
-            'ALTER TABLE setup_cost_items ADD COLUMN date TEXT');
+        await db.execute('ALTER TABLE setup_cost_items ADD COLUMN date TEXT');
       } catch (_) {}
       // Monthly inventory snapshot table
       try {
@@ -233,8 +224,7 @@ class DatabaseService {
     }
     if (oldV < 9) {
       try {
-        await db.execute(
-            'ALTER TABLE sales ADD COLUMN receiptNumber INTEGER');
+        await db.execute('ALTER TABLE sales ADD COLUMN receiptNumber INTEGER');
       } catch (_) {}
       // Backfill existing sales with sequential numbers in
       // chronological order so old receipts get a stable number too.
@@ -281,6 +271,16 @@ class DatabaseService {
       await db.execute('''UPDATE cico_transactions SET accountKind = 'bank'
         WHERE type IN ('topUp', 'withdraw') AND provider = 'Bank' ''');
     }
+    if (oldV < 13) {
+      try {
+        await db.execute(
+            'ALTER TABLE cico_transactions ADD COLUMN transferAccount TEXT');
+      } catch (_) {}
+      // Left NULL for every existing row on purpose: old topUp/withdraw
+      // entries were only ever single-entry adjustments, so backfilling a
+      // guessed "other side" here would silently change balances that were
+      // already relied on.
+    }
   }
 
   // ── CUSTOMERS ──────────────────────────────────────────
@@ -289,30 +289,25 @@ class DatabaseService {
           conflictAlgorithm: ConflictAlgorithm.replace);
 
   Future<List<Customer>> getCustomers() async {
-    final maps = await (await database)
-        .query('customers', orderBy: 'name ASC');
+    final maps = await (await database).query('customers', orderBy: 'name ASC');
     return maps.map(Customer.fromMap).toList();
   }
 
-  Future<void> updateCustomer(Customer c) async =>
-      (await database).update('customers', c.toMap(),
-          where: 'id=?', whereArgs: [c.id]);
+  Future<void> updateCustomer(Customer c) async => (await database)
+      .update('customers', c.toMap(), where: 'id=?', whereArgs: [c.id]);
 
   /// Deletes a customer along with their debts and payment history, so
   /// deleting a customer never leaves orphaned debt/payment rows that
   /// still count toward store-wide unpaid-debt totals.
   Future<void> deleteCustomer(String id) async {
     final db = await database;
-    final debtRows = await db.query('debts',
-        where: 'customerId=?', whereArgs: [id]);
+    final debtRows =
+        await db.query('debts', where: 'customerId=?', whereArgs: [id]);
     for (final row in debtRows) {
-      await db.delete('payments',
-          where: 'debtId=?', whereArgs: [row['id']]);
+      await db.delete('payments', where: 'debtId=?', whereArgs: [row['id']]);
     }
-    await db.delete('debts',
-        where: 'customerId=?', whereArgs: [id]);
-    await db.delete('customers',
-        where: 'id=?', whereArgs: [id]);
+    await db.delete('debts', where: 'customerId=?', whereArgs: [id]);
+    await db.delete('customers', where: 'id=?', whereArgs: [id]);
   }
 
   // ── PRODUCTS ───────────────────────────────────────────
@@ -320,20 +315,16 @@ class DatabaseService {
       (await database).insert('products', p.toMap(),
           conflictAlgorithm: ConflictAlgorithm.replace);
 
-  Future<List<Product>> getProducts(
-      {bool activeOnly = true}) async {
+  Future<List<Product>> getProducts({bool activeOnly = true}) async {
     final db = await database;
     final maps = activeOnly
-        ? await db.query('products',
-            where: 'isActive=1', orderBy: 'name ASC')
-        : await db.query('products',
-            orderBy: 'name ASC');
+        ? await db.query('products', where: 'isActive=1', orderBy: 'name ASC')
+        : await db.query('products', orderBy: 'name ASC');
     return maps.map(Product.fromMap).toList();
   }
 
-  Future<void> updateProduct(Product p) async =>
-      (await database).update('products', p.toMap(),
-          where: 'id=?', whereArgs: [p.id]);
+  Future<void> updateProduct(Product p) async => (await database)
+      .update('products', p.toMap(), where: 'id=?', whereArgs: [p.id]);
 
   /// Atomically applies a stock delta in SQL (`stock = stock + ?`,
   /// clamped to [0, 99999] — the same bounds the manual "adjust stock"
@@ -351,17 +342,15 @@ class DatabaseService {
         [delta, productId]);
   }
 
-  Future<void> archiveProduct(String id) async =>
-      (await database).update('products', {'isActive': 0},
-          where: 'id=?', whereArgs: [id]);
+  Future<void> archiveProduct(String id) async => (await database)
+      .update('products', {'isActive': 0}, where: 'id=?', whereArgs: [id]);
 
-  Future<void> restoreProduct(String id) async =>
-      (await database).update('products', {'isActive': 1},
-          where: 'id=?', whereArgs: [id]);
+  Future<void> restoreProduct(String id) async => (await database)
+      .update('products', {'isActive': 1}, where: 'id=?', whereArgs: [id]);
 
   Future<List<Product>> getArchivedProducts() async {
-    final maps = await (await database).query('products',
-        where: 'isActive=0', orderBy: 'name ASC');
+    final maps = await (await database)
+        .query('products', where: 'isActive=0', orderBy: 'name ASC');
     return maps.map(Product.fromMap).toList();
   }
 
@@ -380,8 +369,8 @@ class DatabaseService {
     return result.first;
   }
 
-  Future<Product?> getProductByBarcode(
-      String barcode, {bool includeInactive = false}) async {
+  Future<Product?> getProductByBarcode(String barcode,
+      {bool includeInactive = false}) async {
     final maps = await (await database).query('products',
         where: includeInactive ? 'barcode=?' : 'barcode=? AND isActive=1',
         whereArgs: [barcode]);
@@ -407,8 +396,7 @@ class DatabaseService {
           'sales', {...sale.toMap(), 'receiptNumber': receiptNumber},
           conflictAlgorithm: ConflictAlgorithm.replace);
       for (final item in sale.items) {
-        await txn.insert('sale_items',
-            {'saleId': sale.id, ...item.toMap()});
+        await txn.insert('sale_items', {'saleId': sale.id, ...item.toMap()});
       }
       return receiptNumber;
     });
@@ -416,14 +404,13 @@ class DatabaseService {
 
   Future<List<Sale>> getSales({int limit = 300}) async {
     final db = await database;
-    final saleMaps = await db.query('sales',
-        orderBy: 'createdAt DESC', limit: limit);
+    final saleMaps =
+        await db.query('sales', orderBy: 'createdAt DESC', limit: limit);
     final List<Sale> result = [];
     for (final m in saleMaps) {
-      final itemMaps = await db.query('sale_items',
-          where: 'saleId=?', whereArgs: [m['id']]);
-      result.add(Sale.fromMap(
-          m, itemMaps.map(TxItem.fromMap).toList()));
+      final itemMaps =
+          await db.query('sale_items', where: 'saleId=?', whereArgs: [m['id']]);
+      result.add(Sale.fromMap(m, itemMaps.map(TxItem.fromMap).toList()));
     }
     return result;
   }
@@ -439,8 +426,7 @@ class DatabaseService {
     if (maps.isEmpty) return null;
     final itemMaps =
         await db.query('sale_items', where: 'saleId=?', whereArgs: [id]);
-    return Sale.fromMap(
-        maps.first, itemMaps.map(TxItem.fromMap).toList());
+    return Sale.fromMap(maps.first, itemMaps.map(TxItem.fromMap).toList());
   }
 
   /// Completed sales for one calendar day, computed in SQL so any past
@@ -455,10 +441,9 @@ class DatabaseService {
         orderBy: 'createdAt DESC');
     final List<Sale> result = [];
     for (final m in saleMaps) {
-      final itemMaps = await db.query('sale_items',
-          where: 'saleId=?', whereArgs: [m['id']]);
-      result.add(Sale.fromMap(
-          m, itemMaps.map(TxItem.fromMap).toList()));
+      final itemMaps =
+          await db.query('sale_items', where: 'saleId=?', whereArgs: [m['id']]);
+      result.add(Sale.fromMap(m, itemMaps.map(TxItem.fromMap).toList()));
     }
     return result;
   }
@@ -484,9 +469,8 @@ class DatabaseService {
     };
   }
 
-  Future<void> voidSale(String id) async =>
-      (await database).update('sales', {'status': 'voided'},
-          where: 'id=?', whereArgs: [id]);
+  Future<void> voidSale(String id) async => (await database)
+      .update('sales', {'status': 'voided'}, where: 'id=?', whereArgs: [id]);
 
   // ── EXPENSES ───────────────────────────────────────────
   Future<void> insertExpense(Expense e) async =>
@@ -494,18 +478,15 @@ class DatabaseService {
           conflictAlgorithm: ConflictAlgorithm.replace);
 
   Future<List<Expense>> getExpenses() async {
-    final maps = await (await database)
-        .query('expenses', orderBy: 'date DESC');
+    final maps = await (await database).query('expenses', orderBy: 'date DESC');
     return maps.map(Expense.fromMap).toList();
   }
 
-  Future<void> updateExpense(Expense e) async =>
-      (await database).update('expenses', e.toMap(),
-          where: 'id=?', whereArgs: [e.id]);
+  Future<void> updateExpense(Expense e) async => (await database)
+      .update('expenses', e.toMap(), where: 'id=?', whereArgs: [e.id]);
 
   Future<void> deleteExpense(String id) async =>
-      (await database).delete('expenses',
-          where: 'id=?', whereArgs: [id]);
+      (await database).delete('expenses', where: 'id=?', whereArgs: [id]);
 
   // ── CICO (E-WALLET) ────────────────────────────────────
   Future<void> insertCicoTransaction(CicoTransaction t) async =>
@@ -522,24 +503,21 @@ class DatabaseService {
       (await database).update('cico_transactions', t.toMap(),
           where: 'id=?', whereArgs: [t.id]);
 
-  Future<void> deleteCicoTransaction(String id) async =>
-      (await database).delete('cico_transactions',
-          where: 'id=?', whereArgs: [id]);
+  Future<void> deleteCicoTransaction(String id) async => (await database)
+      .delete('cico_transactions', where: 'id=?', whereArgs: [id]);
 
   // ── DEBTS ──────────────────────────────────────────────
-  Future<void> insertDebt(Debt d) async =>
-      (await database).insert('debts', d.toMap(),
-          conflictAlgorithm: ConflictAlgorithm.replace);
+  Future<void> insertDebt(Debt d) async => (await database)
+      .insert('debts', d.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
 
   Future<List<Debt>> getDebts() async {
-    final maps = await (await database)
-        .query('debts', orderBy: 'createdAt DESC');
+    final maps =
+        await (await database).query('debts', orderBy: 'createdAt DESC');
     return maps.map(Debt.fromMap).toList();
   }
 
-  Future<void> updateDebt(Debt d) async =>
-      (await database).update('debts', d.toMap(),
-          where: 'id=?', whereArgs: [d.id]);
+  Future<void> updateDebt(Debt d) async => (await database)
+      .update('debts', d.toMap(), where: 'id=?', whereArgs: [d.id]);
 
   /// Atomically applies a payment amount to a debt's paidAmount and
   /// derives its status from the result, all in one SQL statement —
@@ -574,14 +552,12 @@ class DatabaseService {
   /// used when the originating sale is voided.
   Future<void> deleteDebtsBySale(String saleId) async {
     final db = await database;
-    final debtRows = await db.query('debts',
-        where: 'saleId=?', whereArgs: [saleId]);
+    final debtRows =
+        await db.query('debts', where: 'saleId=?', whereArgs: [saleId]);
     for (final row in debtRows) {
-      await db.delete('payments',
-          where: 'debtId=?', whereArgs: [row['id']]);
+      await db.delete('payments', where: 'debtId=?', whereArgs: [row['id']]);
     }
-    await db.delete('debts',
-        where: 'saleId=?', whereArgs: [saleId]);
+    await db.delete('debts', where: 'saleId=?', whereArgs: [saleId]);
   }
 
   // ── PAYMENTS ───────────────────────────────────────────
@@ -590,19 +566,16 @@ class DatabaseService {
           conflictAlgorithm: ConflictAlgorithm.replace);
 
   Future<List<DebtPayment>> getPayments() async {
-    final maps = await (await database)
-        .query('payments', orderBy: 'createdAt DESC');
+    final maps =
+        await (await database).query('payments', orderBy: 'createdAt DESC');
     return maps.map(DebtPayment.fromMap).toList();
   }
 
   // ── REPORTS ────────────────────────────────────────────
-  Future<List<Map<String, dynamic>>> getDailyRevenue(
-      int days) async {
-    final since =
-        DateTime.now().subtract(Duration(days: days - 1));
+  Future<List<Map<String, dynamic>>> getDailyRevenue(int days) async {
+    final since = DateTime.now().subtract(Duration(days: days - 1));
     final sinceStr =
-        DateTime(since.year, since.month, since.day)
-            .toIso8601String();
+        DateTime(since.year, since.month, since.day).toIso8601String();
     // Profit is computed via a correlated subquery (rather than a JOIN on
     // sale_items) so it doesn't multiply/duplicate the revenue SUM when a
     // sale has more than one line item.
@@ -650,8 +623,7 @@ class DatabaseService {
     };
   }
 
-  Future<List<Map<String, dynamic>>> getTopProducts(
-      int days) async {
+  Future<List<Map<String, dynamic>>> getTopProducts(int days) async {
     final now = DateTime.now();
     final since = DateTime(now.year, now.month, now.day)
         .subtract(Duration(days: days - 1));
@@ -667,14 +639,10 @@ class DatabaseService {
     ''', [since.toIso8601String()]);
   }
 
-  Future<List<Map<String, dynamic>>> getHourlySales(
-      DateTime date) async {
-    final start =
-        DateTime(date.year, date.month, date.day)
-            .toIso8601String();
+  Future<List<Map<String, dynamic>>> getHourlySales(DateTime date) async {
+    final start = DateTime(date.year, date.month, date.day).toIso8601String();
     final end =
-        DateTime(date.year, date.month, date.day, 23, 59, 59)
-            .toIso8601String();
+        DateTime(date.year, date.month, date.day, 23, 59, 59).toIso8601String();
     final rows = await (await database).rawQuery('''
       SELECT strftime('%H', createdAt) as hour,
         SUM(totalAmount) as revenue,
@@ -687,9 +655,7 @@ class DatabaseService {
     ''', [start, end]);
     return rows
         .map((r) => {
-              'hour': int.tryParse(
-                      r['hour'] as String? ?? '0') ??
-                  0,
+              'hour': int.tryParse(r['hour'] as String? ?? '0') ?? 0,
               'revenue': r['revenue'],
               'txCount': r['txCount'],
             })
@@ -718,8 +684,7 @@ class DatabaseService {
     if (rows.isEmpty) return 0;
 
     final days = rows.map((r) => r['day'] as String).toSet();
-    String dateKey(DateTime d) =>
-        '${d.year.toString().padLeft(4, '0')}-'
+    String dateKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}-'
         '${d.month.toString().padLeft(2, '0')}-'
         '${d.day.toString().padLeft(2, '0')}';
 
@@ -772,8 +737,8 @@ class DatabaseService {
     final db = await database;
     await db.insert('capital', c.toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace);
-    await db.delete('setup_cost_items',
-        where: 'capitalId=?', whereArgs: [c.id]);
+    await db
+        .delete('setup_cost_items', where: 'capitalId=?', whereArgs: [c.id]);
     for (final item in c.setupItems) {
       await db.insert('setup_cost_items', {
         'capitalId': c.id,
@@ -789,8 +754,7 @@ class DatabaseService {
 
   Future<CapitalEntry?> getCapital() async {
     final db = await database;
-    final maps = await db.query('capital',
-        orderBy: 'createdAt DESC', limit: 1);
+    final maps = await db.query('capital', orderBy: 'createdAt DESC', limit: 1);
     if (maps.isEmpty) return null;
     final capitalId = maps.first['id'] as String;
     final itemMaps = await db.query('setup_cost_items',
@@ -838,7 +802,8 @@ class DatabaseService {
   /// Guarded in-memory too — see [BackupService.autoBackupIfNeeded] for
   /// why AppProvider.initialize() can fire this twice in quick succession.
   Future<void> recordMonthlySnapshotIfNeeded() {
-    return _monthlySnapshotInFlight ??= _doRecordMonthlySnapshot().whenComplete(() {
+    return _monthlySnapshotInFlight ??=
+        _doRecordMonthlySnapshot().whenComplete(() {
       _monthlySnapshotInFlight = null;
     });
   }
@@ -999,7 +964,8 @@ class DatabaseService {
         endingStock = currentStock;
       } else {
         final endRows = await db.query('inventory_snapshots',
-            where: 'productId=? AND month=?', whereArgs: [productId, nextMonth]);
+            where: 'productId=? AND month=?',
+            whereArgs: [productId, nextMonth]);
         endingStock = endRows.isNotEmpty
             ? (endRows.first['beginningStock'] as num).toInt()
             : null;
@@ -1047,20 +1013,23 @@ class DatabaseService {
     final db = await database;
     await db.transaction((txn) async {
       for (final t in [
-        'payments', 'debts', 'expenses', 'sale_items',
-        'sales', 'customers', 'products'
+        'payments',
+        'debts',
+        'expenses',
+        'sale_items',
+        'sales',
+        'customers',
+        'products'
       ]) {
         await txn.delete(t);
       }
       Future<void> ins(String table, List rows) async {
         for (final r in rows) {
-          await txn.insert(
-              table,
-              Map<String, dynamic>.from(r as Map),
-              conflictAlgorithm:
-                  ConflictAlgorithm.replace);
+          await txn.insert(table, Map<String, dynamic>.from(r as Map),
+              conflictAlgorithm: ConflictAlgorithm.replace);
         }
       }
+
       await ins('customers', data['customers'] as List);
       await ins('products', data['products'] as List);
       await ins('sales', data['sales'] as List);
@@ -1084,8 +1053,7 @@ class DatabaseService {
       }
       if (data['inventory_snapshots'] != null) {
         await txn.delete('inventory_snapshots');
-        await ins('inventory_snapshots',
-            data['inventory_snapshots'] as List);
+        await ins('inventory_snapshots', data['inventory_snapshots'] as List);
       }
       if (data['cico_transactions'] != null) {
         await txn.delete('cico_transactions');

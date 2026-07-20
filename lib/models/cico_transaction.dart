@@ -21,6 +21,13 @@ class CicoTransaction {
   // cashIn/cashOut only: optional customer details for recordkeeping.
   final String? customerName;
   final String? customerPhone;
+  // topUp/withdraw only: the other side of the adjustment (Cash, a bank, or
+  // a wallet) so it nets against a second account instead of only touching
+  // `provider`/`accountKind`. Null means a standalone adjustment with no
+  // other side (e.g. reconciling a manual recount) — this is also what
+  // every transaction written before this field existed defaults to, so
+  // historical balances are unaffected.
+  final String? transferAccount;
 
   static const cashAccount = 'Cash';
   static const presetProviders = ['GCash', 'Maya'];
@@ -37,6 +44,7 @@ class CicoTransaction {
     this.accountKind = CicoAccountKind.wallet,
     this.customerName,
     this.customerPhone,
+    this.transferAccount,
   });
 
   Map<String, dynamic> toMap() => {
@@ -51,6 +59,7 @@ class CicoTransaction {
         'accountKind': accountKind.name,
         'customerName': customerName,
         'customerPhone': customerPhone,
+        'transferAccount': transferAccount,
       };
 
   factory CicoTransaction.fromMap(Map<String, dynamic> m) => CicoTransaction(
@@ -67,6 +76,7 @@ class CicoTransaction {
             orElse: () => CicoAccountKind.wallet),
         customerName: m['customerName'] as String?,
         customerPhone: m['customerPhone'] as String?,
+        transferAccount: m['transferAccount'] as String?,
       );
 
   CicoTransaction copyWith({
@@ -80,6 +90,7 @@ class CicoTransaction {
     CicoAccountKind? accountKind,
     String? customerName,
     String? customerPhone,
+    String? transferAccount,
   }) =>
       CicoTransaction(
         id: id,
@@ -93,5 +104,6 @@ class CicoTransaction {
         accountKind: accountKind ?? this.accountKind,
         customerName: customerName ?? this.customerName,
         customerPhone: customerPhone ?? this.customerPhone,
+        transferAccount: transferAccount ?? this.transferAccount,
       );
 }

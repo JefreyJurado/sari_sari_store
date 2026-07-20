@@ -31,14 +31,14 @@ void main() async {
   }
 
   await DatabaseService.instance.database;
-  
+
   try {
     await NotificationService.instance.initialize();
   } catch (_) {}
   try {
     await DefaultProducts.seedIfEmpty();
   } catch (_) {}
-  
+
   runApp(const StorePHApp());
 }
 
@@ -83,31 +83,33 @@ class StorePHApp extends StatelessWidget {
       // FIXED: Separated data instantiation from the build framework loop to prevent layout race conditions
       create: (_) => AppProvider()..initialize(),
       child: MaterialApp(
-          title: 'StorePH',
-          debugShowCheckedModeBanner: false,
-          shortcuts: {
-            ...WidgetsApp.defaultShortcuts,
-            const SingleActivator(LogicalKeyboardKey.backspace): const ActivateIntent(),
-          },
-          builder: (context, widget) {
-            ErrorWidget.builder = (errorDetails) {
-              if (errorDetails.exception.toString().contains('_dependents.isEmpty')) {
-                return const SizedBox.shrink();
-              }
-              return ErrorWidget(errorDetails.exception);
-            };
-            if (widget == null) {
-              return const Scaffold(
-                backgroundColor: Colors.white,
-                body: SizedBox.shrink(),
-              );
+        title: 'StorePH',
+        debugShowCheckedModeBanner: false,
+        shortcuts: {
+          ...WidgetsApp.defaultShortcuts,
+          const SingleActivator(LogicalKeyboardKey.backspace):
+              const ActivateIntent(),
+        },
+        builder: (context, widget) {
+          ErrorWidget.builder = (errorDetails) {
+            if (errorDetails.exception
+                .toString()
+                .contains('_dependents.isEmpty')) {
+              return const SizedBox.shrink();
             }
-            // Lets integration tests capture a real screenshot of whatever
-            // is currently on screen without any OS-level window capture.
-            return RepaintBoundary(
-                key: screenshotBoundaryKey, child: widget);
-          },
-          theme: AppTheme.light.copyWith(
+            return ErrorWidget(errorDetails.exception);
+          };
+          if (widget == null) {
+            return const Scaffold(
+              backgroundColor: Colors.white,
+              body: SizedBox.shrink(),
+            );
+          }
+          // Lets integration tests capture a real screenshot of whatever
+          // is currently on screen without any OS-level window capture.
+          return RepaintBoundary(key: screenshotBoundaryKey, child: widget);
+        },
+        theme: AppTheme.light.copyWith(
           pageTransitionsTheme: PageTransitionsTheme(
             builders: {
               TargetPlatform.android: const _SlideFadePageTransitionsBuilder(),
@@ -155,7 +157,8 @@ class _StartupRouterState extends State<_StartupRouter> {
     } else {
       final pinEnabled = prefs.getBool('pin_enabled') ?? false;
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed(pinEnabled ? '/pin' : '/home');
+        Navigator.of(context)
+            .pushReplacementNamed(pinEnabled ? '/pin' : '/home');
       }
     }
   }
@@ -169,7 +172,10 @@ class _StartupRouterState extends State<_StartupRouter> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Welcome! 👋',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Image.asset(
             'assets/mascot/storeph_mascot_happy_sales.png',
@@ -192,7 +198,8 @@ class _StartupRouterState extends State<_StartupRouter> {
             decoration: InputDecoration(
               hintText: 'e.g. Maria, Juan...',
               hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-              prefixIcon: Icon(Icons.person_outlined, color: Colors.grey[500], size: 18),
+              prefixIcon: Icon(Icons.person_outlined,
+                  color: Colors.grey[500], size: 18),
               filled: true,
               fillColor: Colors.grey.shade50,
               border: OutlineInputBorder(
@@ -210,7 +217,8 @@ class _StartupRouterState extends State<_StartupRouter> {
               await prefs.setBool('onboarding_seen', true);
               if (mounted) Navigator.pop(context);
             },
-            child: Text('Skip', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            child: Text('Skip',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -225,7 +233,8 @@ class _StartupRouterState extends State<_StartupRouter> {
               backgroundColor: _blue,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Done!', style: TextStyle(fontSize: 13)),
           ),
@@ -263,8 +272,8 @@ class _MainShellState extends State<_MainShell> {
     SalesScreen(),
     ListaScreen(),
     InventoryScreen(),
-    ReportsScreen(),
     CicoScreen(),
+    ReportsScreen(),
   ];
 
   static const _tabColors = [
@@ -272,8 +281,8 @@ class _MainShellState extends State<_MainShell> {
     AppColors.green,
     AppColors.orange,
     AppColors.purple,
-    AppColors.teal,
     Color(0xFF4F46E5),
+    AppColors.teal,
   ];
 
   @override
@@ -316,12 +325,16 @@ class _MainShellState extends State<_MainShell> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _navItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
-                _navItem(1, Icons.point_of_sale_rounded, Icons.point_of_sale_outlined, 'Sales'),
-                _navItem(2, Icons.list_alt_rounded, Icons.list_alt_outlined, 'Credit'),
-                _navItem(3, Icons.inventory_2_rounded, Icons.inventory_2_outlined, 'Products'),
-                _navItem(4, Icons.bar_chart_rounded, Icons.bar_chart_outlined, 'Reports'),
-                _navItem(5, Icons.account_balance_wallet_rounded,
+                _navItem(1, Icons.point_of_sale_rounded,
+                    Icons.point_of_sale_outlined, 'Sales'),
+                _navItem(2, Icons.list_alt_rounded, Icons.list_alt_outlined,
+                    'Credit'),
+                _navItem(3, Icons.inventory_2_rounded,
+                    Icons.inventory_2_outlined, 'Products'),
+                _navItem(4, Icons.account_balance_wallet_rounded,
                     Icons.account_balance_wallet_outlined, 'Wallet'),
+                _navItem(5, Icons.bar_chart_rounded, Icons.bar_chart_outlined,
+                    'Reports'),
               ],
             ),
           ),
@@ -330,7 +343,8 @@ class _MainShellState extends State<_MainShell> {
     );
   }
 
-  Widget _navItem(int index, IconData filledIcon, IconData outlineIcon, String label) {
+  Widget _navItem(
+      int index, IconData filledIcon, IconData outlineIcon, String label) {
     final selected = _tab == index;
     final color = _tabColors[index];
     return GestureDetector(
@@ -363,7 +377,8 @@ class _MainShellState extends State<_MainShell> {
               ),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                transitionBuilder: (child, anim) =>
+                    ScaleTransition(scale: anim, child: child),
                 child: Icon(
                   selected ? filledIcon : outlineIcon,
                   key: ValueKey(selected),

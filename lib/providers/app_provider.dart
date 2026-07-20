@@ -46,8 +46,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   // ── Computed ───────────────────────────────────────────────────
-  double get cartTotal => CurrencyFormatter.roundCents(cart.entries
-      .fold(0.0, (s, e) => s + e.key.sellPrice * e.value));
+  double get cartTotal => CurrencyFormatter.roundCents(
+      cart.entries.fold(0.0, (s, e) => s + e.key.sellPrice * e.value));
 
   int get cartItemCount => cart.values.fold(0, (s, q) => s + q);
 
@@ -124,8 +124,8 @@ class AppProvider extends ChangeNotifier {
 
   double get totalSalesProfit => grossProfit;
 
-  double get totalExpensesAmount => CurrencyFormatter.roundCents(
-      expenses.fold(0.0, (s, e) => s + e.amount));
+  double get totalExpensesAmount =>
+      CurrencyFormatter.roundCents(expenses.fold(0.0, (s, e) => s + e.amount));
 
   // All-time revenue/COGS come from SQL aggregates (loaded in _loadAll),
   // not from folding `sales` — that list is capped to the most recent
@@ -387,8 +387,8 @@ class AppProvider extends ChangeNotifier {
       );
     }).toList();
 
-    final total =
-        CurrencyFormatter.roundCents(txItems.fold(0.0, (s, i) => s + i.subtotal));
+    final total = CurrencyFormatter.roundCents(
+        txItems.fold(0.0, (s, i) => s + i.subtotal));
 
     var sale = Sale(
       id: _uuid.v4(),
@@ -560,9 +560,7 @@ class AppProvider extends ChangeNotifier {
 
   // ── Customers ──────────────────────────────────────────────────
   Future<void> addCustomer(String name,
-      {String? phone,
-      String? address,
-      double creditLimit = 500}) async {
+      {String? phone, String? address, double creditLimit = 500}) async {
     await _db.insertCustomer(Customer(
         id: _uuid.v4(),
         name: name,
@@ -588,8 +586,7 @@ class AppProvider extends ChangeNotifier {
     final theirInstallments = (await InstallmentService.instance.getAll())
         .where((i) => i.customerId == id);
     for (final inst in theirInstallments) {
-      if (inst.status != InstallmentStatus.completed &&
-          inst.saleId != null) {
+      if (inst.status != InstallmentStatus.completed && inst.saleId != null) {
         await voidSaleById(inst.saleId!);
       }
       await InstallmentService.instance.delete(inst.id);
@@ -620,7 +617,7 @@ class AppProvider extends ChangeNotifier {
       // If it uses another variable name like `isArchived`, change it here.
       final updatedProduct = products[index].copyWith(isActive: false);
       await _db.updateProduct(updatedProduct);
-      
+
       products = await _db.getProducts();
       _safeNotifyListeners();
     }
@@ -646,7 +643,7 @@ class AppProvider extends ChangeNotifier {
       createdAt: capital?.createdAt ?? DateTime.now(),
       updatedAt: capital != null ? DateTime.now() : null,
     );
-    
+
     await _db.upsertCapital(entry);
     await reload();
   }
@@ -686,6 +683,7 @@ class AppProvider extends ChangeNotifier {
     CicoAccountKind accountKind = CicoAccountKind.wallet,
     String? customerName,
     String? customerPhone,
+    String? transferAccount,
   }) async {
     await _db.insertCicoTransaction(CicoTransaction(
         id: _uuid.v4(),
@@ -698,7 +696,8 @@ class AppProvider extends ChangeNotifier {
         liquidAccount: liquidAccount,
         accountKind: accountKind,
         customerName: customerName,
-        customerPhone: customerPhone));
+        customerPhone: customerPhone,
+        transferAccount: transferAccount));
     await reload();
   }
 
@@ -712,9 +711,24 @@ class AppProvider extends ChangeNotifier {
     await reload();
   }
 
+  // topUp/withdraw only: `transferAccount` optionally names the other side
+  // of the adjustment (Cash, a bank, or a wallet) so it nets against a
+  // second account instead of only touching `provider`. Null (including
+  // every transaction written before this field existed) means "no other
+  // side" and contributes nothing here.
+  double _cicoTransferDelta(CicoTransaction t, String accountName) {
+    if (t.transferAccount != accountName) return 0;
+    return switch (t.type) {
+      CicoType.topUp => -t.amount,
+      CicoType.withdraw => t.amount,
+      _ => 0,
+    };
+  }
+
   // cashIn/cashOut: `liquidAccount` names the funding side (Cash or a bank).
   // topUp/withdraw: `provider` names the target, and only counts toward
-  // this account when `accountKind` says it's the cash float.
+  // this account when `accountKind` says it's the cash float; `transferAccount`
+  // separately counts the other side of the transfer, if one was recorded.
   double _cicoCashDelta(CicoTransaction t) {
     switch (t.type) {
       case CicoType.cashIn:
@@ -722,15 +736,18 @@ class AppProvider extends ChangeNotifier {
       case CicoType.cashOut:
         return t.liquidAccount == CicoTransaction.cashAccount ? -t.amount : 0;
       case CicoType.topUp:
-        return t.accountKind == CicoAccountKind.cash ? t.amount : 0;
+        return (t.accountKind == CicoAccountKind.cash ? t.amount : 0) +
+            _cicoTransferDelta(t, CicoTransaction.cashAccount);
       case CicoType.withdraw:
-        return t.accountKind == CicoAccountKind.cash ? -t.amount : 0;
+        return (t.accountKind == CicoAccountKind.cash ? -t.amount : 0) +
+            _cicoTransferDelta(t, CicoTransaction.cashAccount);
     }
   }
 
   // cashIn/cashOut: funds a named bank when `liquidAccount` matches it.
   // topUp/withdraw: targets a named bank when `accountKind` is bank and
-  // `provider` matches it.
+  // `provider` matches it; `transferAccount` separately counts this bank as
+  // the other side of the transfer, if one was recorded.
   double _cicoBankDelta(CicoTransaction t, String bankName) {
     switch (t.type) {
       case CicoType.cashIn:
@@ -738,30 +755,37 @@ class AppProvider extends ChangeNotifier {
       case CicoType.cashOut:
         return t.liquidAccount == bankName ? -t.amount : 0;
       case CicoType.topUp:
-        return t.accountKind == CicoAccountKind.bank && t.provider == bankName
-            ? t.amount
-            : 0;
+        return (t.accountKind == CicoAccountKind.bank && t.provider == bankName
+                ? t.amount
+                : 0) +
+            _cicoTransferDelta(t, bankName);
       case CicoType.withdraw:
-        return t.accountKind == CicoAccountKind.bank && t.provider == bankName
-            ? -t.amount
-            : 0;
+        return (t.accountKind == CicoAccountKind.bank && t.provider == bankName
+                ? -t.amount
+                : 0) +
+            _cicoTransferDelta(t, bankName);
     }
   }
 
   // cashIn/cashOut: `provider` is always the e-wallet name.
-  // topUp/withdraw: targets a named wallet only when `accountKind` is wallet.
+  // topUp/withdraw: targets a named wallet only when `accountKind` is wallet;
+  // `transferAccount` separately counts this wallet as the other side of the
+  // transfer, if one was recorded.
   double _cicoWalletDelta(CicoTransaction t, String provider) {
-    if (t.provider != provider) return 0;
-    switch (t.type) {
-      case CicoType.cashIn:
-        return -t.amount;
-      case CicoType.cashOut:
-        return t.amount;
-      case CicoType.topUp:
-        return t.accountKind == CicoAccountKind.wallet ? t.amount : 0;
-      case CicoType.withdraw:
-        return t.accountKind == CicoAccountKind.wallet ? -t.amount : 0;
+    double delta = 0;
+    if (t.provider == provider) {
+      switch (t.type) {
+        case CicoType.cashIn:
+          delta -= t.amount;
+        case CicoType.cashOut:
+          delta += t.amount;
+        case CicoType.topUp:
+          if (t.accountKind == CicoAccountKind.wallet) delta += t.amount;
+        case CicoType.withdraw:
+          if (t.accountKind == CicoAccountKind.wallet) delta -= t.amount;
+      }
     }
+    return delta + _cicoTransferDelta(t, provider);
   }
 
   double get cicoCashFloatBalance => CurrencyFormatter.roundCents(
@@ -796,8 +820,8 @@ class AppProvider extends ChangeNotifier {
             .map((t) => t.provider),
       }.toList();
 
-  double get cicoTotalCommission => CurrencyFormatter.roundCents(
-      cico.fold(0.0, (s, t) => s + t.commission));
+  double get cicoTotalCommission =>
+      CurrencyFormatter.roundCents(cico.fold(0.0, (s, t) => s + t.commission));
 
   double get cicoTodayCommission {
     final now = DateTime.now();
@@ -818,8 +842,7 @@ class AppProvider extends ChangeNotifier {
           .where((d) => d.status != DebtStatus.paid)
           .fold(0.0, (s, d) => s + d.remaining));
 
-  Future<void> recordPayment(Debt debt, double amount,
-      {String? notes}) async {
+  Future<void> recordPayment(Debt debt, double amount, {String? notes}) async {
     await _db.insertPayment(DebtPayment(
       id: _uuid.v4(),
       debtId: debt.id,
