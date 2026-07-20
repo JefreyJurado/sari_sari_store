@@ -199,6 +199,7 @@ void main() {
     // 24h window that could double-count or miss part of today's sales.
     final todayReport = await ReportService.instance.generateReport(
       expenses: prov.expenses,
+      cico: prov.cico,
       days: 1,
     );
     expect(todayReport.totalRevenue, prov.todayRevenue,

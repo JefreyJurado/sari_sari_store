@@ -10,6 +10,7 @@ import '../models/debt.dart';
 import '../models/payment.dart';
 import '../models/capital_entry.dart';
 import '../models/installment.dart';
+import '../models/cico_transaction.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../services/backup_service.dart';
@@ -27,6 +28,7 @@ class AppProvider extends ChangeNotifier {
   List<Product> products = [];
   List<Sale> sales = [];
   List<Expense> expenses = [];
+  List<CicoTransaction> cico = [];
   List<Debt> debts = [];
   List<DebtPayment> payments = [];
   CapitalEntry? capital;
@@ -210,6 +212,7 @@ class AppProvider extends ChangeNotifier {
       _db.getExpenses(),
       _db.getDebts(),
       _db.getPayments(),
+      _db.getCicoTransactions(),
     ]);
     customers = results[0] as List<Customer>;
     products = results[1] as List<Product>;
@@ -217,6 +220,7 @@ class AppProvider extends ChangeNotifier {
     expenses = results[3] as List<Expense>;
     debts = results[4] as List<Debt>;
     payments = results[5] as List<DebtPayment>;
+    cico = results[6] as List<CicoTransaction>;
     capital = await _db.getCapital();
     final totals = await _db.getAllTimeTotals();
     _allTimeRevenue = totals['revenue'] ?? 0;
@@ -668,6 +672,141 @@ class AppProvider extends ChangeNotifier {
   Future<void> deleteExpense(String id) async {
     await _db.deleteExpense(id);
     await reload();
+  }
+
+  // ── CICO (E-Wallet) ─────────────────────────────────────────────
+  Future<void> addCicoTransaction({
+    required CicoType type,
+    required String provider,
+    required double amount,
+    double commission = 0,
+    String? notes,
+    DateTime? date,
+    String liquidAccount = CicoTransaction.cashAccount,
+    CicoAccountKind accountKind = CicoAccountKind.wallet,
+    String? customerName,
+    String? customerPhone,
+  }) async {
+    await _db.insertCicoTransaction(CicoTransaction(
+        id: _uuid.v4(),
+        type: type,
+        provider: provider,
+        amount: amount,
+        commission: commission,
+        notes: notes,
+        createdAt: date ?? DateTime.now(),
+        liquidAccount: liquidAccount,
+        accountKind: accountKind,
+        customerName: customerName,
+        customerPhone: customerPhone));
+    await reload();
+  }
+
+  Future<void> updateCicoTransaction(CicoTransaction t) async {
+    await _db.updateCicoTransaction(t);
+    await reload();
+  }
+
+  Future<void> deleteCicoTransaction(String id) async {
+    await _db.deleteCicoTransaction(id);
+    await reload();
+  }
+
+  // cashIn/cashOut: `liquidAccount` names the funding side (Cash or a bank).
+  // topUp/withdraw: `provider` names the target, and only counts toward
+  // this account when `accountKind` says it's the cash float.
+  double _cicoCashDelta(CicoTransaction t) {
+    switch (t.type) {
+      case CicoType.cashIn:
+        return t.liquidAccount == CicoTransaction.cashAccount ? t.amount : 0;
+      case CicoType.cashOut:
+        return t.liquidAccount == CicoTransaction.cashAccount ? -t.amount : 0;
+      case CicoType.topUp:
+        return t.accountKind == CicoAccountKind.cash ? t.amount : 0;
+      case CicoType.withdraw:
+        return t.accountKind == CicoAccountKind.cash ? -t.amount : 0;
+    }
+  }
+
+  // cashIn/cashOut: funds a named bank when `liquidAccount` matches it.
+  // topUp/withdraw: targets a named bank when `accountKind` is bank and
+  // `provider` matches it.
+  double _cicoBankDelta(CicoTransaction t, String bankName) {
+    switch (t.type) {
+      case CicoType.cashIn:
+        return t.liquidAccount == bankName ? t.amount : 0;
+      case CicoType.cashOut:
+        return t.liquidAccount == bankName ? -t.amount : 0;
+      case CicoType.topUp:
+        return t.accountKind == CicoAccountKind.bank && t.provider == bankName
+            ? t.amount
+            : 0;
+      case CicoType.withdraw:
+        return t.accountKind == CicoAccountKind.bank && t.provider == bankName
+            ? -t.amount
+            : 0;
+    }
+  }
+
+  // cashIn/cashOut: `provider` is always the e-wallet name.
+  // topUp/withdraw: targets a named wallet only when `accountKind` is wallet.
+  double _cicoWalletDelta(CicoTransaction t, String provider) {
+    if (t.provider != provider) return 0;
+    switch (t.type) {
+      case CicoType.cashIn:
+        return -t.amount;
+      case CicoType.cashOut:
+        return t.amount;
+      case CicoType.topUp:
+        return t.accountKind == CicoAccountKind.wallet ? t.amount : 0;
+      case CicoType.withdraw:
+        return t.accountKind == CicoAccountKind.wallet ? -t.amount : 0;
+    }
+  }
+
+  double get cicoCashFloatBalance => CurrencyFormatter.roundCents(
+      cico.fold(0.0, (s, t) => s + _cicoCashDelta(t)));
+
+  double cicoBankBalance(String bankName) => CurrencyFormatter.roundCents(
+      cico.fold(0.0, (s, t) => s + _cicoBankDelta(t, bankName)));
+
+  double cicoWalletBalance(String provider) => CurrencyFormatter.roundCents(
+      cico.fold(0.0, (s, t) => s + _cicoWalletDelta(t, provider)));
+
+  List<String> get cicoKnownProviders => {
+        ...CicoTransaction.presetProviders,
+        ...cico
+            .where((t) =>
+                t.type == CicoType.cashIn ||
+                t.type == CicoType.cashOut ||
+                t.accountKind == CicoAccountKind.wallet)
+            .map((t) => t.provider),
+      }.toList();
+
+  List<String> get cicoKnownBanks => {
+        ...cico
+            .where((t) =>
+                (t.type == CicoType.cashIn || t.type == CicoType.cashOut) &&
+                t.liquidAccount != CicoTransaction.cashAccount)
+            .map((t) => t.liquidAccount),
+        ...cico
+            .where((t) =>
+                (t.type == CicoType.topUp || t.type == CicoType.withdraw) &&
+                t.accountKind == CicoAccountKind.bank)
+            .map((t) => t.provider),
+      }.toList();
+
+  double get cicoTotalCommission => CurrencyFormatter.roundCents(
+      cico.fold(0.0, (s, t) => s + t.commission));
+
+  double get cicoTodayCommission {
+    final now = DateTime.now();
+    return CurrencyFormatter.roundCents(cico
+        .where((t) =>
+            t.createdAt.year == now.year &&
+            t.createdAt.month == now.month &&
+            t.createdAt.day == now.day)
+        .fold(0.0, (s, t) => s + t.commission));
   }
 
   // ── Debts / Payments ───────────────────────────────────────────

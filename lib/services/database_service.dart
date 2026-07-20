@@ -7,6 +7,7 @@ import '../models/expense.dart';
 import '../models/debt.dart';
 import '../models/payment.dart';
 import '../models/capital_entry.dart';
+import '../models/cico_transaction.dart';
 
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
@@ -21,7 +22,7 @@ class DatabaseService {
         join(await getDatabasesPath(), 'pos_system.db');
     return openDatabase(
       path,
-      version: 9,
+      version: 12,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -113,6 +114,19 @@ class DatabaseService {
       stockSold INTEGER NOT NULL DEFAULT 0,
       unitCost REAL NOT NULL DEFAULT 0,
       createdAt TEXT NOT NULL)''');
+
+    await db.execute('''CREATE TABLE cico_transactions(
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      amount REAL NOT NULL,
+      commission REAL NOT NULL DEFAULT 0,
+      notes TEXT,
+      createdAt TEXT NOT NULL,
+      liquidAccount TEXT NOT NULL DEFAULT 'Cash',
+      accountKind TEXT NOT NULL DEFAULT 'wallet',
+      customerName TEXT,
+      customerPhone TEXT)''');
   }
 
   Future<void> _onUpgrade(Database db, int oldV,
@@ -229,6 +243,43 @@ class DatabaseService {
         WHERE s2.createdAt < sales.createdAt
            OR (s2.createdAt = sales.createdAt AND s2.id <= sales.id)
       )''');
+    }
+    if (oldV < 10) {
+      await db.execute('''CREATE TABLE IF NOT EXISTS cico_transactions(
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        amount REAL NOT NULL,
+        commission REAL NOT NULL DEFAULT 0,
+        notes TEXT,
+        createdAt TEXT NOT NULL)''');
+    }
+    if (oldV < 11) {
+      try {
+        await db.execute(
+            "ALTER TABLE cico_transactions ADD COLUMN liquidAccount TEXT NOT NULL DEFAULT 'Cash'");
+      } catch (_) {}
+    }
+    if (oldV < 12) {
+      try {
+        await db.execute(
+            "ALTER TABLE cico_transactions ADD COLUMN accountKind TEXT NOT NULL DEFAULT 'wallet'");
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE cico_transactions ADD COLUMN customerName TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE cico_transactions ADD COLUMN customerPhone TEXT');
+      } catch (_) {}
+      // Backfill topUp/withdraw rows written before "Bank" became a named
+      // account: the old fixed sentinels 'Cash'/'Bank' need their kind
+      // recorded explicitly now that `provider` can name any bank.
+      await db.execute('''UPDATE cico_transactions SET accountKind = 'cash'
+        WHERE type IN ('topUp', 'withdraw') AND provider = 'Cash' ''');
+      await db.execute('''UPDATE cico_transactions SET accountKind = 'bank'
+        WHERE type IN ('topUp', 'withdraw') AND provider = 'Bank' ''');
     }
   }
 
@@ -454,6 +505,25 @@ class DatabaseService {
 
   Future<void> deleteExpense(String id) async =>
       (await database).delete('expenses',
+          where: 'id=?', whereArgs: [id]);
+
+  // ── CICO (E-WALLET) ────────────────────────────────────
+  Future<void> insertCicoTransaction(CicoTransaction t) async =>
+      (await database).insert('cico_transactions', t.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+
+  Future<List<CicoTransaction>> getCicoTransactions() async {
+    final maps = await (await database)
+        .query('cico_transactions', orderBy: 'createdAt DESC');
+    return maps.map(CicoTransaction.fromMap).toList();
+  }
+
+  Future<void> updateCicoTransaction(CicoTransaction t) async =>
+      (await database).update('cico_transactions', t.toMap(),
+          where: 'id=?', whereArgs: [t.id]);
+
+  Future<void> deleteCicoTransaction(String id) async =>
+      (await database).delete('cico_transactions',
           where: 'id=?', whereArgs: [id]);
 
   // ── DEBTS ──────────────────────────────────────────────
@@ -969,6 +1039,7 @@ class DatabaseService {
       'capital': await db.query('capital'),
       'setup_cost_items': await db.query('setup_cost_items'),
       'inventory_snapshots': await db.query('inventory_snapshots'),
+      'cico_transactions': await db.query('cico_transactions'),
     };
   }
 
@@ -1015,6 +1086,10 @@ class DatabaseService {
         await txn.delete('inventory_snapshots');
         await ins('inventory_snapshots',
             data['inventory_snapshots'] as List);
+      }
+      if (data['cico_transactions'] != null) {
+        await txn.delete('cico_transactions');
+        await ins('cico_transactions', data['cico_transactions'] as List);
       }
     });
   }

@@ -10,6 +10,7 @@ import 'screens/sales_screen.dart';
 import 'screens/lista_screen.dart';
 import 'screens/inventory_screen.dart';
 import 'screens/reports_screen.dart';
+import 'screens/cico_screen.dart';
 import 'screens/pin_screen.dart';
 import 'services/notification_service.dart';
 import 'services/database_service.dart';
@@ -263,6 +264,7 @@ class _MainShellState extends State<_MainShell> {
     ListaScreen(),
     InventoryScreen(),
     ReportsScreen(),
+    CicoScreen(),
   ];
 
   static const _tabColors = [
@@ -271,6 +273,7 @@ class _MainShellState extends State<_MainShell> {
     AppColors.orange,
     AppColors.purple,
     AppColors.teal,
+    Color(0xFF4F46E5),
   ];
 
   @override
@@ -308,7 +311,7 @@ class _MainShellState extends State<_MainShell> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -317,6 +320,8 @@ class _MainShellState extends State<_MainShell> {
                 _navItem(2, Icons.list_alt_rounded, Icons.list_alt_outlined, 'Credit'),
                 _navItem(3, Icons.inventory_2_rounded, Icons.inventory_2_outlined, 'Products'),
                 _navItem(4, Icons.bar_chart_rounded, Icons.bar_chart_outlined, 'Reports'),
+                _navItem(5, Icons.account_balance_wallet_rounded,
+                    Icons.account_balance_wallet_outlined, 'Wallet'),
               ],
             ),
           ),
@@ -340,7 +345,7 @@ class _MainShellState extends State<_MainShell> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
         decoration: BoxDecoration(
           color: selected ? color.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(14),

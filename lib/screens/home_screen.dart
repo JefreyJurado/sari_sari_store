@@ -18,6 +18,7 @@ import 'capital_screen.dart';
 import 'daily_summary_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'sales_history_screen.dart';
+import 'cico_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/help_sheet.dart';
 
@@ -25,6 +26,7 @@ const _brandBlue = AppColors.blue;
 const _brandGreen = AppColors.green;
 const _brandOrange = AppColors.orange;
 const _brandPurple = AppColors.purple;
+const _brandIndigo = Color(0xFF4F46E5);
 
 class CrossFadePageRoute<T> extends PageRouteBuilder<T> {
   final Widget child;
@@ -291,17 +293,26 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                '${DateHelper.todayFormattedWithDay()} • ${DateHelper.formatTime(DateTime.now())}'
-                                    .toUpperCase(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: Colors.white
-                                        .withValues(alpha: 0.7),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.8),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '${DateHelper.todayFormattedWithDay()} • ${DateHelper.formatTime(DateTime.now())}'
+                                          .toUpperCase(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.7),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.8),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _storeStatusPill(!isOutsideStoreHours),
+                                ],
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -335,22 +346,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                         fontWeight: FontWeight.w600),
                                   ),
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '${TimeOfDay(hour: _openMinutes ~/ 60, minute: _openMinutes % 60).format(context)} - ${TimeOfDay(hour: _closeMinutes ~/ 60, minute: _closeMinutes % 60).format(context)} • ${_formatOperatingDays()}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color: Colors.white
-                                          .withValues(alpha: 0.55),
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w500),
-                                ),
                               ]),
-                              // Streak badge sits on its own line so its
-                              // width can never squeeze the name/greeting
-                              // text above — that Row-sharing setup is what
-                              // caused the name to truncate to one letter.
+                              // Hours/days sit on their own line, below the
+                              // name — sharing a Row with the name let a long
+                              // name get squeezed down to almost nothing
+                              // since the hours text always claimed its full
+                              // width first.
+                              const SizedBox(height: 2),
+                              Text(
+                                '${TimeOfDay(hour: _openMinutes ~/ 60, minute: _openMinutes % 60).format(context)} - ${TimeOfDay(hour: _closeMinutes ~/ 60, minute: _closeMinutes % 60).format(context)} • ${_formatOperatingDays()}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.55),
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              // Streak badge sits on its own line, not next
+                              // to the greeting — squeezing it against the
+                              // owner's name truncated the name to make room
+                              // for the badge, which is the wrong priority.
                               if (prov.streak > 0) ...[
                                 const SizedBox(height: 10),
                                 _streakBadge(prov.streak),
@@ -411,6 +426,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                 CrossFadePageRoute(child: const ListaScreen())),
                           ),
                         ]),
+                        if (prov.cico.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Row(children: [
+                            _statCard(
+                              'CICO Commission Today',
+                              CurrencyFormatter.format(prov.cicoTodayCommission),
+                              Icons.account_balance_wallet_rounded,
+                              accentColor: _brandIndigo,
+                              onTap: () => Navigator.push(
+                                  context,
+                                  CrossFadePageRoute(
+                                      child: const CicoScreen())),
+                            ),
+                          ]),
+                        ],
                         const SizedBox(height: 12),
 
                         // ── Capital Overview ──────────────
@@ -670,6 +700,40 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontSize: 12,
                   color: Colors.white,
                   fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+
+  Widget _storeStatusPill(bool isOpen) {
+    final color = isOpen ? AppColors.green : AppColors.red;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: isOpen ? Colors.greenAccent : Colors.redAccent,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            isOpen ? 'OPEN' : 'CLOSED',
+            style: const TextStyle(
+                fontSize: 10,
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5),
+          ),
         ],
       ),
     );

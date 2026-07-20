@@ -8,6 +8,7 @@ import '../services/pdf_report_service.dart';
 import 'sales_history_screen.dart';
 import 'expenses_screen.dart';
 import 'period_summary_screen.dart';
+import 'cico_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/help_sheet.dart';
@@ -31,6 +32,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   int? _lastComputedDays;
   int? _lastSalesHash;
   int? _lastExpensesHash;
+  int? _lastCicoHash;
 
   @override
   void initState() {
@@ -45,9 +47,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final prov = context.watch<AppProvider>();
     final currentSalesHash = Object.hashAll(prov.sales);
     final currentExpensesHash = Object.hashAll(prov.expenses);
+    final currentCicoHash = Object.hashAll(prov.cico);
     if (!_loading &&
         (currentSalesHash != _lastSalesHash ||
-            currentExpensesHash != _lastExpensesHash)) {
+            currentExpensesHash != _lastExpensesHash ||
+            currentCicoHash != _lastCicoHash)) {
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _load());
     }
@@ -59,17 +63,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final currentSalesHash = Object.hashAll(prov.sales);
     final currentExpensesHash =
         Object.hashAll(prov.expenses);
+    final currentCicoHash = Object.hashAll(prov.cico);
     if (!force &&
         _report != null &&
         _days == _lastComputedDays &&
         currentSalesHash == _lastSalesHash &&
-        currentExpensesHash == _lastExpensesHash) {
+        currentExpensesHash == _lastExpensesHash &&
+        currentCicoHash == _lastCicoHash) {
       return;
     }
     setState(() => _loading = true);
     try {
       final r = await ReportService.instance.generateReport(
         expenses: prov.expenses,
+        cico: prov.cico,
         days: _days,
       );
       if (mounted) {
@@ -78,6 +85,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           _lastComputedDays = _days;
           _lastSalesHash = currentSalesHash;
           _lastExpensesHash = currentExpensesHash;
+          _lastCicoHash = currentCicoHash;
           _loading = false;
         });
       }
@@ -125,6 +133,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final prov = context.read<AppProvider>();
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -153,6 +162,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       'Pick a period (today, week, month, etc.) at the top — every card and chart below recalculates for that exact window.',
                       'Total Profit is revenue minus cost of goods sold; Net Income subtracts your logged expenses from that profit too, so it can be lower — or even negative if expenses outweigh profit.',
                       'Tap Total Profit or Net Income to see a full breakdown: where sales came from, profit by product, and expenses by category for that same period.',
+                      "If you've logged any Cash In-Cash Out (e-wallet) activity, a separate card shows commission earned and cash-in/cash-out volume for the period — this doesn't affect Total Profit or Net Income, since it's a different kind of income.",
                       'Export PDF Report generates a shareable summary of everything on this screen for your own records.',
                     ],
                   ),
@@ -392,6 +402,59 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               color: Colors.black87)),
                     ]),
                   ),
+
+                  if (prov.cico.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const CicoScreen())),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade200)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              Icon(Icons.account_balance_wallet_outlined,
+                                  color: Colors.grey[400], size: 18),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Cash In-Cash Out',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                              color: Colors.black87)),
+                                      Text('Within $_periodLabel',
+                                          style: TextStyle(
+                                              color: Colors.grey[500], fontSize: 11)),
+                                    ]),
+                              ),
+                              Icon(Icons.chevron_right,
+                                  color: Colors.grey[400], size: 18),
+                            ]),
+                            const SizedBox(height: 14),
+                            Row(children: [
+                              _cicoMiniStat('Commission',
+                                  CurrencyFormatter.format(_report!.cicoCommission),
+                                  _green),
+                              _cicoMiniStat('Cash In',
+                                  CurrencyFormatter.format(_report!.cicoCashInVolume),
+                                  _green),
+                              _cicoMiniStat('Cash Out',
+                                  CurrencyFormatter.format(_report!.cicoCashOutVolume),
+                                  _red),
+                            ]),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   _sectionHeader('Sales Performance Trend'),
@@ -587,6 +650,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
     );
   }
+
+  Widget _cicoMiniStat(String label, String value, Color color) => Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style: TextStyle(color: Colors.grey[500], fontSize: 10.5)),
+            const SizedBox(height: 2),
+            Text(value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 13, color: color)),
+          ],
+        ),
+      );
 
   Widget _sectionHeader(String title) => Text(title,
       style: const TextStyle(
