@@ -437,9 +437,10 @@ class _CicoScreenState extends State<CicoScreen> {
           elevation: 0,
           title: const Text('Cash In-Cash Out',
               style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87)),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  letterSpacing: -0.5)),
           actions: const [
             HelpIconButton(
               title: 'Cash In-Cash Out (E-Wallet)',

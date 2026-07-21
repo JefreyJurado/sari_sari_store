@@ -332,7 +332,7 @@ class _MainShellState extends State<_MainShell> {
                 _navItem(3, Icons.inventory_2_rounded,
                     Icons.inventory_2_outlined, 'Products'),
                 _navItem(4, Icons.account_balance_wallet_rounded,
-                    Icons.account_balance_wallet_outlined, 'Wallet'),
+                    Icons.account_balance_wallet_outlined, 'Cash In/Out'),
                 _navItem(5, Icons.bar_chart_rounded, Icons.bar_chart_outlined,
                     'Reports'),
               ],
