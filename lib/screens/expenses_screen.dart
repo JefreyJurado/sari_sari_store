@@ -26,8 +26,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       if (_filterCat != 'All') {
         expenses = expenses.where((e) => e.category == _filterCat).toList();
       }
-      final total =
-          CurrencyFormatter.roundCents(expenses.fold(0.0, (s, e) => s + e.amount));
+      final total = CurrencyFormatter.roundCents(
+          expenses.fold(0.0, (s, e) => s + e.amount));
 
       return Scaffold(
         backgroundColor: Colors.white,
@@ -184,6 +184,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ]),
         ),
         floatingActionButton: FloatingActionButton.extended(
+          heroTag: 'expenses_fab',
           onPressed: () => _showForm(context, prov, null),
           backgroundColor: _blue,
           foregroundColor: Colors.white,
@@ -214,191 +215,193 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
           padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
               left: 20,
               right: 20,
               top: 20),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-            Text(
-              existing == null ? 'Add Expense' : 'Edit Expense',
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87),
-            ),
-            const SizedBox(height: 16),
-            _field(descCtrl, 'Description *', Icons.description_outlined),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: category,
-              decoration: InputDecoration(
-                labelText: 'Category',
-                labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.grey.shade300)),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.grey.shade300)),
-                filled: true,
-                fillColor: Colors.grey.shade50,
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2)),
               ),
-              borderRadius: BorderRadius.circular(10),
-              items: FilipinoCategories.expenseCategories
-                  .map((c) => DropdownMenuItem(
-                      value: c,
-                      child: Text(c, style: const TextStyle(fontSize: 13))))
-                  .toList(),
-              onChanged: (v) => setS(() => category = v!),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: amountCtrl,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87),
-              decoration: InputDecoration(
-                labelText: 'Amount *',
-                labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
-                prefixText: '₱ ',
-                filled: true,
-                fillColor: Colors.grey.shade50,
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.grey.shade300)),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.grey.shade300)),
+              Text(
+                existing == null ? 'Add Expense' : 'Edit Expense',
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87),
               ),
-            ),
-            const SizedBox(height: 12),
-            _field(notesCtrl, 'Notes (optional)', Icons.notes_outlined),
-            const SizedBox(height: 12),
-            // ── Date Picker ──────────────────────
-            StatefulBuilder(
-              builder: (_, setDate) => GestureDetector(
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: expenseDate,
-                    firstDate:
-                        DateTime.now().subtract(const Duration(days: 365)),
-                    lastDate: DateTime.now(),
-                  );
-                  if (picked != null) {
-                    setS(() => expenseDate = picked);
-                  }
-                },
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: expenseDate.day != DateTime.now().day
-                          ? _blue
-                          : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: Row(children: [
-                    Icon(Icons.calendar_today_outlined,
-                        size: 18,
-                        color: expenseDate.day != DateTime.now().day
-                            ? _blue
-                            : Colors.grey[500]),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        expenseDate.day == DateTime.now().day &&
-                                expenseDate.month == DateTime.now().month &&
-                                expenseDate.year == DateTime.now().year
-                            ? 'Today — ${DateHelper.formatDate(expenseDate)}'
-                            : 'Past Date — ${DateHelper.formatDate(expenseDate)}',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: expenseDate.day != DateTime.now().day
-                                ? _blue
-                                : Colors.black87),
-                      ),
-                    ),
-                    if (expenseDate.day != DateTime.now().day)
-                      GestureDetector(
-                        onTap: () => setS(() => expenseDate = DateTime.now()),
-                        child: Icon(Icons.close,
-                            size: 16, color: Colors.grey[400]),
-                      ),
-                  ]),
+              const SizedBox(height: 16),
+              _field(descCtrl, 'Description *', Icons.description_outlined),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: category,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey.shade300)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey.shade300)),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
+                borderRadius: BorderRadius.circular(10),
+                items: FilipinoCategories.expenseCategories
+                    .map((c) => DropdownMenuItem(
+                        value: c,
+                        child: Text(c, style: const TextStyle(fontSize: 13))))
+                    .toList(),
+                onChanged: (v) => setS(() => category = v!),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountCtrl,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87),
+                decoration: InputDecoration(
+                  labelText: 'Amount *',
+                  labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  prefixText: '₱ ',
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey.shade300)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey.shade300)),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (descCtrl.text.trim().isEmpty) {
-                    CenterToast.showError(context, 'Description required.');
-                    return;
-                  }
-                  final amount = double.tryParse(amountCtrl.text);
-                  if (amount == null || amount <= 0) {
-                    CenterToast.showError(context, 'Enter a valid amount.');
-                    return;
-                  }
-                  if (existing == null) {
-                    await prov.addExpense(
-                      descCtrl.text.trim(),
-                      category,
-                      amount,
-                      notes: notesCtrl.text.isEmpty ? null : notesCtrl.text,
-                      date: expenseDate,
+              const SizedBox(height: 12),
+              _field(notesCtrl, 'Notes (optional)', Icons.notes_outlined),
+              const SizedBox(height: 12),
+              // ── Date Picker ──────────────────────
+              StatefulBuilder(
+                builder: (_, setDate) => GestureDetector(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: expenseDate,
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now(),
                     );
-                  } else {
-                    await prov.updateExpense(
-                      existing.copyWith(
-                        description: descCtrl.text.trim(),
-                        category: category,
-                        amount: amount,
-                        date: expenseDate,
+                    if (picked != null) {
+                      setS(() => expenseDate = picked);
+                    }
+                  },
+                  child: Builder(builder: (_) {
+                    final isToday =
+                        DateHelper.isSameDay(expenseDate, DateTime.now());
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isToday ? Colors.grey.shade300 : _blue,
+                        ),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.calendar_today_outlined,
+                            size: 18,
+                            color: isToday ? Colors.grey[500] : _blue),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            isToday
+                                ? 'Today — ${DateHelper.formatDate(expenseDate)}'
+                                : 'Past Date — ${DateHelper.formatDate(expenseDate)}',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: isToday ? Colors.black87 : _blue),
+                          ),
+                        ),
+                        if (!isToday)
+                          GestureDetector(
+                            onTap: () =>
+                                setS(() => expenseDate = DateTime.now()),
+                            child: Icon(Icons.close,
+                                size: 16, color: Colors.grey[400]),
+                          ),
+                      ]),
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (descCtrl.text.trim().isEmpty) {
+                      CenterToast.showError(context, 'Description required.');
+                      return;
+                    }
+                    final amount = double.tryParse(amountCtrl.text);
+                    if (amount == null || amount <= 0) {
+                      CenterToast.showError(context, 'Enter a valid amount.');
+                      return;
+                    }
+                    if (existing == null) {
+                      await prov.addExpense(
+                        descCtrl.text.trim(),
+                        category,
+                        amount,
                         notes: notesCtrl.text.isEmpty ? null : notesCtrl.text,
-                      ),
-                    );
-                  }
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                    CenterToast.showSuccess(
-                        context, existing == null ? 'Expense added!' : 'Expense updated!');
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _blue,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: Text(
-                  existing == null ? 'Save Expense' : 'Update Expense',
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600),
+                        date: expenseDate,
+                      );
+                    } else {
+                      await prov.updateExpense(
+                        existing.copyWith(
+                          description: descCtrl.text.trim(),
+                          category: category,
+                          amount: amount,
+                          date: expenseDate,
+                          notes: notesCtrl.text.isEmpty ? null : notesCtrl.text,
+                        ),
+                      );
+                    }
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      CenterToast.showSuccess(
+                          context,
+                          existing == null
+                              ? 'Expense added!'
+                              : 'Expense updated!');
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text(
+                    existing == null ? 'Save Expense' : 'Update Expense',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ]),
+              const SizedBox(height: 20),
+            ]),
+          ),
         ),
       ),
     );

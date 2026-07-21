@@ -477,15 +477,15 @@ class _BackupScreenState extends State<BackupScreen> {
   }
 
   Future<void> _finishRestore(bool ok) async {
-    if (mounted) {
-      if (ok) {
-        await context.read<AppProvider>().reload();
-        CenterToast.showSuccess(context, 'Backup restored!');
-      } else {
-        CenterToast.showError(
-            context, 'Import failed. Make sure the file is a valid JSON backup.');
-      }
-      setState(() => _importing = false);
+    if (!mounted) return;
+    if (ok) {
+      await context.read<AppProvider>().reload();
+      if (!mounted) return;
+      CenterToast.showSuccess(context, 'Backup restored!');
+    } else {
+      CenterToast.showError(
+          context, 'Import failed. Make sure the file is a valid JSON backup.');
     }
+    setState(() => _importing = false);
   }
 }

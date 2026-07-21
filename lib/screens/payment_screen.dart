@@ -307,6 +307,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ]);
 
   Future<void> _process() async {
+    // Guard against double-submit: two fast taps can both reach this
+    // method before the first setState(_isProcessing = true) below
+    // actually disables the button, which would record the payment twice.
+    if (_isProcessing) return;
     final amount = double.tryParse(_amountCtrl.text);
     if (amount == null || amount <= 0) {
       CenterToast.showError(context, 'Enter a valid amount.');

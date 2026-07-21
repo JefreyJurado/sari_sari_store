@@ -1,3 +1,9 @@
+// Sentinel so copyWith can tell "not provided" (keep old value) apart from
+// an explicit `address: null` / `phone: null` (clear it) — passing null
+// used to be treated as "not provided" via `?? this.field`, so clearing
+// Address/Phone in the edit form silently kept the old value instead.
+const _unset = Object();
+
 class Store {
   final String id;
   final String name;
@@ -35,15 +41,15 @@ class Store {
 
   Store copyWith({
     String? name,
-    String? address,
-    String? phone,
+    Object? address = _unset,
+    Object? phone = _unset,
     bool? isActive,
   }) =>
       Store(
         id: id,
         name: name ?? this.name,
-        address: address ?? this.address,
-        phone: phone ?? this.phone,
+        address: identical(address, _unset) ? this.address : address as String?,
+        phone: identical(phone, _unset) ? this.phone : phone as String?,
         isActive: isActive ?? this.isActive,
         createdAt: createdAt,
       );

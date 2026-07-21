@@ -1,3 +1,9 @@
+// Sentinel so copyWith can tell "not provided" (keep old value) apart from
+// an explicit `notes: null` (clear it) — passing null used to be treated
+// as "not provided" via `notes ?? this.notes`, so clearing the Notes field
+// in the edit form silently kept the old note instead of clearing it.
+const _unset = Object();
+
 class Expense {
   final String id;
   final String description;
@@ -38,7 +44,7 @@ class Expense {
     String? category,
     double? amount,
     DateTime? date,
-    String? notes,
+    Object? notes = _unset,
   }) =>
       Expense(
         id: id,
@@ -46,6 +52,6 @@ class Expense {
         category: category ?? this.category,
         amount: amount ?? this.amount,
         date: date ?? this.date,
-        notes: notes ?? this.notes,
+        notes: identical(notes, _unset) ? this.notes : notes as String?,
       );
 }

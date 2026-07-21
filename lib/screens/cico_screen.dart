@@ -598,6 +598,7 @@ class _CicoScreenState extends State<CicoScreen> {
           ]),
         ),
         floatingActionButton: FloatingActionButton.extended(
+          heroTag: 'cico_fab',
           onPressed: () => _showTypeChooser(context, prov),
           backgroundColor: _indigo,
           foregroundColor: Colors.white,

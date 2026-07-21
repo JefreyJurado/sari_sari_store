@@ -1154,37 +1154,48 @@ class _CartSheetState extends State<_CartSheet> {
                     ),
                   ]),
                 ],
-                const SizedBox(height: 28),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed:
-                        _isProcessing ? null : _complete,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _blue,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16),
-                      shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(12)),
-                    ),
-                    child: _isProcessing
-                        ? const SizedBox(
-                            width: 20, height: 20,
-                            child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2))
-                        : Text(
-                            'Process Order Summary  (${CurrencyFormatter.format(prov.cartTotal)})',
-                            style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold)),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
               ],
+            ),
+          ),
+          // Pinned checkout button — kept outside the scrolling ListView
+          // (rather than as its last child) so it's always reachable
+          // without scrolling past the on-screen keyboard or a long
+          // cart/payment form.
+          Container(
+            padding: EdgeInsets.fromLTRB(
+                16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed:
+                    _isProcessing ? null : _complete,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _blue,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(12)),
+                ),
+                child: _isProcessing
+                    ? const SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2))
+                    : Text(
+                        'Process Order Summary  (${CurrencyFormatter.format(_effectiveTotal)})',
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold)),
+              ),
             ),
           ),
         ]),
@@ -1270,7 +1281,13 @@ class _CartSheetState extends State<_CartSheet> {
       );
 
   Future<void> _complete() async {
+    // Guard against double-submit: without this, two fast taps both pass
+    // this check before the first setState below takes effect, and both
+    // race through to prov.completeSale (duplicate customers/sales).
+    if (_isProcessing) return;
     if (prov.cart.isEmpty) return;
+
+    setState(() => _isProcessing = true);
 
     Customer? customer = _selectedCustomer;
     final typedName = _customerCtrl.text.trim();
@@ -1293,11 +1310,11 @@ class _CartSheetState extends State<_CartSheet> {
 
     if (_paymentType == 'cash' &&
         cashPaid < _effectiveTotal) {
+      if (!mounted) return;
+      setState(() => _isProcessing = false);
       CenterToast.showError(context, 'Insufficient cash amount.');
       return;
     }
-
-    setState(() => _isProcessing = true);
 
     final notes = _paymentType == 'online' &&
             _refCtrl.text.isNotEmpty

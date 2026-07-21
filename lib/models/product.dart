@@ -1,3 +1,11 @@
+// Sentinel so copyWith can tell "not provided" (keep old value) apart from
+// an explicit `field: null` (clear it) — passing null used to be treated
+// as "not provided" via `?? this.field`, so a future caller clearing e.g.
+// barcode/supplier fields through copyWith would silently keep the old
+// value instead. (expiryDate already had its own `clearExpiry` flag for
+// the same reason.)
+const _unset = Object();
+
 class Product {
   final String id;
   final String name;
@@ -108,15 +116,15 @@ class Product {
     double? buyPrice,
     double? sellPrice,
     int? stock,
-    String? unit,
-    String? barcode,
+    Object? unit = _unset,
+    Object? barcode = _unset,
     bool? isActive,
     int? reorderPoint,
     DateTime? expiryDate,
     bool clearExpiry = false,
-    String? supplierName,
-    String? supplierContact,
-    String? seasonalTag,
+    Object? supplierName = _unset,
+    Object? supplierContact = _unset,
+    Object? seasonalTag = _unset,
   }) =>
       Product(
         id: id,
@@ -125,14 +133,20 @@ class Product {
         buyPrice: buyPrice ?? this.buyPrice,
         sellPrice: sellPrice ?? this.sellPrice,
         stock: stock ?? this.stock,
-        unit: unit ?? this.unit,
-        barcode: barcode ?? this.barcode,
+        unit: identical(unit, _unset) ? this.unit : unit as String?,
+        barcode: identical(barcode, _unset) ? this.barcode : barcode as String?,
         isActive: isActive ?? this.isActive,
         createdAt: createdAt,
         reorderPoint: reorderPoint ?? this.reorderPoint,
         expiryDate: clearExpiry ? null : (expiryDate ?? this.expiryDate),
-        supplierName: supplierName ?? this.supplierName,
-        supplierContact: supplierContact ?? this.supplierContact,
-        seasonalTag: seasonalTag ?? this.seasonalTag,
+        supplierName: identical(supplierName, _unset)
+            ? this.supplierName
+            : supplierName as String?,
+        supplierContact: identical(supplierContact, _unset)
+            ? this.supplierContact
+            : supplierContact as String?,
+        seasonalTag: identical(seasonalTag, _unset)
+            ? this.seasonalTag
+            : seasonalTag as String?,
       );
 }

@@ -1,3 +1,8 @@
+// Sentinel so copyWith can tell "not provided" (keep old value) apart from
+// an explicit `phone: null` / `address: null` (clear it) — passing null
+// used to be treated as "not provided" via `?? this.field`.
+const _unset = Object();
+
 class Customer {
   final String id;
   final String name;
@@ -35,15 +40,15 @@ class Customer {
 
   Customer copyWith({
     String? name,
-    String? phone,
-    String? address,
+    Object? phone = _unset,
+    Object? address = _unset,
     double? creditLimit,
   }) =>
       Customer(
         id: id,
         name: name ?? this.name,
-        phone: phone ?? this.phone,
-        address: address ?? this.address,
+        phone: identical(phone, _unset) ? this.phone : phone as String?,
+        address: identical(address, _unset) ? this.address : address as String?,
         creditLimit: creditLimit ?? this.creditLimit,
         createdAt: createdAt,
       );

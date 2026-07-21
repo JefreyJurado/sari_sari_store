@@ -118,71 +118,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString(
         'store_closed_weekdays', _closedWeekdays.join(','));
 
+    if (!mounted) return;
     final prov = context.read<AppProvider>();
 
-    if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => Dialog(
-          backgroundColor: Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.check_rounded,
-                      color: Colors.green.shade600, size: 36),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 16),
-                const Text('Settings Saved!',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87)),
-                const SizedBox(height: 8),
-                Text('Your changes have been saved successfully.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      Navigator.pop(context);
+                child: Icon(Icons.check_rounded,
+                    color: Colors.green.shade600, size: 36),
+              ),
+              const SizedBox(height: 16),
+              const Text('Settings Saved!',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87)),
+              const SizedBox(height: 8),
+              Text('Your changes have been saved successfully.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
 
-                      // Forces state data re-hydration to prevent out-of-sync form manipulation layout crashes
-                      await prov.reload();
-                      await _load();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _blue,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Done',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600)),
+                    // Forces state data re-hydration to prevent out-of-sync form manipulation layout crashes
+                    await prov.reload();
+                    await _load();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
+                  child: const Text('Done',
+                      style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
-    }
+      ),
+    );
   }
 
   Future<void> _togglePin(bool val) async {
@@ -191,7 +189,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         context,
         MaterialPageRoute(builder: (_) => const PinScreen(isSetup: true)),
       );
-      if (result == true) setState(() => _pinEnabled = true);
+      if (result == true && mounted) setState(() => _pinEnabled = true);
     } else {
       final confirm = await showDialog<bool>(
         context: context,
@@ -231,13 +229,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // PIN — removing the PIN removes the thing it was a shortcut for,
         // so leaving it "on" would dangle with nothing backing it.
         await prefs.setBool('biometric_enabled', false);
+        if (!mounted) return;
         setState(() {
           _pinEnabled = false;
           _biometricEnabled = false;
         });
-        if (mounted) {
-          CenterToast.showWarning(context, 'PIN removed.');
-        }
+        CenterToast.showWarning(context, 'PIN removed.');
       }
     }
   }
@@ -258,13 +255,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('biometric_enabled', true);
+      if (!mounted) return;
       setState(() => _biometricEnabled = true);
-      if (mounted) {
-        CenterToast.showSuccess(context, 'Biometric unlock enabled!');
-      }
+      CenterToast.showSuccess(context, 'Biometric unlock enabled!');
     } else {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('biometric_enabled', false);
+      if (!mounted) return;
       setState(() => _biometricEnabled = false);
     }
   }
@@ -369,6 +366,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (clearExpenses) cleared.add('Expenses');
       if (clearCustomers) cleared.add('Customers');
       await context.read<AppProvider>().reload();
+      if (!mounted) return;
       CenterToast.showSuccess(context, 'Cleared: ${cleared.join(', ')}');
     }
   }
@@ -486,6 +484,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _keepSettings();
     if (mounted) {
       await context.read<AppProvider>().reload();
+      if (!mounted) return;
       CenterToast.showSuccess(context, 'All data cleared. Products are kept.');
     }
   }
@@ -496,6 +495,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final pinEnabled = prefs.getBool('pin_enabled');
     final appPin = prefs.getString('app_pin');
     final notifications = prefs.getBool('notifications');
+    final userName = prefs.getString('user_name');
+    final biometricEnabled = prefs.getBool('biometric_enabled');
+    final openMinutes = prefs.getInt('store_open_minutes');
+    final closeMinutes = prefs.getInt('store_close_minutes');
+    final closedWeekdays = prefs.getString('store_closed_weekdays');
+    final onboardingSeen = prefs.getBool('onboarding_seen');
     await prefs.clear();
     if (storeName != null) {
       await prefs.setString('store_name', storeName);
@@ -508,6 +513,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     if (notifications != null) {
       await prefs.setBool('notifications', notifications);
+    }
+    if (userName != null) {
+      await prefs.setString('user_name', userName);
+    }
+    if (biometricEnabled != null) {
+      await prefs.setBool('biometric_enabled', biometricEnabled);
+    }
+    if (openMinutes != null) {
+      await prefs.setInt('store_open_minutes', openMinutes);
+    }
+    if (closeMinutes != null) {
+      await prefs.setInt('store_close_minutes', closeMinutes);
+    }
+    if (closedWeekdays != null) {
+      await prefs.setString('store_closed_weekdays', closedWeekdays);
+    }
+    if (onboardingSeen != null) {
+      await prefs.setBool('onboarding_seen', onboardingSeen);
     }
   }
 
@@ -874,7 +897,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     builder: (_) =>
                                         const PinScreen(isSetup: true)),
                               );
-                              if (result == true && mounted) {
+                              if (!mounted) return;
+                              if (result == true) {
                                 CenterToast.showSuccess(context, 'PIN updated!');
                               }
                             },

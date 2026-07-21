@@ -35,14 +35,26 @@ void main() {
   final defaultErrorBuilder = ErrorWidget.builder;
   tearDown(() => ErrorWidget.builder = defaultErrorBuilder);
 
+  // Home's mascot widget runs a `..repeat()` AnimationController, so the
+  // transient-callback queue never empties and pumpAndSettle() never
+  // converges — it just spins until its 10-minute timeout. Pump a bounded
+  // number of fixed-duration frames instead; `pumps` lets slower
+  // transitions (initial boot, dialog animations) get more real time
+  // without reintroducing the "wait until truly idle" hang.
+  Future<void> settle(WidgetTester tester, {int pumps = 10}) async {
+    for (var i = 0; i < pumps; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+
   Future<AppProvider> bootToHome(WidgetTester tester) async {
     app.main();
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await settle(tester, pumps: 20);
 
     final skip = find.text('Skip');
     if (skip.evaluate().isNotEmpty) {
       await tester.tap(skip);
-      await tester.pumpAndSettle();
+      await settle(tester);
     }
 
     final prov = Provider.of<AppProvider>(
@@ -54,7 +66,7 @@ void main() {
 
   Future<void> goToTab(WidgetTester tester, String label) async {
     await tester.tap(find.byKey(ValueKey('navtab_$label')));
-    await tester.pumpAndSettle();
+    await settle(tester);
   }
 
   testWidgets(
@@ -69,10 +81,10 @@ void main() {
         reason: 'need at least one product in the catalog to run this test');
     final original = prov.products.first;
     await prov.updateProduct(original.copyWith(stock: 24));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
-    Finder productCard() => find.descendant(
-        of: salesScreen, matching: find.text(original.name));
+    Finder productCard() =>
+        find.descendant(of: salesScreen, matching: find.text(original.name));
     expect(productCard(), findsOneWidget);
 
     await tester.tap(productCard());
@@ -87,7 +99,7 @@ void main() {
     // equality on the old Product class).
     final refreshed = prov.products.firstWhere((p) => p.id == original.id);
     await prov.updateProduct(refreshed.copyWith());
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     await tester.tap(productCard());
     await tester.pump();
@@ -100,10 +112,10 @@ void main() {
             'the existing entry should have been incremented, not duplicated');
 
     prov.clearCart();
-    await prov.updateProduct(
-        prov.products.firstWhere((p) => p.id == original.id).copyWith(
-            stock: original.stock));
-    await tester.pumpAndSettle();
+    await prov.updateProduct(prov.products
+        .firstWhere((p) => p.id == original.id)
+        .copyWith(stock: original.stock));
+    await settle(tester);
     ErrorWidget.builder = defaultErrorBuilder;
   });
 
@@ -117,10 +129,10 @@ void main() {
     expect(prov.products.length, greaterThan(1));
     final original = prov.products[1];
     await prov.updateProduct(original.copyWith(stock: 48));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
-    Finder productCard() => find.descendant(
-        of: salesScreen, matching: find.text(original.name));
+    Finder productCard() =>
+        find.descendant(of: salesScreen, matching: find.text(original.name));
     await tester.tap(productCard());
     await tester.pump();
     await tester.tap(productCard());
@@ -133,7 +145,7 @@ void main() {
     final cartIcons = find.descendant(
         of: salesScreen, matching: find.byIcon(Icons.shopping_cart_rounded));
     await tester.tap(cartIcons.first);
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     // The cart sheet's checkout button is below the fold in a
     // DraggableScrollableSheet, so it isn't mounted until scrolled into the
@@ -142,25 +154,24 @@ void main() {
     final cartSheet = find.byType(DraggableScrollableSheet);
     // The sheet also contains a horizontal ListView (customer chips) —
     // the outer vertical one we want to drag is the first match.
-    final cartListView = find
-        .descendant(of: cartSheet, matching: find.byType(ListView))
-        .first;
+    final cartListView =
+        find.descendant(of: cartSheet, matching: find.byType(ListView)).first;
     for (var i = 0; i < 5; i++) {
       await tester.drag(cartListView, const Offset(0, -400));
-      await tester.pumpAndSettle();
+      await settle(tester);
     }
     final checkoutBtn = find.descendant(
         of: cartSheet, matching: find.textContaining('Process Order Summary'));
     expect(checkoutBtn, findsOneWidget,
         reason: 'checkout button should be scrolled into view by now');
     await tester.tap(checkoutBtn);
-    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await settle(tester, pumps: 10);
 
     expect(find.text('Sale complete'), findsOneWidget,
         reason: 'checkout should succeed and show the confirmation dialog');
 
     await tester.tap(find.text('Dismiss'));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final afterSale = prov.products.firstWhere((p) => p.id == original.id);
     expect(afterSale.stock, 46,
@@ -176,11 +187,11 @@ void main() {
             s.items.first.productId == original.id)
         .reduce((a, b) => a.createdAt.isAfter(b.createdAt) ? a : b);
     await prov.voidSale(createdSale);
-    await tester.pumpAndSettle();
-    await prov.updateProduct(
-        prov.products.firstWhere((p) => p.id == original.id).copyWith(
-            stock: original.stock));
-    await tester.pumpAndSettle();
+    await settle(tester);
+    await prov.updateProduct(prov.products
+        .firstWhere((p) => p.id == original.id)
+        .copyWith(stock: original.stock));
+    await settle(tester);
     ErrorWidget.builder = defaultErrorBuilder;
   });
 
@@ -195,14 +206,13 @@ void main() {
     // Force deterministic stock + price so the order is guaranteed to both
     // exceed available stock (cap test) and exceed the customer's default
     // 500-peso credit limit (warning test).
-    await prov.updateProduct(
-        original.copyWith(stock: 10, sellPrice: 60));
-    await tester.pumpAndSettle();
+    await prov.updateProduct(original.copyWith(stock: 10, sellPrice: 60));
+    await settle(tester);
 
     await goToTab(tester, 'Credit');
 
     await tester.tap(find.text('New Credit'));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final orderScreen = find.byType(CreditOrderScreen);
     await tester.enterText(
@@ -210,11 +220,11 @@ void main() {
             .descendant(of: orderScreen, matching: find.byType(TextField))
             .first,
         'Integration Test Customer');
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     await tester.tap(find.descendant(
         of: orderScreen, matching: find.text('Select Items →')));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final productScreen = find.byType(CreditProductScreen);
 
@@ -225,28 +235,26 @@ void main() {
             .descendant(of: productScreen, matching: find.byType(TextField))
             .first,
         original.name);
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     // Match only the product card's Text widget, not the EditableText of
     // the search field we just typed this same name into.
     Finder productCard() => find.descendant(
         of: productScreen,
-        matching:
-            find.byWidgetPredicate((w) => w is Text && w.data == original.name));
+        matching: find
+            .byWidgetPredicate((w) => w is Text && w.data == original.name));
     expect(productCard(), findsOneWidget);
 
     // Stock is 10 — tap well past that to confirm the fix caps the order
     // instead of letting it go negative.
     for (var i = 0; i < 15; i++) {
       await tester.tap(productCard());
-      await tester.pumpAndSettle();
+      await settle(tester);
     }
 
     // Sanity check: the on-screen quantity counter should read exactly the
     // capped stock value before we proceed.
-    expect(
-        find.descendant(
-            of: productScreen, matching: find.text('10')),
+    expect(find.descendant(of: productScreen, matching: find.text('10')),
         findsWidgets,
         reason: 'quantity should have been capped at the available stock (10)');
 
@@ -256,17 +264,17 @@ void main() {
     final saveCreditStep2 = find.descendant(
         of: productScreen, matching: find.textContaining('Save Credit →'));
     await tester.ensureVisible(saveCreditStep2);
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tap(saveCreditStep2);
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final summaryScreen = find.byType(CreditSummaryScreen);
-    final saveCreditSummary = find.descendant(
-        of: summaryScreen, matching: find.text('Save Credit'));
+    final saveCreditSummary =
+        find.descendant(of: summaryScreen, matching: find.text('Save Credit'));
     await tester.ensureVisible(saveCreditSummary);
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tap(saveCreditSummary);
-    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await settle(tester, pumps: 10);
 
     // 10 units x 60 pesos = 600, over the new customer's default 500 limit.
     expect(find.text('Credit Limit Exceeded'), findsOneWidget,
@@ -274,7 +282,7 @@ void main() {
             'ordering 10 x a 60-peso item (₱600) should trip the 500-peso default credit limit warning');
 
     await tester.tap(find.text('Proceed'));
-    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await settle(tester, pumps: 10);
 
     expect(
         find.descendant(
@@ -295,16 +303,15 @@ void main() {
         prov.sales.firstWhere((s) => !salesBefore.contains(s.id));
     final testCustomerId = createdSale.customerId!;
     await prov.voidSale(createdSale);
-    await tester.pumpAndSettle();
+    await settle(tester);
     await prov.deleteCustomer(testCustomerId);
-    await tester.pumpAndSettle();
+    await settle(tester);
     await prov.updateProduct(prov.products
         .firstWhere((p) => p.id == original.id)
         .copyWith(stock: original.stock, sellPrice: original.sellPrice));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
-    expect(
-        prov.debts.where((d) => d.saleId == createdSale.id), isEmpty,
+    expect(prov.debts.where((d) => d.saleId == createdSale.id), isEmpty,
         reason: 'voiding the credit sale should have cancelled its debt');
     ErrorWidget.builder = defaultErrorBuilder;
   });

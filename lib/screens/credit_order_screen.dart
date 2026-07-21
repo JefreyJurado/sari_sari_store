@@ -852,6 +852,11 @@ class _CreditSummaryScreenState
   }
 
   Future<void> _saveDebt(AppProvider prov) async {
+    // Guard against double-submit: the credit-limit confirmation dialog
+    // below awaits user input before _saving flips true, so two fast taps
+    // could otherwise both reach this method and each open their own
+    // dialog / save the debt twice.
+    if (_saving) return;
     final existing = widget.existingCustomer;
     final creditLimit = existing?.creditLimit ?? 500.0;
     final currentDebt =
@@ -859,6 +864,7 @@ class _CreditSummaryScreenState
     final projected = currentDebt + _total;
 
     if (projected > creditLimit) {
+      setState(() => _saving = true);
       final proceed = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
@@ -895,7 +901,10 @@ class _CreditSummaryScreenState
           ],
         ),
       );
-      if (proceed != true) return;
+      if (proceed != true) {
+        if (mounted) setState(() => _saving = false);
+        return;
+      }
       if (!mounted) return;
     }
 

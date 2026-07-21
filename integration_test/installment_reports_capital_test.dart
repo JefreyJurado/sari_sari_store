@@ -32,50 +32,50 @@ void main() {
     final prov = await bootToHome(tester);
 
     await tester.ensureVisible(find.text('Installment'));
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tap(find.text('Installment'));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final instScreen = find.byType(InstallmentScreen);
     await tester.tap(find.text('New Installment'));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final customerName =
         'Integration Test Installment ${DateTime.now().millisecondsSinceEpoch}';
     await tester.enterText(
         find.widgetWithText(TextField, 'Customer name *'), customerName);
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     await tester.tap(find.text('Select Products'));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     expect(prov.products, isNotEmpty);
     final product = prov.products.first;
     await tester.enterText(
         find.widgetWithText(TextField, 'Search products...'), product.name);
-    await tester.pumpAndSettle();
+    await settle(tester);
     // The product row itself has no tap handler in this picker — only the
     // trailing "+" icon adds it. Scope to the picker sheet so this doesn't
     // collide with the InstallmentScreen FAB, which also uses Icons.add.
     final pickerSheet = find.byType(DraggableScrollableSheet);
-    await tester.tap(find.descendant(
-        of: pickerSheet, matching: find.byIcon(Icons.add)));
-    await tester.pumpAndSettle();
+    await tester.tap(
+        find.descendant(of: pickerSheet, matching: find.byIcon(Icons.add)));
+    await settle(tester);
 
     final doneBtn = find.textContaining('Done (');
     await tester.tap(doneBtn);
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final totalAmount = product.sellPrice;
     const down = 0.0;
 
     await tester.ensureVisible(find.text('Save Installment'));
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tap(find.text('Save Installment'));
-    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await settle(tester, pumps: 10);
 
     expect(find.text('Installment saved!'), findsOneWidget);
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     // Freshly saved plan should be on the "Ongoing" tab (index 0, default).
     final nameInCard =
@@ -103,11 +103,12 @@ void main() {
     final payBtn = find.descendant(
         of: cardContainer, matching: find.textContaining('Pay — '));
     await tester.tap(payBtn);
-    await tester.pumpAndSettle();
+    await settle(tester);
     expect(find.text('Accept Payment'), findsOneWidget,
-        reason: 'tapping the card\'s Pay button should open the confirm dialog');
+        reason:
+            'tapping the card\'s Pay button should open the confirm dialog');
     await tester.tap(find.textContaining('Pay ₱'));
-    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await settle(tester, pumps: 10);
 
     // Verify against the persisted record rather than the confirmation
     // SnackBar — a still-visible "Installment saved!" SnackBar from
@@ -125,11 +126,11 @@ void main() {
     // debugging runs of this test.
     await tester.tap(find.descendant(
         of: cardContainer, matching: find.byIcon(Icons.more_vert_outlined)));
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tap(find.text('Delete'));
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tap(find.text('Delete').last);
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final stragglers = (await InstallmentService.instance.getAll())
         .where((i) => i.customerName.startsWith('Integration Test Installment'))
@@ -143,7 +144,7 @@ void main() {
     for (final c in testCustomers) {
       await prov.deleteCustomer(c.id);
     }
-    await tester.pumpAndSettle();
+    await settle(tester);
     ErrorWidget.builder = defaultErrorBuilder;
   });
 
@@ -158,38 +159,37 @@ void main() {
     final product = prov.products[1];
     final originalStock = product.stock;
     await prov.updateProduct(product.copyWith(stock: 10));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
-    final productCard = find.descendant(
-        of: salesScreen, matching: find.text(product.name));
+    final productCard =
+        find.descendant(of: salesScreen, matching: find.text(product.name));
     await tester.tap(productCard);
     await tester.pump();
 
     final cartIcons = find.descendant(
         of: salesScreen, matching: find.byIcon(Icons.shopping_cart_rounded));
     await tester.tap(cartIcons.first);
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final cartSheet = find.byType(DraggableScrollableSheet);
-    final cartListView = find
-        .descendant(of: cartSheet, matching: find.byType(ListView))
-        .first;
+    final cartListView =
+        find.descendant(of: cartSheet, matching: find.byType(ListView)).first;
     for (var i = 0; i < 5; i++) {
       await tester.drag(cartListView, const Offset(0, -400));
-      await tester.pumpAndSettle();
+      await settle(tester);
     }
     final checkoutBtn = find.descendant(
         of: cartSheet, matching: find.textContaining('Process Order Summary'));
     await tester.tap(checkoutBtn);
-    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await settle(tester, pumps: 10);
     await tester.tap(find.text('Dismiss'));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     // Sanity: the sale really landed in "today".
     expect(prov.todayRevenue, greaterThan(0));
 
     await goToTab(tester, 'Reports');
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await settle(tester, pumps: 20);
 
     expect(find.textContaining('Total Sales'), findsOneWidget,
         reason: 'reports screen should render its stat cards without error');
@@ -214,11 +214,11 @@ void main() {
             s.items.first.productId == product.id)
         .reduce((a, b) => a.createdAt.isAfter(b.createdAt) ? a : b);
     await prov.voidSale(createdSale);
-    await tester.pumpAndSettle();
+    await settle(tester);
     await prov.updateProduct(prov.products
         .firstWhere((p) => p.id == product.id)
         .copyWith(stock: originalStock));
-    await tester.pumpAndSettle();
+    await settle(tester);
     ErrorWidget.builder = defaultErrorBuilder;
   });
 
@@ -234,22 +234,22 @@ void main() {
         ? find.text('Set up Beginning Balance')
         : find.text('Capital Overview').first;
     await tester.ensureVisible(capitalEntry);
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tap(capitalEntry);
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final capitalScreen = find.byType(CapitalScreen);
     final existingCount = originalCapital?.setupItems.length ?? 0;
 
     // The screen always opens in view mode regardless of whether capital
     // data already exists — enter edit mode explicitly.
-    await tester.tap(
-        find.descendant(of: capitalScreen, matching: find.text('Edit')));
-    await tester.pumpAndSettle();
+    await tester
+        .tap(find.descendant(of: capitalScreen, matching: find.text('Edit')));
+    await settle(tester);
 
-    await tester.tap(find.descendant(
-        of: capitalScreen, matching: find.text('Add Item')));
-    await tester.pumpAndSettle();
+    await tester.tap(
+        find.descendant(of: capitalScreen, matching: find.text('Add Item')));
+    await settle(tester);
 
     final descField =
         find.descendant(of: capitalScreen, matching: find.byType(TextField));
@@ -258,17 +258,17 @@ void main() {
     final newDescField = descField.at(existingCount * 3);
     final newAmountField = descField.at(existingCount * 3 + 1);
     await tester.enterText(newDescField, 'Integration Test Equipment');
-    await tester.pumpAndSettle();
+    await settle(tester);
     const addedAmount = 250.0;
     await tester.enterText(newAmountField, addedAmount.toStringAsFixed(2));
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     await tester.tap(find.descendant(
         of: capitalScreen, matching: find.text('Save Capital Settings')));
-    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await settle(tester, pumps: 10);
 
     expect(find.text('Capital settings saved!'), findsOneWidget);
-    await tester.pumpAndSettle();
+    await settle(tester);
 
     final expectedInvestment = originalInvestment + addedAmount;
     expect(prov.totalInvestment, expectedInvestment,
@@ -281,7 +281,7 @@ void main() {
       inventoryValue: originalCapital?.inventoryValue ?? 0,
       setupItems: originalCapital?.setupItems ?? [],
     );
-    await tester.pumpAndSettle();
+    await settle(tester);
     expect(prov.totalInvestment, originalInvestment);
     ErrorWidget.builder = defaultErrorBuilder;
   });

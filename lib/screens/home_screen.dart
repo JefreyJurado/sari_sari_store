@@ -166,9 +166,16 @@ class _HomeScreenState extends State<HomeScreen> {
           final now = DateTime.now();
           final nowMinutes = now.hour * 60 + now.minute;
           final isClosedToday = _closedWeekdays.contains(now.weekday);
-          final isOutsideStoreHours = isClosedToday ||
-              nowMinutes < _openMinutes ||
-              nowMinutes >= _closeMinutes;
+          // Close <= open means an overnight schedule (e.g. open 6 PM,
+          // close 6 AM) — the open window wraps past midnight, so "inside
+          // hours" flips to an OR instead of an AND. Without this, any
+          // store configured to close after midnight showed as closed
+          // for most of the night it's actually open.
+          final isOvernight = _closeMinutes <= _openMinutes;
+          final isWithinHours = isOvernight
+              ? (nowMinutes >= _openMinutes || nowMinutes < _closeMinutes)
+              : (nowMinutes >= _openMinutes && nowMinutes < _closeMinutes);
+          final isOutsideStoreHours = isClosedToday || !isWithinHours;
           final hasStockIssue =
               prov.outOfStock.isNotEmpty || prov.lowStock.isNotEmpty;
 
@@ -1234,7 +1241,7 @@ class _CapitalCard extends StatelessWidget {
   void _showDetails(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const CapitalScreen()),
+      CrossFadePageRoute(child: const CapitalScreen()),
     );
   }
 

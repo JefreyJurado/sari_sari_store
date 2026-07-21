@@ -605,11 +605,20 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Pin the Save button outside the scrollable area so it's always
+    // reachable without scrolling past every field first (this form has
+    // 12+ fields, so the button used to end up below the fold — and below
+    // the keyboard — on most phones).
+    final media = MediaQuery.of(context);
+    final availableHeight = media.size.height - media.viewInsets.bottom;
     return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: availableHeight * 0.88),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Flexible(
+        child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Center(
             child: Container(
@@ -752,12 +761,20 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () async {
+              final now = DateTime.now();
+              final initial =
+                  _expiryDate ?? now.add(const Duration(days: 30));
+              // An existing product can already be past its expiry date
+              // (that's exactly when the "EXPIRED" badge shows), so the
+              // picker's firstDate must not be pinned to `now` — otherwise
+              // opening the picker on an already-expired product crashes
+              // because initialDate would fall before firstDate.
+              final first = initial.isBefore(now) ? initial : now;
               final picked = await showDatePicker(
                 context: context,
-                initialDate:
-                    _expiryDate ?? DateTime.now().add(const Duration(days: 30)),
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 3650)),
+                initialDate: initial,
+                firstDate: first,
+                lastDate: now.add(const Duration(days: 3650)),
               );
               if (picked != null) setState(() => _expiryDate = picked);
             },
@@ -795,11 +812,18 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () async {
+              final now = DateTime.now();
+              final minDate = now.subtract(const Duration(days: 3650));
+              // Guard against a createdAt older than 10 years (e.g. data
+              // migrated from elsewhere) falling before firstDate, which
+              // would crash the picker the same way an out-of-range expiry
+              // date does above.
+              final first = _dateAdded.isBefore(minDate) ? _dateAdded : minDate;
               final picked = await showDatePicker(
                 context: context,
                 initialDate: _dateAdded,
-                firstDate: DateTime.now().subtract(const Duration(days: 3650)),
-                lastDate: DateTime.now(),
+                firstDate: first,
+                lastDate: now,
               );
               if (picked != null) setState(() => _dateAdded = picked);
             },
@@ -860,60 +884,73 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
               if (v != null) setState(() => _seasonalTag = v);
             },
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                if (widget.nameCtrl.text.trim().isEmpty) return;
-                final p = Product(
-                  id: widget.existing?.id ?? _uuid.v4(),
-                  name: widget.nameCtrl.text.trim(),
-                  category: _category,
-                  buyPrice: (double.tryParse(widget.buyCtrl.text) ?? 0)
-                      .clamp(0, double.infinity),
-                  sellPrice: (double.tryParse(widget.sellCtrl.text) ?? 0)
-                      .clamp(0, double.infinity),
-                  stock: (int.tryParse(widget.stockCtrl.text) ?? 0)
-                      .clamp(0, 999999),
-                  unit: widget.unitCtrl.text.trim().isEmpty
-                      ? 'pcs'
-                      : widget.unitCtrl.text.trim(),
-                  createdAt: _dateAdded,
-                  reorderPoint:
-                      (int.tryParse(_reorderCtrl.text) ?? 5).clamp(0, 999999),
-                  expiryDate: _expiryDate,
-                  supplierName: _supplierNameCtrl.text.trim().isEmpty
-                      ? null
-                      : _supplierNameCtrl.text.trim(),
-                  supplierContact: _supplierContactCtrl.text.trim().isEmpty
-                      ? null
-                      : _supplierContactCtrl.text.trim(),
-                  seasonalTag: _seasonalTag == 'None' ? null : _seasonalTag,
-                );
-                final isNew = widget.existing == null;
-                Navigator.of(context, rootNavigator: true).pop(true);
-                if (isNew) {
-                  widget.prov.addProduct(p);
-                } else {
-                  widget.prov.updateProduct(p);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _blue,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+        ]),
+        ),
+        ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Colors.grey.shade200)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (widget.nameCtrl.text.trim().isEmpty) return;
+                  final p = Product(
+                    id: widget.existing?.id ?? _uuid.v4(),
+                    name: widget.nameCtrl.text.trim(),
+                    category: _category,
+                    buyPrice: (double.tryParse(widget.buyCtrl.text) ?? 0)
+                        .clamp(0, double.infinity),
+                    sellPrice: (double.tryParse(widget.sellCtrl.text) ?? 0)
+                        .clamp(0, double.infinity),
+                    stock: (int.tryParse(widget.stockCtrl.text) ?? 0)
+                        .clamp(0, 999999),
+                    unit: widget.unitCtrl.text.trim().isEmpty
+                        ? 'pcs'
+                        : widget.unitCtrl.text.trim(),
+                    createdAt: _dateAdded,
+                    reorderPoint: (int.tryParse(_reorderCtrl.text) ?? 5)
+                        .clamp(0, 999999),
+                    expiryDate: _expiryDate,
+                    supplierName: _supplierNameCtrl.text.trim().isEmpty
+                        ? null
+                        : _supplierNameCtrl.text.trim(),
+                    supplierContact: _supplierContactCtrl.text.trim().isEmpty
+                        ? null
+                        : _supplierContactCtrl.text.trim(),
+                    seasonalTag: _seasonalTag == 'None' ? null : _seasonalTag,
+                  );
+                  final isNew = widget.existing == null;
+                  Navigator.of(context, rootNavigator: true).pop(true);
+                  if (isNew) {
+                    widget.prov.addProduct(p);
+                  } else {
+                    widget.prov.updateProduct(p);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _blue,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text(
+                    widget.existing == null
+                        ? 'Save Product'
+                        : 'Update Product',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
               ),
-              child: Text(
-                  widget.existing == null ? 'Save Product' : 'Update Product',
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ),
-          const SizedBox(height: 20),
+        ),
         ]),
       ),
     );
@@ -995,7 +1032,7 @@ class _StockAdjustDialogState extends State<_StockAdjustDialog> {
                             fontSize: 13,
                             color: Colors.black87)),
                     Text(
-                        'Current: ${widget.product.stock} ${widget.product.unit}',
+                        'Current: ${widget.product.stock} ${widget.product.unit ?? 'pcs'}',
                         style:
                             TextStyle(color: Colors.grey[500], fontSize: 12)),
                   ]),

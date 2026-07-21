@@ -337,8 +337,7 @@ class _StoreScreenState extends State<StoreScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
                         border: isActive
-                            ? Border.all(
-                                color: AppColors.green, width: 2)
+                            ? Border.all(color: AppColors.green, width: 2)
                             : null,
                         boxShadow: [
                           BoxShadow(
@@ -359,8 +358,8 @@ class _StoreScreenState extends State<StoreScreen> {
                               setState(() => _activeStoreId = store.id);
                               await _save();
                               if (mounted) {
-                                CenterToast.showSuccess(
-                                    context, '${store.name} ang aktibong tindahan na!');
+                                CenterToast.showSuccess(context,
+                                    '${store.name} ang aktibong tindahan na!');
                               }
                             },
                             contentPadding: const EdgeInsets.symmetric(
@@ -443,8 +442,8 @@ class _StoreScreenState extends State<StoreScreen> {
                                   _showForm(existing: store);
                                 } else if (v == 'delete') {
                                   if (_stores.length <= 1) {
-                                    CenterToast.showError(
-                                        context, 'Hindi puwedeng burahin ang tanging tindahan!');
+                                    CenterToast.showError(context,
+                                        'Hindi puwedeng burahin ang tanging tindahan!');
                                     return;
                                   }
                                   _stores.removeWhere((s) => s.id == store.id);
@@ -465,6 +464,7 @@ class _StoreScreenState extends State<StoreScreen> {
               ),
             ]),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'store_fab',
         onPressed: () => _showForm(),
         icon: const Icon(Icons.add),
         label: const Text('Dagdag Tindahan'),

@@ -1,3 +1,10 @@
+// Sentinel so copyWith can tell "not provided" (keep old value) apart from
+// an explicit `field: null` (clear it) — passing null used to be treated
+// as "not provided" via `?? this.field`, so clearing notes/customer/
+// transfer-account fields through copyWith would silently keep the old
+// value instead.
+const _unset = Object();
+
 enum CicoType { cashIn, cashOut, topUp, withdraw }
 
 // For topUp/withdraw rows only: what `provider` refers to. cashIn/cashOut
@@ -85,12 +92,12 @@ class CicoTransaction {
     double? amount,
     double? commission,
     DateTime? createdAt,
-    String? notes,
+    Object? notes = _unset,
     String? liquidAccount,
     CicoAccountKind? accountKind,
-    String? customerName,
-    String? customerPhone,
-    String? transferAccount,
+    Object? customerName = _unset,
+    Object? customerPhone = _unset,
+    Object? transferAccount = _unset,
   }) =>
       CicoTransaction(
         id: id,
@@ -99,11 +106,17 @@ class CicoTransaction {
         amount: amount ?? this.amount,
         commission: commission ?? this.commission,
         createdAt: createdAt ?? this.createdAt,
-        notes: notes ?? this.notes,
+        notes: identical(notes, _unset) ? this.notes : notes as String?,
         liquidAccount: liquidAccount ?? this.liquidAccount,
         accountKind: accountKind ?? this.accountKind,
-        customerName: customerName ?? this.customerName,
-        customerPhone: customerPhone ?? this.customerPhone,
-        transferAccount: transferAccount ?? this.transferAccount,
+        customerName: identical(customerName, _unset)
+            ? this.customerName
+            : customerName as String?,
+        customerPhone: identical(customerPhone, _unset)
+            ? this.customerPhone
+            : customerPhone as String?,
+        transferAccount: identical(transferAccount, _unset)
+            ? this.transferAccount
+            : transferAccount as String?,
       );
 }

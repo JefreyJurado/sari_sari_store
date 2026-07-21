@@ -143,6 +143,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
           ]),
         ),
         floatingActionButton: FloatingActionButton.extended(
+          heroTag: 'installment_fab',
           onPressed: () => _showAddForm(prov),
           backgroundColor: _blue,
           foregroundColor: Colors.white,
@@ -161,7 +162,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Image.asset(
             'assets/mascot/storeph_mascot_neutral_idle.png',
-            width: 72, height: 72, fit: BoxFit.contain,
+            width: 72,
+            height: 72,
+            fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => Icon(Icons.credit_score_outlined,
                 size: 48, color: Colors.grey[300]),
           ),
@@ -348,6 +351,11 @@ class _InstallmentScreenState extends State<InstallmentScreen>
     final downCtrl = TextEditingController();
     int selectedMonths = 3;
     DateTime startDate = DateTime.now();
+    // Guards the Save button against a rapid double-tap while the async
+    // save chain (stock decrement + installment record) is in flight,
+    // which would otherwise create two installment plans and take the
+    // stock twice.
+    bool isSubmitting = false;
 
     showModalBottomSheet(
       context: context,
@@ -357,7 +365,8 @@ class _InstallmentScreenState extends State<InstallmentScreen>
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) {
-          final totalAmount = CurrencyFormatter.roundCents(selectedProducts.entries
+          final totalAmount = CurrencyFormatter.roundCents(selectedProducts
+              .entries
               .fold(0.0, (s, e) => s + e.key.sellPrice * e.value));
           final down = double.tryParse(downCtrl.text) ?? 0;
           final monthly = selectedMonths > 0
@@ -367,7 +376,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
 
           return Padding(
             padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
                 left: 20,
                 right: 20,
                 top: 20),
@@ -701,21 +710,23 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                                                     onTap: qty >= p.stock
                                                         ? null
                                                         : () {
-                                                      pSetS(() {
-                                                        sSetS(() {
-                                                          setS(() {
-                                                            selectedProducts[
-                                                                p] = qty + 1;
-                                                          });
-                                                        });
-                                                      });
-                                                    },
+                                                            pSetS(() {
+                                                              sSetS(() {
+                                                                setS(() {
+                                                                  selectedProducts[
+                                                                          p] =
+                                                                      qty + 1;
+                                                                });
+                                                              });
+                                                            });
+                                                          },
                                                     child: Container(
                                                       width: 28,
                                                       height: 28,
                                                       decoration: BoxDecoration(
                                                           color: qty >= p.stock
-                                                              ? Colors.grey.shade300
+                                                              ? Colors
+                                                                  .grey.shade300
                                                               : _blue,
                                                           borderRadius:
                                                               BorderRadius
@@ -932,89 +943,99 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      final customerName =
-                          selectedCustomer?.name ?? nameCtrl.text.trim();
-                      if (customerName.isEmpty) {
-                        CenterToast.showError(context, 'Customer name required.');
-                        return;
-                      }
-                      if (selectedProducts.isEmpty) {
-                        CenterToast.showError(context, 'Select at least one product.');
-                        return;
-                      }
-                      if (totalAmount <= 0) {
-                        CenterToast.showError(context, 'Total cannot be zero.');
-                        return;
-                      }
-                      final down = double.tryParse(downCtrl.text) ?? 0;
-                      if (down < 0) {
-                        CenterToast.showError(context, 'Down payment cannot be negative.');
-                        return;
-                      }
-                      if (down >= totalAmount) {
-                        CenterToast.showError(context, 'Down payment cannot exceed total.');
-                        return;
-                      }
-                      String customerId;
-                      if (selectedCustomer != null) {
-                        customerId = selectedCustomer!.id;
-                      } else {
-                        final existing = prov.customers
-                            .where((c) =>
-                                c.name.toLowerCase() ==
-                                customerName.toLowerCase())
-                            .firstOrNull;
-                        if (existing != null) {
-                          customerId = existing.id;
-                        } else {
-                          await prov.addCustomer(customerName);
-                          customerId = prov.customers
-                              .firstWhere((c) => c.name == customerName,
-                                  orElse: () => prov.customers.last)
-                              .id;
-                        }
-                      }
-                      final itemDesc = selectedProducts.entries
-                          .map((e) => '${e.key.name} x${e.value}')
-                          .join(', ');
-                      final mon = selectedMonths > 0
-                          ? CurrencyFormatter.roundCents(
-                              (totalAmount - down) / selectedMonths)
-                          : 0.0;
-                      // Records the actual sale (stock decrement, revenue,
-                      // profit) now — the goods leave the shelf today even
-                      // though the customer pays it off over time.
-                      final saleId = await prov.recordInstallmentSale(
-                        items: selectedProducts,
-                        customerId: customerId,
-                        customerName: customerName,
-                        totalAmount: totalAmount,
-                        downPayment: down,
-                      );
-                      final installment = Installment(
-                        id: _uuid.v4(),
-                        customerId: customerId,
-                        customerName: customerName,
-                        itemDescription: itemDesc,
-                        totalAmount: totalAmount,
-                        downPayment: down,
-                        monthlyPayment: mon,
-                        totalMonths: selectedMonths,
-                        paidMonths: 0,
-                        totalPaid: down,
-                        status: InstallmentStatus.ongoing,
-                        startDate: startDate,
-                        nextDueDate: startDate.add(const Duration(days: 30)),
-                        saleId: saleId,
-                      );
-                      await InstallmentService.instance.save(installment);
-                      await _load();
-                      if (ctx.mounted) Navigator.pop(ctx);
-                      if (mounted) {
-                        CenterToast.showSuccess(context, 'Installment saved!');
-                      }
-                    },
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            final customerName =
+                                selectedCustomer?.name ?? nameCtrl.text.trim();
+                            if (customerName.isEmpty) {
+                              CenterToast.showError(
+                                  context, 'Customer name required.');
+                              return;
+                            }
+                            if (selectedProducts.isEmpty) {
+                              CenterToast.showError(
+                                  context, 'Select at least one product.');
+                              return;
+                            }
+                            if (totalAmount <= 0) {
+                              CenterToast.showError(
+                                  context, 'Total cannot be zero.');
+                              return;
+                            }
+                            final down = double.tryParse(downCtrl.text) ?? 0;
+                            if (down < 0) {
+                              CenterToast.showError(
+                                  context, 'Down payment cannot be negative.');
+                              return;
+                            }
+                            if (down >= totalAmount) {
+                              CenterToast.showError(
+                                  context, 'Down payment cannot exceed total.');
+                              return;
+                            }
+                            setS(() => isSubmitting = true);
+                            String customerId;
+                            if (selectedCustomer != null) {
+                              customerId = selectedCustomer!.id;
+                            } else {
+                              final existing = prov.customers
+                                  .where((c) =>
+                                      c.name.toLowerCase() ==
+                                      customerName.toLowerCase())
+                                  .firstOrNull;
+                              if (existing != null) {
+                                customerId = existing.id;
+                              } else {
+                                await prov.addCustomer(customerName);
+                                customerId = prov.customers
+                                    .firstWhere((c) => c.name == customerName,
+                                        orElse: () => prov.customers.last)
+                                    .id;
+                              }
+                            }
+                            final itemDesc = selectedProducts.entries
+                                .map((e) => '${e.key.name} x${e.value}')
+                                .join(', ');
+                            final mon = selectedMonths > 0
+                                ? CurrencyFormatter.roundCents(
+                                    (totalAmount - down) / selectedMonths)
+                                : 0.0;
+                            // Records the actual sale (stock decrement, revenue,
+                            // profit) now — the goods leave the shelf today even
+                            // though the customer pays it off over time.
+                            final saleId = await prov.recordInstallmentSale(
+                              items: selectedProducts,
+                              customerId: customerId,
+                              customerName: customerName,
+                              totalAmount: totalAmount,
+                              downPayment: down,
+                            );
+                            final installment = Installment(
+                              id: _uuid.v4(),
+                              customerId: customerId,
+                              customerName: customerName,
+                              itemDescription: itemDesc,
+                              totalAmount: totalAmount,
+                              downPayment: down,
+                              monthlyPayment: mon,
+                              totalMonths: selectedMonths,
+                              paidMonths: 0,
+                              totalPaid: down,
+                              status: InstallmentStatus.ongoing,
+                              startDate: startDate,
+                              nextDueDate:
+                                  startDate.add(const Duration(days: 30)),
+                              saleId: saleId,
+                            );
+                            await InstallmentService.instance.save(installment);
+                            await _load();
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (mounted) {
+                              CenterToast.showSuccess(
+                                  context, 'Installment saved!');
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _blue,
                       foregroundColor: Colors.white,
@@ -1022,10 +1043,18 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
+                      disabledBackgroundColor: _blue.withValues(alpha: 0.5),
                     ),
-                    child: const Text('Save Installment',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600)),
+                    child: isSubmitting
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text('Save Installment',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -1151,8 +1180,8 @@ class _InstallmentScreenState extends State<InstallmentScreen>
           TextButton(
             onPressed: () async {
               final payAmount = _nextPaymentAmount(inst);
-              final newPaid = CurrencyFormatter.roundCents(
-                  inst.totalPaid + payAmount);
+              final newPaid =
+                  CurrencyFormatter.roundCents(inst.totalPaid + payAmount);
               final newMonths = inst.paidMonths + 1;
               final isComplete = newMonths >= inst.totalMonths;
               final updated = inst.copyWith(
@@ -1177,7 +1206,8 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                 ));
               }
             },
-            child: Text('Pay ${CurrencyFormatter.format(_nextPaymentAmount(inst))}',
+            child: Text(
+                'Pay ${CurrencyFormatter.format(_nextPaymentAmount(inst))}',
                 style: const TextStyle(
                     color: _blue, fontWeight: FontWeight.w600, fontSize: 13)),
           ),

@@ -97,12 +97,15 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
     });
     _animCtrl.stop();
     await _controller?.stop();
+    if (!mounted) return;
 
     final prov = context.read<AppProvider>();
     final byBarcode = await DatabaseService.instance.getProductByBarcode(code);
+    if (!mounted) return;
 
     if (byBarcode != null) {
       await _triggerFeedback(true);
+      if (!mounted) return;
       _addHistory(code, byBarcode.name, true);
       _showProductFound(byBarcode, prov);
       return;
@@ -114,8 +117,10 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
     // to either row unpredictably.
     final archived = await DatabaseService.instance
         .getProductByBarcode(code, includeInactive: true);
+    if (!mounted) return;
     if (archived != null) {
       await _triggerFeedback(true);
+      if (!mounted) return;
       _addHistory(code, archived.name, true);
       _showArchivedProductFound(archived, prov);
       return;
@@ -127,10 +132,12 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
 
     if (byName.isNotEmpty) {
       await _triggerFeedback(true);
+      if (!mounted) return;
       _addHistory(code, byName.first.name, true);
       _showProductFound(byName.first, prov);
     } else {
       await _triggerFeedback(false);
+      if (!mounted) return;
       _addHistory(code, 'Bagong Produkto', false);
       _handleUnknownBarcode(code, prov);
     }
@@ -156,6 +163,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
   void _showProductFound(Product product, AppProvider prov) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -258,6 +266,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
   void _showArchivedProductFound(Product product, AppProvider prov) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -386,7 +395,12 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          // Use ctx (the sheet's own context) rather than the outer
+          // screen's context — MediaQuery.of(context) here would register
+          // the *screen* as the dependent, not this sheet, so the sheet
+          // would never rebuild (and its bottom padding never update) when
+          // the keyboard opens/closes, leaving fields hidden behind it.
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -449,9 +463,12 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                     final updated = product.copyWith(
                       name: nameCtrl.text.trim(),
                       category: category,
-                      buyPrice: double.tryParse(buyCtrl.text) ?? product.buyPrice,
-                      sellPrice: double.tryParse(sellCtrl.text) ?? product.sellPrice,
-                      stock: int.tryParse(stockCtrl.text) ?? product.stock,
+                      buyPrice: (double.tryParse(buyCtrl.text) ?? product.buyPrice)
+                          .clamp(0, double.infinity),
+                      sellPrice: (double.tryParse(sellCtrl.text) ?? product.sellPrice)
+                          .clamp(0, double.infinity),
+                      stock: (int.tryParse(stockCtrl.text) ?? product.stock)
+                          .clamp(0, 999999),
                       unit: unitCtrl.text.trim().isEmpty ? 'pcs' : unitCtrl.text.trim(),
                     );
                     await prov.updateProduct(updated);
@@ -475,10 +492,16 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
   void _showHistory() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      // Up to 10 rows can be in _history, so this needs to actually scroll
+      // (isScrollControlled alone only lets the sheet grow taller — it
+      // doesn't make un-scrollable content scroll) rather than overflow
+      // off the bottom of the screen.
       builder: (_) => Padding(
         padding: const EdgeInsets.all(20),
+        child: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
@@ -521,6 +544,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
             ),
           ),
         ]),
+        ),
       ),
     );
   }
@@ -540,7 +564,9 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          // ctx (the sheet's own context), not the outer screen context —
+          // see the same fix in _showEditProduct above.
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -630,9 +656,11 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                       id: _uuid.v4(),
                       name: nameCtrl.text.trim(),
                       category: category,
-                      buyPrice: double.tryParse(buyCtrl.text) ?? 0,
-                      sellPrice: double.tryParse(sellCtrl.text) ?? 0,
-                      stock: int.tryParse(stockCtrl.text) ?? 0,
+                      buyPrice: (double.tryParse(buyCtrl.text) ?? 0)
+                          .clamp(0, double.infinity),
+                      sellPrice: (double.tryParse(sellCtrl.text) ?? 0)
+                          .clamp(0, double.infinity),
+                      stock: (int.tryParse(stockCtrl.text) ?? 0).clamp(0, 999999),
                       unit: unitCtrl.text.trim().isEmpty ? 'pcs' : unitCtrl.text.trim(),
                       barcode: barcode,
                       createdAt: DateTime.now(),

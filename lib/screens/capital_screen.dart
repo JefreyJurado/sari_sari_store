@@ -314,8 +314,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
     }
     await _persist(prov, items);
 
+    if (sheetCtx.mounted) Navigator.pop(sheetCtx);
     if (mounted) {
-      Navigator.pop(sheetCtx);
       CenterToast.showSuccess(
           context, existing == null ? 'Item added!' : 'Item updated!');
     }
@@ -351,8 +351,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
     items.removeAt(index);
     await _persist(prov, items);
 
+    if (sheetCtx.mounted) Navigator.pop(sheetCtx);
     if (mounted) {
-      Navigator.pop(sheetCtx);
       CenterToast.showWarning(context, 'Item deleted.');
     }
   }

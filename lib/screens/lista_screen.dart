@@ -127,8 +127,8 @@ class _ListaScreenState extends State<ListaScreen>
                                       decoration: BoxDecoration(
                                         color: Colors.white
                                             .withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(
-                                            AppRadius.sm),
+                                        borderRadius:
+                                            BorderRadius.circular(AppRadius.sm),
                                       ),
                                       child: const Icon(Icons.people_outline,
                                           color: Colors.white, size: 18),
@@ -211,6 +211,7 @@ class _ListaScreenState extends State<ListaScreen>
           ),
         ),
         floatingActionButton: FloatingActionButton.extended(
+          heroTag: 'lista_fab',
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const CreditOrderScreen()),
@@ -234,7 +235,9 @@ class _ListaScreenState extends State<ListaScreen>
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Image.asset(
             'assets/mascot/storeph_mascot_neutral_idle.png',
-            width: 72, height: 72, fit: BoxFit.contain,
+            width: 72,
+            height: 72,
+            fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => Icon(Icons.check_circle_outline,
                 size: 48, color: Colors.grey[300]),
           ),
@@ -342,9 +345,11 @@ class _ListaScreenState extends State<ListaScreen>
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Image.asset(
             'assets/mascot/storeph_mascot_neutral_idle.png',
-            width: 72, height: 72, fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Icon(Icons.history_outlined,
-                size: 48, color: Colors.grey[300]),
+            width: 72,
+            height: 72,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.history_outlined, size: 48, color: Colors.grey[300]),
           ),
           const SizedBox(height: 12),
           Text(
@@ -499,8 +504,8 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
         widget.debts.where((d) => d.status != DebtStatus.paid).toList();
     final paid =
         widget.debts.where((d) => d.status == DebtStatus.paid).toList();
-    final totalUnpaid =
-        CurrencyFormatter.roundCents(unpaid.fold(0.0, (s, d) => s + d.remaining));
+    final totalUnpaid = CurrencyFormatter.roundCents(
+        unpaid.fold(0.0, (s, d) => s + d.remaining));
     final totalPaid = CurrencyFormatter.roundCents(
         paid.fold(0.0, (s, d) => s + d.originalAmount));
 
@@ -987,39 +992,50 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
                     ),
                   ]),
                 ),
-                if (isUnpaid) ...[
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => PaymentScreen(
-                                  debt: d, customer: widget.customer)),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _blue,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('Accept Balance Tender Payment',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
               ],
             ),
           ),
+          // Pinned outside the scrolling ListView (rather than as its last
+          // child) so it's always reachable without scrolling past a long
+          // purchased-items list.
+          if (isUnpaid)
+            SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => PaymentScreen(
+                                debt: d, customer: widget.customer)),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _blue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Accept Balance Tender Payment',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+            ),
         ]),
       ),
     );
