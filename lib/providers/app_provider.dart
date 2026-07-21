@@ -25,7 +25,6 @@ class AppProvider extends ChangeNotifier {
   final _db = DatabaseService.instance;
 
   List<Customer> customers = [];
-  List<Product> products = [];
   List<Sale> sales = [];
   List<Expense> expenses = [];
   List<CicoTransaction> cico = [];
@@ -33,6 +32,36 @@ class AppProvider extends ChangeNotifier {
   List<DebtPayment> payments = [];
   CapitalEntry? capital;
   bool isLoading = false;
+
+  List<Product> _products = [];
+  List<Product> get products => _products;
+  // Every reassignment refreshes any open cart entries against the new
+  // list: `Map<Product, int>` equality is by id (see Product.==), so an
+  // edited product's cart quantity is still found correctly, but Dart
+  // doesn't replace a map's *stored key* on a matching `[]=` — leaving the
+  // cart holding the pre-edit Product (and its stale price) until now.
+  set products(List<Product> value) {
+    _products = value;
+    _refreshCartKeys();
+  }
+
+  void _refreshCartKeys() {
+    if (cart.isEmpty) return;
+    final refreshed = <Product, int>{};
+    for (final entry in cart.entries) {
+      var live = entry.key;
+      for (final p in _products) {
+        if (p.id == entry.key.id) {
+          live = p;
+          break;
+        }
+      }
+      refreshed[live] = entry.value;
+    }
+    cart
+      ..clear()
+      ..addAll(refreshed);
+  }
 
   final Map<Product, int> cart = {};
 

@@ -239,35 +239,32 @@ void main() {
     await settle(tester);
 
     final capitalScreen = find.byType(CapitalScreen);
-    final existingCount = originalCapital?.setupItems.length ?? 0;
 
-    // The screen always opens in view mode regardless of whether capital
-    // data already exists — enter edit mode explicitly.
-    await tester
-        .tap(find.descendant(of: capitalScreen, matching: find.text('Edit')));
+    // Adding an item opens a dedicated bottom sheet (one item's fields at a
+    // time) straight from "Add Item" — there's no separate whole-list edit
+    // mode to enter first, and the sheet always starts with exactly 3 empty
+    // fields (Description, Amount, Vendor) regardless of how many items
+    // already exist, since existing items are a read-only tap-to-edit list
+    // rather than inline fields.
+    final addItemBtn =
+        find.descendant(of: capitalScreen, matching: find.text('Add Item'));
+    await tester.ensureVisible(addItemBtn);
+    await settle(tester);
+    await tester.tap(addItemBtn);
     await settle(tester);
 
-    await tester.tap(
-        find.descendant(of: capitalScreen, matching: find.text('Add Item')));
-    await settle(tester);
-
-    final descField =
-        find.descendant(of: capitalScreen, matching: find.byType(TextField));
-    // Row layout per item: [Description, Amount, Vendor] — the new row is
-    // appended last.
-    final newDescField = descField.at(existingCount * 3);
-    final newAmountField = descField.at(existingCount * 3 + 1);
-    await tester.enterText(newDescField, 'Integration Test Equipment');
+    final descField = find.byType(TextField).at(0);
+    final amountField = find.byType(TextField).at(1);
+    await tester.enterText(descField, 'Integration Test Equipment');
     await settle(tester);
     const addedAmount = 250.0;
-    await tester.enterText(newAmountField, addedAmount.toStringAsFixed(2));
+    await tester.enterText(amountField, addedAmount.toStringAsFixed(2));
     await settle(tester);
 
-    await tester.tap(find.descendant(
-        of: capitalScreen, matching: find.text('Save Capital Settings')));
+    await tester.tap(find.text('Save'));
     await settle(tester, pumps: 10);
 
-    expect(find.text('Capital settings saved!'), findsOneWidget);
+    expect(find.text('Item added!'), findsOneWidget);
     await settle(tester);
 
     final expectedInvestment = originalInvestment + addedAmount;

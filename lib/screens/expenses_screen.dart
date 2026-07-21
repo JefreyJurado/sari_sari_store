@@ -205,6 +205,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     String category =
         existing?.category ?? FilipinoCategories.expenseCategories.first;
     DateTime expenseDate = existing?.date ?? DateTime.now();
+    bool isSaving = false;
 
     showModalBottomSheet(
       context: context,
@@ -346,44 +347,53 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    if (descCtrl.text.trim().isEmpty) {
-                      CenterToast.showError(context, 'Description required.');
-                      return;
-                    }
-                    final amount = double.tryParse(amountCtrl.text);
-                    if (amount == null || amount <= 0) {
-                      CenterToast.showError(context, 'Enter a valid amount.');
-                      return;
-                    }
-                    if (existing == null) {
-                      await prov.addExpense(
-                        descCtrl.text.trim(),
-                        category,
-                        amount,
-                        notes: notesCtrl.text.isEmpty ? null : notesCtrl.text,
-                        date: expenseDate,
-                      );
-                    } else {
-                      await prov.updateExpense(
-                        existing.copyWith(
-                          description: descCtrl.text.trim(),
-                          category: category,
-                          amount: amount,
-                          date: expenseDate,
-                          notes: notesCtrl.text.isEmpty ? null : notesCtrl.text,
-                        ),
-                      );
-                    }
-                    if (ctx.mounted) {
-                      Navigator.pop(ctx);
-                      CenterToast.showSuccess(
-                          context,
-                          existing == null
-                              ? 'Expense added!'
-                              : 'Expense updated!');
-                    }
-                  },
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (descCtrl.text.trim().isEmpty) {
+                            CenterToast.showError(
+                                context, 'Description required.');
+                            return;
+                          }
+                          final amount = double.tryParse(amountCtrl.text);
+                          if (amount == null || amount <= 0) {
+                            CenterToast.showError(
+                                context, 'Enter a valid amount.');
+                            return;
+                          }
+                          setS(() => isSaving = true);
+                          if (existing == null) {
+                            await prov.addExpense(
+                              descCtrl.text.trim(),
+                              category,
+                              amount,
+                              notes: notesCtrl.text.isEmpty
+                                  ? null
+                                  : notesCtrl.text,
+                              date: expenseDate,
+                            );
+                          } else {
+                            await prov.updateExpense(
+                              existing.copyWith(
+                                description: descCtrl.text.trim(),
+                                category: category,
+                                amount: amount,
+                                date: expenseDate,
+                                notes: notesCtrl.text.isEmpty
+                                    ? null
+                                    : notesCtrl.text,
+                              ),
+                            );
+                          }
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                            CenterToast.showSuccess(
+                                context,
+                                existing == null
+                                    ? 'Expense added!'
+                                    : 'Expense updated!');
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _blue,
                     foregroundColor: Colors.white,
@@ -392,11 +402,18 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: Text(
-                    existing == null ? 'Save Expense' : 'Update Expense',
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(
+                          existing == null ? 'Save Expense' : 'Update Expense',
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),

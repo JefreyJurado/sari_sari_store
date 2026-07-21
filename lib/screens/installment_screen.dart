@@ -26,6 +26,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
   late TabController _tabCtrl;
   List<Installment> _installments = [];
   bool _loading = true;
+  bool _payInFlight = false;
 
   @override
   void initState() {
@@ -1179,31 +1180,37 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                   style: TextStyle(color: Colors.grey[600], fontSize: 13))),
           TextButton(
             onPressed: () async {
-              final payAmount = _nextPaymentAmount(inst);
-              final newPaid =
-                  CurrencyFormatter.roundCents(inst.totalPaid + payAmount);
-              final newMonths = inst.paidMonths + 1;
-              final isComplete = newMonths >= inst.totalMonths;
-              final updated = inst.copyWith(
-                paidMonths: newMonths,
-                totalPaid: newPaid,
-                status: isComplete
-                    ? InstallmentStatus.completed
-                    : InstallmentStatus.ongoing,
-                nextDueDate: isComplete
-                    ? inst.nextDueDate
-                    : DateTime.now().add(const Duration(days: 30)),
-              );
-              await InstallmentService.instance.save(updated);
-              await _load();
-              if (mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(isComplete
-                      ? 'Installment fully paid!'
-                      : 'Payment accepted!'),
-                  backgroundColor: isComplete ? Colors.green : _blue,
-                ));
+              if (_payInFlight) return;
+              _payInFlight = true;
+              try {
+                final payAmount = _nextPaymentAmount(inst);
+                final newPaid =
+                    CurrencyFormatter.roundCents(inst.totalPaid + payAmount);
+                final newMonths = inst.paidMonths + 1;
+                final isComplete = newMonths >= inst.totalMonths;
+                final updated = inst.copyWith(
+                  paidMonths: newMonths,
+                  totalPaid: newPaid,
+                  status: isComplete
+                      ? InstallmentStatus.completed
+                      : InstallmentStatus.ongoing,
+                  nextDueDate: isComplete
+                      ? inst.nextDueDate
+                      : DateTime.now().add(const Duration(days: 30)),
+                );
+                await InstallmentService.instance.save(updated);
+                await _load();
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(isComplete
+                        ? 'Installment fully paid!'
+                        : 'Payment accepted!'),
+                    backgroundColor: isComplete ? Colors.green : _blue,
+                  ));
+                }
+              } finally {
+                _payInFlight = false;
               }
             },
             child: Text(

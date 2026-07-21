@@ -1,8 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 import '../services/biometric_service.dart';
+
+// Lockout only applies to the actual unlock screen (isSetup == false) —
+// PIN setup/change is reached from inside Settings, which already required
+// authentication, so there's nothing to brute-force there. Persisted in
+// SharedPreferences so force-closing the app can't be used to reset it.
+const _maxAttemptsBeforeLockout = 5;
+const _lockoutDuration = Duration(seconds: 30);
 
 class PinScreen extends StatefulWidget {
   final bool isSetup;
@@ -21,6 +29,9 @@ class _PinScreenState extends State<PinScreen>
   late AnimationController _shakeCtrl;
   late Animation<double> _shakeAnim;
   bool _biometricEnabled = false;
+  DateTime? _lockedUntil;
+  int _lockoutSecondsLeft = 0;
+  Timer? _lockoutTimer;
 
   @override
   void initState() {
@@ -32,8 +43,42 @@ class _PinScreenState extends State<PinScreen>
     _shakeAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _shakeCtrl, curve: Curves.elasticIn),
     );
-    // Only the lock screen (not PIN setup/change) offers biometric unlock.
-    if (!widget.isSetup) _initBiometric();
+    // Only the lock screen (not PIN setup/change) offers biometric unlock
+    // or is subject to a lockout.
+    if (!widget.isSetup) {
+      _initBiometric();
+      _restoreLockout();
+    }
+  }
+
+  Future<void> _restoreLockout() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lockedUntilMs = prefs.getInt('pin_locked_until_ms');
+    if (lockedUntilMs == null) return;
+    final lockedUntil = DateTime.fromMillisecondsSinceEpoch(lockedUntilMs);
+    if (lockedUntil.isAfter(DateTime.now())) {
+      if (mounted) _startLockout(lockedUntil);
+    } else {
+      await prefs.remove('pin_locked_until_ms');
+      await prefs.remove('pin_failed_attempts');
+    }
+  }
+
+  void _startLockout(DateTime until) {
+    _lockoutTimer?.cancel();
+    setState(() {
+      _lockedUntil = until;
+      _lockoutSecondsLeft = until.difference(DateTime.now()).inSeconds + 1;
+    });
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final left = _lockedUntil!.difference(DateTime.now()).inSeconds + 1;
+      if (left <= 0) {
+        _lockoutTimer?.cancel();
+        if (mounted) setState(() => _lockedUntil = null);
+      } else if (mounted) {
+        setState(() => _lockoutSecondsLeft = left);
+      }
+    });
   }
 
   Future<void> _initBiometric() async {
@@ -68,8 +113,8 @@ class _PinScreenState extends State<PinScreen>
       return;
     }
 
-    final verified = await BiometricService.instance.authenticateForReset(
-        "Verify it's you to reset your StorePH PIN");
+    final verified = await BiometricService.instance
+        .authenticateForReset("Verify it's you to reset your StorePH PIN");
     if (!verified || !mounted) return;
 
     // Setup screen pops with `true` on success (see _verifySetup) — that
@@ -90,7 +135,9 @@ class _PinScreenState extends State<PinScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text('No Screen Lock Found',
             style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         content: const Text(
           "StorePH resets your PIN by verifying your phone's own screen lock "
           "(fingerprint, face, PIN, or pattern) — but this phone doesn't have "
@@ -114,22 +161,23 @@ class _PinScreenState extends State<PinScreen>
   @override
   void dispose() {
     _shakeCtrl.dispose();
+    _lockoutTimer?.cancel();
     super.dispose();
   }
 
   void _onKey(String key) {
+    if (_lockedUntil != null) return;
     setState(() => _hasError = false);
 
     if (key == 'del') {
       if (widget.isSetup && _isConfirming) {
         if (_confirmPin.isNotEmpty) {
-          setState(() => _confirmPin =
-              _confirmPin.substring(0, _confirmPin.length - 1));
+          setState(() =>
+              _confirmPin = _confirmPin.substring(0, _confirmPin.length - 1));
         }
       } else {
         if (_pin.isNotEmpty) {
-          setState(() =>
-              _pin = _pin.substring(0, _pin.length - 1));
+          setState(() => _pin = _pin.substring(0, _pin.length - 1));
         }
       }
       return;
@@ -188,14 +236,31 @@ class _PinScreenState extends State<PinScreen>
     final savedPin = prefs.getString('app_pin') ?? '';
     if (!mounted) return;
     if (_pin == savedPin) {
-      Navigator.pushReplacementNamed(context, '/home');
+      await prefs.remove('pin_failed_attempts');
+      await prefs.remove('pin_locked_until_ms');
+      if (mounted) Navigator.pushReplacementNamed(context, '/home');
     } else {
+      final attempts = (prefs.getInt('pin_failed_attempts') ?? 0) + 1;
+      await prefs.setInt('pin_failed_attempts', attempts);
       _shakeCtrl.forward(from: 0);
-      setState(() {
-        _hasError = true;
-        _errorMsg = 'Incorrect PIN. Try again.';
-        _pin = '';
-      });
+      if (attempts >= _maxAttemptsBeforeLockout) {
+        final until = DateTime.now().add(_lockoutDuration);
+        await prefs.setInt('pin_locked_until_ms', until.millisecondsSinceEpoch);
+        await prefs.setInt('pin_failed_attempts', 0);
+        if (!mounted) return;
+        setState(() {
+          _hasError = true;
+          _errorMsg = 'Too many attempts.';
+          _pin = '';
+        });
+        _startLockout(until);
+      } else {
+        setState(() {
+          _hasError = true;
+          _errorMsg = 'Incorrect PIN. Try again.';
+          _pin = '';
+        });
+      }
     }
   }
 
@@ -230,7 +295,8 @@ class _PinScreenState extends State<PinScreen>
                 onPressed: () => Navigator.pop(context),
               ),
               title: const Text('Setup PIN',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w700)),
             )
           : null,
       body: Container(
@@ -242,158 +308,158 @@ class _PinScreenState extends State<PinScreen>
           ),
         ),
         child: SafeArea(
-        child: Column(children: [
-          const Spacer(),
+          child: Column(children: [
+            const Spacer(),
 
-          // Logo
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.asset(
-                'assets/icon.png',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
-                    Icons.store,
-                    color: Colors.white,
-                    size: 40),
+            // Logo
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset(
+                  'assets/icon.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.store, color: Colors.white, size: 40),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-          // Title
-          Text(
-            _title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              _subtitle,
+            // Title
+            Text(
+              _title,
               style: const TextStyle(
-                  color: Colors.white70, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 40),
-
-          // PIN dots with shake animation
-          AnimatedBuilder(
-            animation: _shakeAnim,
-            builder: (_, child) => Transform.translate(
-              offset: Offset(
-                _shakeAnim.value *
-                    10 *
-                    (1 - _shakeCtrl.value) *
-                    ((_shakeCtrl.value * 10).toInt().isEven
-                        ? 1
-                        : -1),
-                0,
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
-              child: child,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (i) {
-                final filled = i < _currentPin.length;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 10),
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _hasError
-                        ? Colors.red
-                        : filled
-                            ? Colors.white
-                            : Colors.transparent,
-                    border: Border.all(
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                _subtitle,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 40),
+
+            // PIN dots with shake animation
+            AnimatedBuilder(
+              animation: _shakeAnim,
+              builder: (_, child) => Transform.translate(
+                offset: Offset(
+                  _shakeAnim.value *
+                      10 *
+                      (1 - _shakeCtrl.value) *
+                      ((_shakeCtrl.value * 10).toInt().isEven ? 1 : -1),
+                  0,
+                ),
+                child: child,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(4, (i) {
+                  final filled = i < _currentPin.length;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
                       color: _hasError
                           ? Colors.red
-                          : Colors.white54,
-                      width: 2,
+                          : filled
+                              ? Colors.white
+                              : Colors.transparent,
+                      border: Border.all(
+                        color: _hasError ? Colors.red : Colors.white54,
+                        width: 2,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+
+            // Error message / lockout countdown
+            const SizedBox(height: 16),
+            _lockedUntil != null
+                ? Text(
+                    'Too many attempts. Try again in ${_lockoutSecondsLeft}s.',
+                    style:
+                        const TextStyle(color: Colors.redAccent, fontSize: 14),
+                  )
+                : AnimatedOpacity(
+                    opacity: _hasError ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Text(
+                      _errorMsg,
+                      style: const TextStyle(
+                          color: Colors.redAccent, fontSize: 14),
                     ),
                   ),
-                );
-              }),
-            ),
-          ),
 
-          // Error message
-          const SizedBox(height: 16),
-          AnimatedOpacity(
-            opacity: _hasError ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            child: Text(
-              _errorMsg,
-              style: const TextStyle(
-                  color: Colors.redAccent, fontSize: 14),
-            ),
-          ),
+            if (!widget.isSetup) ...[
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: _forgotPin,
+                child: const Text('Forgot PIN?',
+                    style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ],
 
-          if (!widget.isSetup) ...[
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: _forgotPin,
-              child: const Text('Forgot PIN?',
-                  style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600)),
-            ),
-          ],
+            const Spacer(),
 
-          const Spacer(),
-
-          // Keypad
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 48),
-            child: Column(children: [
-              for (final row in [
-                ['1', '2', '3'],
-                ['4', '5', '6'],
-                ['7', '8', '9'],
-                ['', '0', 'del'],
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceEvenly,
-                    children: row.map((k) {
-                      if (k.isEmpty) {
-                        if (!widget.isSetup && _biometricEnabled) {
+            // Keypad
+            AnimatedOpacity(
+              opacity: _lockedUntil != null ? 0.35 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 48),
+                child: Column(children: [
+                  for (final row in [
+                    ['1', '2', '3'],
+                    ['4', '5', '6'],
+                    ['7', '8', '9'],
+                    ['', '0', 'del'],
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: row.map((k) {
+                          if (k.isEmpty) {
+                            if (!widget.isSetup && _biometricEnabled) {
+                              return _KeyButton(
+                                  label: 'bio', onTap: _tryBiometric);
+                            }
+                            return const SizedBox(width: 72);
+                          }
                           return _KeyButton(
-                              label: 'bio', onTap: _tryBiometric);
-                        }
-                        return const SizedBox(width: 72);
-                      }
-                      return _KeyButton(
-                        label: k,
-                        onTap: () => _onKey(k),
-                      );
-                    }).toList(),
-                  ),
-                ),
-            ]),
-          ),
+                            label: k,
+                            onTap: () => _onKey(k),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                ]),
+              ),
+            ),
 
-          const SizedBox(height: 32),
-        ]),
+            const SizedBox(height: 32),
+          ]),
         ),
       ),
     );
@@ -417,17 +483,15 @@ class _KeyButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.12),
-          border: Border.all(
-              color: Colors.white.withValues(alpha: 0.2),
-              width: 1),
+          border:
+              Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
         ),
         child: Center(
           child: isDel
               ? const Icon(Icons.backspace_outlined,
                   color: Colors.white, size: 24)
               : isBio
-                  ? const Icon(Icons.fingerprint,
-                      color: Colors.white, size: 28)
+                  ? const Icon(Icons.fingerprint, color: Colors.white, size: 28)
                   : Text(
                       label,
                       style: const TextStyle(

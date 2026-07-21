@@ -32,7 +32,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
   /// full form at once, becoming an unwieldy wall of fields for stores
   /// with several setup costs) with the same tap-to-edit-one pattern the
   /// Products list already uses.
-  void _showItemDialog(AppProvider prov, {SetupCostItem? existing, int? index}) {
+  void _showItemDialog(AppProvider prov,
+      {SetupCostItem? existing, int? index}) {
     final labelCtrl = TextEditingController(text: existing?.label ?? '');
     final amtCtrl = TextEditingController(
         text: existing != null ? existing.amount.toStringAsFixed(2) : '');
@@ -40,6 +41,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
     String category = existing?.category ?? 'Equipment';
     String paymentMethod = existing?.paymentMethod ?? 'Cash';
     DateTime date = existing?.date ?? DateTime.now();
+    bool isSaving = false;
 
     showModalBottomSheet(
       context: context,
@@ -90,7 +92,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: amtCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: 'Amount',
                   prefixText: '₱ ',
@@ -127,11 +130,12 @@ class _CapitalScreenState extends State<CapitalScreen> {
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Category',
-                      labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      labelStyle:
+                          TextStyle(color: Colors.grey[600], fontSize: 13),
                       filled: true,
                       fillColor: Colors.grey.shade50,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(color: Colors.grey.shade300)),
@@ -146,7 +150,9 @@ class _CapitalScreenState extends State<CapitalScreen> {
                         isExpanded: true,
                         items: SetupCostItem.categories
                             .map((c) => DropdownMenuItem(
-                                value: c, child: Text(c, style: const TextStyle(fontSize: 13))))
+                                value: c,
+                                child: Text(c,
+                                    style: const TextStyle(fontSize: 13))))
                             .toList(),
                         onChanged: (v) {
                           if (v != null) setS(() => category = v);
@@ -160,11 +166,12 @@ class _CapitalScreenState extends State<CapitalScreen> {
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Payment',
-                      labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      labelStyle:
+                          TextStyle(color: Colors.grey[600], fontSize: 13),
                       filled: true,
                       fillColor: Colors.grey.shade50,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(color: Colors.grey.shade300)),
@@ -179,7 +186,9 @@ class _CapitalScreenState extends State<CapitalScreen> {
                         isExpanded: true,
                         items: SetupCostItem.paymentMethods
                             .map((p) => DropdownMenuItem(
-                                value: p, child: Text(p, style: const TextStyle(fontSize: 13))))
+                                value: p,
+                                child: Text(p,
+                                    style: const TextStyle(fontSize: 13))))
                             .toList(),
                         onChanged: (v) {
                           if (v != null) setS(() => paymentMethod = v);
@@ -202,18 +211,22 @@ class _CapitalScreenState extends State<CapitalScreen> {
                 },
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey.shade300),
                   ),
                   child: Row(children: [
-                    Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey[600]),
+                    Icon(Icons.calendar_today_outlined,
+                        size: 16, color: Colors.grey[600]),
                     const SizedBox(width: 10),
                     Text('${date.month}/${date.day}/${date.year}',
                         style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black87)),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87)),
                   ]),
                 ),
               ),
@@ -222,7 +235,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
                 if (existing != null) ...[
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => _confirmAndDelete(prov, index!, sheetCtx),
+                      onPressed: () =>
+                          _confirmAndDelete(prov, index!, sheetCtx),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
                         side: BorderSide(color: Colors.red.shade200),
@@ -231,35 +245,56 @@ class _CapitalScreenState extends State<CapitalScreen> {
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       child: const Text('Delete',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600)),
                     ),
                   ),
                   const SizedBox(width: 12),
                 ],
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _saveItem(
-                      prov,
-                      existing: existing,
-                      index: index,
-                      label: labelCtrl.text.trim(),
-                      amountText: amtCtrl.text,
-                      vendor: vendorCtrl.text.trim(),
-                      category: category,
-                      paymentMethod: paymentMethod,
-                      date: date,
-                      sheetCtx: sheetCtx,
-                    ),
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            setS(() => isSaving = true);
+                            final saved = await _saveItem(
+                              prov,
+                              existing: existing,
+                              index: index,
+                              label: labelCtrl.text.trim(),
+                              amountText: amtCtrl.text,
+                              vendor: vendorCtrl.text.trim(),
+                              category: category,
+                              paymentMethod: paymentMethod,
+                              date: date,
+                              sheetCtx: sheetCtx,
+                            );
+                            // Only reset when _saveItem returned early
+                            // (validation failed) without popping the sheet
+                            // — resetting after a real pop would touch the
+                            // sheet's own controllers as they're disposed.
+                            if (!saved && sheetCtx.mounted) {
+                              setS(() => isSaving = false);
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _blue,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape:
-                          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text('Save',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    child: isSaving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Save',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ]),
@@ -275,7 +310,12 @@ class _CapitalScreenState extends State<CapitalScreen> {
     });
   }
 
-  Future<void> _saveItem(
+  // Returns whether the item actually saved (and the sheet was popped), so
+  // the caller only resets its "isSaving" spinner flag on the validation-
+  // failure path — calling setS() again after a successful pop races the
+  // sheet's own exit transition and can touch controllers whenComplete()
+  // is about to dispose.
+  Future<bool> _saveItem(
     AppProvider prov, {
     SetupCostItem? existing,
     int? index,
@@ -289,12 +329,12 @@ class _CapitalScreenState extends State<CapitalScreen> {
   }) async {
     if (label.isEmpty) {
       CenterToast.showError(context, 'Description is required.');
-      return;
+      return false;
     }
     final amount = double.tryParse(amountText);
     if (amount == null || amount <= 0) {
       CenterToast.showError(context, 'Enter a valid amount.');
-      return;
+      return false;
     }
 
     final newItem = SetupCostItem(
@@ -319,6 +359,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
       CenterToast.showSuccess(
           context, existing == null ? 'Item added!' : 'Item updated!');
     }
+    return true;
   }
 
   Future<void> _confirmAndDelete(
@@ -329,18 +370,25 @@ class _CapitalScreenState extends State<CapitalScreen> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text('Delete this item?',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         content: const Text('This cannot be undone.',
             style: TextStyle(fontSize: 13, color: Colors.black87)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            child: Text('Cancel',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600, fontSize: 13)),
+                style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13)),
           ),
         ],
       ),
@@ -393,7 +441,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
         builder: (context, prov, _) {
           final roi = prov.roiPercent;
           final isProfit = roi >= 0;
-          final roiColor = isProfit ? Colors.green.shade600 : Colors.red.shade600;
+          final roiColor =
+              isProfit ? Colors.green.shade600 : Colors.red.shade600;
           final setupItems = prov.capital?.setupItems ?? [];
 
           return SingleChildScrollView(
@@ -401,20 +450,26 @@ class _CapitalScreenState extends State<CapitalScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 // ── ROI Badge ──
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isProfit ? Colors.green.shade50 : Colors.red.shade50,
+                      color:
+                          isProfit ? Colors.green.shade50 : Colors.red.shade50,
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(
-                          color: isProfit ? Colors.green.shade200 : Colors.red.shade200),
+                          color: isProfit
+                              ? Colors.green.shade200
+                              : Colors.red.shade200),
                     ),
                     child: Text(
                       '${isProfit ? '+' : ''}${roi.toStringAsFixed(2)}% ROI',
-                      style: TextStyle(color: roiColor, fontSize: 16, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                          color: roiColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800),
                     ),
                   ),
                 ),
@@ -434,12 +489,15 @@ class _CapitalScreenState extends State<CapitalScreen> {
                     Row(children: [
                       const Text('Setup Cost Items',
                           style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87)),
                       const Spacer(),
                       TextButton.icon(
                         onPressed: () => _showItemDialog(prov),
                         icon: const Icon(Icons.add, size: 16, color: _blue),
-                        label: const Text('Add Item', style: TextStyle(fontSize: 12, color: _blue)),
+                        label: const Text('Add Item',
+                            style: TextStyle(fontSize: 12, color: _blue)),
                         style: TextButton.styleFrom(
                             padding: EdgeInsets.zero, minimumSize: Size.zero),
                       ),
@@ -455,11 +513,14 @@ class _CapitalScreenState extends State<CapitalScreen> {
                           border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: Row(children: [
-                          Icon(Icons.info_outline, size: 14, color: Colors.grey[400]),
+                          Icon(Icons.info_outline,
+                              size: 14, color: Colors.grey[400]),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text('Tap "Add Item" to add setup cost details',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                            child: Text(
+                                'Tap "Add Item" to add setup cost details',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey[500])),
                           ),
                         ]),
                       )
@@ -530,8 +591,10 @@ class _CapitalScreenState extends State<CapitalScreen> {
                     border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: Column(children: [
-                    _perfRow('Total Sales Profit',
-                        CurrencyFormatter.format(prov.totalSalesProfit), Colors.green.shade600),
+                    _perfRow(
+                        'Total Sales Profit',
+                        CurrencyFormatter.format(prov.totalSalesProfit),
+                        Colors.green.shade600),
                     const SizedBox(height: 10),
                     _perfRow(
                         'Total Expenses',
@@ -541,11 +604,13 @@ class _CapitalScreenState extends State<CapitalScreen> {
                         // that doesn't exist.
                         prov.totalExpensesAmount > 0
                             ? '- ${CurrencyFormatter.format(prov.totalExpensesAmount)}'
-                            : CurrencyFormatter.format(prov.totalExpensesAmount),
+                            : CurrencyFormatter.format(
+                                prov.totalExpensesAmount),
                         Colors.red.shade600),
                     Divider(height: 20, color: Colors.grey.shade200),
                     _perfRow('Current Capital',
-                        CurrencyFormatter.format(prov.currentCapital), _blue, bold: true),
+                        CurrencyFormatter.format(prov.currentCapital), _blue,
+                        bold: true),
                     const SizedBox(height: 8),
                     _perfRow(
                         isProfit ? 'Net Gain' : 'Net Loss',
@@ -575,12 +640,14 @@ class _CapitalScreenState extends State<CapitalScreen> {
                         border: Border.all(color: Colors.grey.shade200),
                       ),
                       child: Row(children: [
-                        Icon(Icons.info_outline, size: 13, color: Colors.grey[400]),
+                        Icon(Icons.info_outline,
+                            size: 13, color: Colors.grey[400]),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Break-Even Sales = Total Fixed Expenses ÷ Profit Margin',
-                            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.grey[500]),
                           ),
                         ),
                       ]),
@@ -621,7 +688,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
                       Expanded(
                         child: Text(
                           _breakEvenMessage(prov),
-                          style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                          style:
+                              TextStyle(fontSize: 10, color: Colors.grey[400]),
                         ),
                       ),
                     ]),
@@ -651,25 +719,33 @@ class _CapitalScreenState extends State<CapitalScreen> {
           onTap: () => _showItemDialog(prov, existing: item, index: index),
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Expanded(
                   child: Text(item.label,
                       style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87)),
                 ),
                 Text(CurrencyFormatter.format(item.amount),
                     style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w700, color: Colors.black87)),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87)),
                 PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert_outlined, size: 16, color: Colors.grey[400]),
+                  icon: Icon(Icons.more_vert_outlined,
+                      size: 16, color: Colors.grey[400]),
                   padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                   itemBuilder: (_) => [
                     const PopupMenuItem(
                       value: 'edit',
                       child: Row(children: [
-                        Icon(Icons.edit_outlined, size: 16, color: Colors.black54),
+                        Icon(Icons.edit_outlined,
+                            size: 16, color: Colors.black54),
                         SizedBox(width: 8),
                         Text('Edit', style: TextStyle(fontSize: 13)),
                       ]),
@@ -679,7 +755,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
                       child: Row(children: [
                         Icon(Icons.delete_outline, size: 16, color: Colors.red),
                         SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: Colors.red, fontSize: 13)),
+                        Text('Delete',
+                            style: TextStyle(color: Colors.red, fontSize: 13)),
                       ]),
                     ),
                   ],
@@ -695,27 +772,36 @@ class _CapitalScreenState extends State<CapitalScreen> {
               const SizedBox(height: 4),
               Row(children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: _blue.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(item.category.isEmpty ? 'Uncategorized' : item.category,
-                      style: TextStyle(fontSize: 10, color: _blue.withValues(alpha: 0.8))),
+                  child: Text(
+                      item.category.isEmpty ? 'Uncategorized' : item.category,
+                      style: TextStyle(
+                          fontSize: 10, color: _blue.withValues(alpha: 0.8))),
                 ),
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.green.shade50,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(item.paymentMethod.isEmpty ? 'No Payment Method' : item.paymentMethod,
-                      style: TextStyle(fontSize: 10, color: Colors.green.shade700)),
+                  child: Text(
+                      item.paymentMethod.isEmpty
+                          ? 'No Payment Method'
+                          : item.paymentMethod,
+                      style: TextStyle(
+                          fontSize: 10, color: Colors.green.shade700)),
                 ),
                 const Spacer(),
                 if (item.vendor != null)
-                  Text(item.vendor!, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                  Text(item.vendor!,
+                      style: TextStyle(fontSize: 10, color: Colors.grey[500])),
               ]),
               const SizedBox(height: 2),
               Text(
@@ -737,18 +823,25 @@ class _CapitalScreenState extends State<CapitalScreen> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text('Delete this item?',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         content: const Text('This cannot be undone.',
             style: TextStyle(fontSize: 13, color: Colors.black87)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            child: Text('Cancel',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600, fontSize: 13)),
+                style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13)),
           ),
         ],
       ),
@@ -775,15 +868,18 @@ class _CapitalScreenState extends State<CapitalScreen> {
   }
 
   Widget _sectionHeader(String title) => Text(title,
-      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87));
+      style: const TextStyle(
+          fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87));
 
   Widget _detailRow(String label, String value, IconData icon, Color color,
           {bool bold = false}) =>
       Row(children: [
         Container(
-          width: 36, height: 36,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, size: 18, color: color),
         ),
         const SizedBox(width: 12),
@@ -800,7 +896,9 @@ class _CapitalScreenState extends State<CapitalScreen> {
                 color: bold ? color : Colors.black87)),
       ]);
 
-  Widget _perfRow(String label, String value, Color color, {bool bold = false}) => Row(children: [
+  Widget _perfRow(String label, String value, Color color,
+          {bool bold = false}) =>
+      Row(children: [
         Expanded(
             child: Text(label,
                 style: TextStyle(
