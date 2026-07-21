@@ -1035,6 +1035,12 @@ class _CicoScreenState extends State<CicoScreen> {
           // account pays it out. Same picker, but the label now says which.
           final fundedViaLabel =
               type == CicoType.cashIn ? 'Received Into' : 'Paid From';
+          final fundedViaHint = type == CicoType.cashIn
+              ? "Cash or bank where you received the customer's payment."
+              : 'Cash or bank you paid the customer from.';
+          final walletSideHint = type == CicoType.cashIn
+              ? 'Which of your e-wallets you sent the e-money from.'
+              : "Which of your e-wallets received the customer's e-money.";
 
           Widget namedChip(
               String label, bool selected, Color color, VoidCallback onTap) {
@@ -1117,6 +1123,22 @@ class _CicoScreenState extends State<CicoScreen> {
                         fontSize: 12,
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w600)),
+              );
+
+          Widget hintRow(String text) => Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, size: 13, color: Colors.grey[400]),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(text,
+                          style: TextStyle(
+                              fontSize: 10.5, color: Colors.grey[500])),
+                    ),
+                  ],
+                ),
               );
 
           Widget fundedViaPicker() => Wrap(
@@ -1232,12 +1254,12 @@ class _CicoScreenState extends State<CicoScreen> {
                 ],
               );
 
+          final media = MediaQuery.of(ctx);
+          final availableHeight = media.size.height - media.viewInsets.bottom;
           return Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom),
+            padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.88),
+              constraints: BoxConstraints(maxHeight: availableHeight * 0.88),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Flexible(
                   child: SingleChildScrollView(
@@ -1307,10 +1329,12 @@ class _CicoScreenState extends State<CicoScreen> {
 
                         if (isInOut) ...[
                           sectionLabel(fundedViaLabel),
+                          hintRow(fundedViaHint),
                           const SizedBox(height: 8),
                           fundedViaPicker(),
                           const SizedBox(height: 16),
                           sectionLabel('E-Wallet'),
+                          hintRow(walletSideHint),
                           const SizedBox(height: 8),
                           walletPicker(),
                         ] else ...[
