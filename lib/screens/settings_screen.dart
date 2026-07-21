@@ -50,8 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _pinEnabled = prefs.getBool('pin_enabled') ?? false;
       _biometricAvailable = biometricAvailable;
       _biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
-      _appVersion =
-          '${packageInfo.version} (${packageInfo.buildNumber})';
+      _appVersion = '${packageInfo.version} (${packageInfo.buildNumber})';
       final openMin = prefs.getInt('store_open_minutes') ?? 6 * 60;
       final closeMin = prefs.getInt('store_close_minutes') ?? 21 * 60;
       _openTime = TimeOfDay(hour: openMin ~/ 60, minute: openMin % 60);
@@ -94,8 +93,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: BoxDecoration(
             color: isOpen ? _blue : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-                color: isOpen ? _blue : Colors.grey.shade300),
+            border: Border.all(color: isOpen ? _blue : Colors.grey.shade300),
           ),
           child: Text(label,
               style: TextStyle(
@@ -115,8 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'store_open_minutes', _openTime.hour * 60 + _openTime.minute);
     await prefs.setInt(
         'store_close_minutes', _closeTime.hour * 60 + _closeTime.minute);
-    await prefs.setString(
-        'store_closed_weekdays', _closedWeekdays.join(','));
+    await prefs.setString('store_closed_weekdays', _closedWeekdays.join(','));
 
     if (!mounted) return;
     final prov = context.read<AppProvider>();
@@ -172,8 +169,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         borderRadius: BorderRadius.circular(10)),
                   ),
                   child: const Text('Done',
-                      style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600)),
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -225,6 +222,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('pin_enabled', false);
         await prefs.remove('app_pin');
+        await prefs.remove('app_pin_hash');
+        await prefs.remove('app_pin_salt');
         // Biometric unlock is only meaningful as a shortcut on top of a
         // PIN — removing the PIN removes the thing it was a shortcut for,
         // so leaving it "on" would dangle with nothing backing it.
@@ -494,6 +493,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final storeName = prefs.getString('store_name');
     final pinEnabled = prefs.getBool('pin_enabled');
     final appPin = prefs.getString('app_pin');
+    final appPinHash = prefs.getString('app_pin_hash');
+    final appPinSalt = prefs.getString('app_pin_salt');
     final notifications = prefs.getBool('notifications');
     final userName = prefs.getString('user_name');
     final biometricEnabled = prefs.getBool('biometric_enabled');
@@ -510,6 +511,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     if (appPin != null) {
       await prefs.setString('app_pin', appPin);
+    }
+    if (appPinHash != null) {
+      await prefs.setString('app_pin_hash', appPinHash);
+    }
+    if (appPinSalt != null) {
+      await prefs.setString('app_pin_salt', appPinSalt);
     }
     if (notifications != null) {
       await prefs.setBool('notifications', notifications);
@@ -899,7 +906,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               );
                               if (!mounted) return;
                               if (result == true) {
-                                CenterToast.showSuccess(context, 'PIN updated!');
+                                CenterToast.showSuccess(
+                                    context, 'PIN updated!');
                               }
                             },
                           ),
@@ -935,8 +943,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     color: Colors.grey[500], fontSize: 11),
                               ),
                               secondary: Icon(Icons.fingerprint,
-                                  color:
-                                      _biometricEnabled ? _blue : Colors.grey[400],
+                                  color: _biometricEnabled
+                                      ? _blue
+                                      : Colors.grey[400],
                                   size: 20),
                               value: _biometricEnabled,
                               activeThumbColor: _blue,

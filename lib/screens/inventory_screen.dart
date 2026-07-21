@@ -33,7 +33,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Clear Default Products',
+        title: const Text('Clear All Products',
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -75,7 +75,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 await prov.archiveProduct(product.id);
               }
               if (context.mounted) {
-                CenterToast.showSuccess(context, 'All products cleared successfully.');
+                CenterToast.showSuccess(
+                    context, 'All products cleared successfully.');
               }
             },
             child: const Text('Clear All',
@@ -616,341 +617,376 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: availableHeight * 0.88),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Flexible(
-        child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2)),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    Text(
+                        widget.existing == null
+                            ? 'Add Product'
+                            : 'Edit Product',
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87)),
+                    const SizedBox(height: 16),
+                    _field(
+                        widget.nameCtrl, 'Product name *', Icons.label_outline),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _category,
+                      decoration: InputDecoration(
+                        labelText: 'Category',
+                        labelStyle:
+                            TextStyle(color: Colors.grey[600], fontSize: 13),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(color: Colors.grey.shade300)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(color: Colors.grey.shade300)),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      items: FilipinoCategories.productCategories
+                          .map((c) => DropdownMenuItem(
+                              value: c,
+                              child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(FilipinoCategories.getIcon(c),
+                                        size: 16, color: _blue),
+                                    const SizedBox(width: 8),
+                                    Text(c,
+                                        style: const TextStyle(fontSize: 13)),
+                                  ])))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _category = v);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      Expanded(
+                          child: _field(widget.buyCtrl, 'Cost price',
+                              Icons.arrow_downward_outlined,
+                              keyboardType: TextInputType.number,
+                              prefix: '₱ ')),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: _field(widget.sellCtrl, 'Sell price',
+                              Icons.arrow_upward_outlined,
+                              keyboardType: TextInputType.number,
+                              prefix: '₱ ')),
+                    ]),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _blue.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(10),
+                        border:
+                            Border.all(color: _blue.withValues(alpha: 0.12)),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.trending_up_outlined,
+                            size: 16, color: _blue),
+                        const SizedBox(width: 8),
+                        const Text('Markup:',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500)),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => setState(() {
+                            _markupType = _markupType == '%' ? '₱' : '%';
+                            _applyMarkup();
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                                color: _blue,
+                                borderRadius: BorderRadius.circular(6)),
+                            child: Text(_markupType,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _markupCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            decoration: InputDecoration(
+                              hintText:
+                                  _markupType == '%' ? 'e.g. 15' : 'e.g. 2.00',
+                              hintStyle: TextStyle(
+                                  color: Colors.grey[400], fontSize: 12),
+                              suffixText: _markupType,
+                              suffixStyle: TextStyle(
+                                  color: Colors.grey[500], fontSize: 12),
+                              filled: true,
+                              fillColor: Colors.grey.shade50,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 8),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide:
+                                      BorderSide(color: Colors.grey.shade300)),
+                              enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide:
+                                      BorderSide(color: Colors.grey.shade300)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text('→ auto sell price',
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.grey[500])),
+                      ]),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(children: [
+                      Expanded(
+                          child: _field(widget.stockCtrl, 'Stock qty',
+                              Icons.inventory_2_outlined,
+                              keyboardType: TextInputType.number)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: _field(widget.unitCtrl, 'Unit (pcs, kg...)',
+                              Icons.straighten_outlined)),
+                    ]),
+                    const SizedBox(height: 12),
+                    _field(_reorderCtrl, 'Reorder Point (alert when stock ≤)',
+                        Icons.notification_important_outlined,
+                        keyboardType: TextInputType.number),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () async {
+                        final now = DateTime.now();
+                        final initial =
+                            _expiryDate ?? now.add(const Duration(days: 30));
+                        // An existing product can already be past its expiry date
+                        // (that's exactly when the "EXPIRED" badge shows), so the
+                        // picker's firstDate must not be pinned to `now` — otherwise
+                        // opening the picker on an already-expired product crashes
+                        // because initialDate would fall before firstDate.
+                        final first = initial.isBefore(now) ? initial : now;
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: initial,
+                          firstDate: first,
+                          lastDate: now.add(const Duration(days: 3650)),
+                        );
+                        if (picked != null)
+                          setState(() => _expiryDate = picked);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.calendar_month_outlined,
+                              size: 18, color: Colors.grey[500]),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _expiryDate != null
+                                  ? 'Expiry: ${_expiryDate!.month}/${_expiryDate!.day}/${_expiryDate!.year}'
+                                  : 'Expiry Date (optional)',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: _expiryDate != null
+                                      ? Colors.black87
+                                      : Colors.grey[400]),
+                            ),
+                          ),
+                          if (_expiryDate != null)
+                            GestureDetector(
+                              onTap: () => setState(() => _expiryDate = null),
+                              child: Icon(Icons.close,
+                                  size: 16, color: Colors.grey[400]),
+                            ),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () async {
+                        final now = DateTime.now();
+                        final minDate =
+                            now.subtract(const Duration(days: 3650));
+                        // Guard against a createdAt older than 10 years (e.g. data
+                        // migrated from elsewhere) falling before firstDate, which
+                        // would crash the picker the same way an out-of-range expiry
+                        // date does above.
+                        final first =
+                            _dateAdded.isBefore(minDate) ? _dateAdded : minDate;
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _dateAdded,
+                          firstDate: first,
+                          lastDate: now,
+                        );
+                        if (picked != null) setState(() => _dateAdded = picked);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.event_outlined,
+                              size: 18, color: Colors.grey[500]),
+                          const SizedBox(width: 12),
+                          Text('Date Added: ',
+                              style: TextStyle(
+                                  fontSize: 13, color: Colors.grey[600])),
+                          Text(
+                              '${_dateAdded.month}/${_dateAdded.day}/${_dateAdded.year}',
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87)),
+                          const Spacer(),
+                          Icon(Icons.edit_calendar_outlined,
+                              size: 16, color: Colors.grey[400]),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _field(_supplierNameCtrl, 'Supplier Name (optional)',
+                        Icons.store_outlined),
+                    const SizedBox(height: 8),
+                    _field(_supplierContactCtrl, 'Supplier Contact (optional)',
+                        Icons.phone_outlined,
+                        keyboardType: TextInputType.phone),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _seasonalTag,
+                      decoration: InputDecoration(
+                        labelText: 'Seasonal Tag',
+                        labelStyle:
+                            TextStyle(color: Colors.grey[600], fontSize: 13),
+                        prefixIcon: Icon(Icons.local_offer_outlined,
+                            size: 18, color: Colors.grey[500]),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(color: Colors.grey.shade300)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(color: Colors.grey.shade300)),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      items: Product.seasonalTags
+                          .map((t) => DropdownMenuItem(
+                              value: t,
+                              child: Text(t,
+                                  style: const TextStyle(fontSize: 13))))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _seasonalTag = v);
+                      },
+                    ),
+                  ]),
             ),
           ),
-          Text(widget.existing == null ? 'Add Product' : 'Edit Product',
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87)),
-          const SizedBox(height: 16),
-          _field(widget.nameCtrl, 'Product name *', Icons.label_outline),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _category,
-            decoration: InputDecoration(
-              labelText: 'Category',
-              labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.grey.shade300)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.grey.shade300)),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-            ),
-            borderRadius: BorderRadius.circular(10),
-            items: FilipinoCategories.productCategories
-                .map((c) => DropdownMenuItem(
-                    value: c,
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(FilipinoCategories.getIcon(c),
-                          size: 16, color: _blue),
-                      const SizedBox(width: 8),
-                      Text(c, style: const TextStyle(fontSize: 13)),
-                    ])))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) setState(() => _category = v);
-            },
-          ),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(
-                child: _field(
-                    widget.buyCtrl, 'Cost price', Icons.arrow_downward_outlined,
-                    keyboardType: TextInputType.number, prefix: '₱ ')),
-            const SizedBox(width: 12),
-            Expanded(
-                child: _field(
-                    widget.sellCtrl, 'Sell price', Icons.arrow_upward_outlined,
-                    keyboardType: TextInputType.number, prefix: '₱ ')),
-          ]),
-          const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             decoration: BoxDecoration(
-              color: _blue.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _blue.withValues(alpha: 0.12)),
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
             ),
-            child: Row(children: [
-              const Icon(Icons.trending_up_outlined, size: 16, color: _blue),
-              const SizedBox(width: 8),
-              const Text('Markup:',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w500)),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => setState(() {
-                  _markupType = _markupType == '%' ? '₱' : '%';
-                  _applyMarkup();
-                }),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                      color: _blue, borderRadius: BorderRadius.circular(6)),
-                  child: Text(_markupType,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _markupCtrl,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    hintText: _markupType == '%' ? 'e.g. 15' : 'e.g. 2.00',
-                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
-                    suffixText: _markupType,
-                    suffixStyle:
-                        TextStyle(color: Colors.grey[500], fontSize: 12),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade300)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade300)),
+            child: SafeArea(
+              top: false,
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (widget.nameCtrl.text.trim().isEmpty) return;
+                    final p = Product(
+                      id: widget.existing?.id ?? _uuid.v4(),
+                      name: widget.nameCtrl.text.trim(),
+                      category: _category,
+                      buyPrice: (double.tryParse(widget.buyCtrl.text) ?? 0)
+                          .clamp(0, double.infinity),
+                      sellPrice: (double.tryParse(widget.sellCtrl.text) ?? 0)
+                          .clamp(0, double.infinity),
+                      stock: (int.tryParse(widget.stockCtrl.text) ?? 0)
+                          .clamp(0, 999999),
+                      unit: widget.unitCtrl.text.trim().isEmpty
+                          ? 'pcs'
+                          : widget.unitCtrl.text.trim(),
+                      createdAt: _dateAdded,
+                      reorderPoint: (int.tryParse(_reorderCtrl.text) ?? 5)
+                          .clamp(0, 999999),
+                      expiryDate: _expiryDate,
+                      supplierName: _supplierNameCtrl.text.trim().isEmpty
+                          ? null
+                          : _supplierNameCtrl.text.trim(),
+                      supplierContact: _supplierContactCtrl.text.trim().isEmpty
+                          ? null
+                          : _supplierContactCtrl.text.trim(),
+                      seasonalTag: _seasonalTag == 'None' ? null : _seasonalTag,
+                    );
+                    final isNew = widget.existing == null;
+                    Navigator.of(context, rootNavigator: true).pop(true);
+                    if (isNew) {
+                      widget.prov.addProduct(p);
+                    } else {
+                      widget.prov.updateProduct(p);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text('→ auto sell price',
-                  style: TextStyle(fontSize: 10, color: Colors.grey[500])),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(
-                child: _field(
-                    widget.stockCtrl, 'Stock qty', Icons.inventory_2_outlined,
-                    keyboardType: TextInputType.number)),
-            const SizedBox(width: 12),
-            Expanded(
-                child: _field(widget.unitCtrl, 'Unit (pcs, kg...)',
-                    Icons.straighten_outlined)),
-          ]),
-          const SizedBox(height: 12),
-          _field(_reorderCtrl, 'Reorder Point (alert when stock ≤)',
-              Icons.notification_important_outlined,
-              keyboardType: TextInputType.number),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () async {
-              final now = DateTime.now();
-              final initial =
-                  _expiryDate ?? now.add(const Duration(days: 30));
-              // An existing product can already be past its expiry date
-              // (that's exactly when the "EXPIRED" badge shows), so the
-              // picker's firstDate must not be pinned to `now` — otherwise
-              // opening the picker on an already-expired product crashes
-              // because initialDate would fall before firstDate.
-              final first = initial.isBefore(now) ? initial : now;
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: initial,
-                firstDate: first,
-                lastDate: now.add(const Duration(days: 3650)),
-              );
-              if (picked != null) setState(() => _expiryDate = picked);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Row(children: [
-                Icon(Icons.calendar_month_outlined,
-                    size: 18, color: Colors.grey[500]),
-                const SizedBox(width: 12),
-                Expanded(
                   child: Text(
-                    _expiryDate != null
-                        ? 'Expiry: ${_expiryDate!.month}/${_expiryDate!.day}/${_expiryDate!.year}'
-                        : 'Expiry Date (optional)',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: _expiryDate != null
-                            ? Colors.black87
-                            : Colors.grey[400]),
-                  ),
+                      widget.existing == null
+                          ? 'Save Product'
+                          : 'Update Product',
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
-                if (_expiryDate != null)
-                  GestureDetector(
-                    onTap: () => setState(() => _expiryDate = null),
-                    child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
-                  ),
-              ]),
-            ),
-          ),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () async {
-              final now = DateTime.now();
-              final minDate = now.subtract(const Duration(days: 3650));
-              // Guard against a createdAt older than 10 years (e.g. data
-              // migrated from elsewhere) falling before firstDate, which
-              // would crash the picker the same way an out-of-range expiry
-              // date does above.
-              final first = _dateAdded.isBefore(minDate) ? _dateAdded : minDate;
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: _dateAdded,
-                firstDate: first,
-                lastDate: now,
-              );
-              if (picked != null) setState(() => _dateAdded = picked);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Row(children: [
-                Icon(Icons.event_outlined, size: 18, color: Colors.grey[500]),
-                const SizedBox(width: 12),
-                Text('Date Added: ',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                Text('${_dateAdded.month}/${_dateAdded.day}/${_dateAdded.year}',
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87)),
-                const Spacer(),
-                Icon(Icons.edit_calendar_outlined,
-                    size: 16, color: Colors.grey[400]),
-              ]),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _field(_supplierNameCtrl, 'Supplier Name (optional)',
-              Icons.store_outlined),
-          const SizedBox(height: 8),
-          _field(_supplierContactCtrl, 'Supplier Contact (optional)',
-              Icons.phone_outlined,
-              keyboardType: TextInputType.phone),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _seasonalTag,
-            decoration: InputDecoration(
-              labelText: 'Seasonal Tag',
-              labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
-              prefixIcon: Icon(Icons.local_offer_outlined,
-                  size: 18, color: Colors.grey[500]),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.grey.shade300)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.grey.shade300)),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-            ),
-            borderRadius: BorderRadius.circular(10),
-            items: Product.seasonalTags
-                .map((t) => DropdownMenuItem(
-                    value: t,
-                    child: Text(t, style: const TextStyle(fontSize: 13))))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) setState(() => _seasonalTag = v);
-            },
-          ),
-        ]),
-        ),
-        ),
-        Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(top: BorderSide(color: Colors.grey.shade200)),
-          ),
-          child: SafeArea(
-            top: false,
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (widget.nameCtrl.text.trim().isEmpty) return;
-                  final p = Product(
-                    id: widget.existing?.id ?? _uuid.v4(),
-                    name: widget.nameCtrl.text.trim(),
-                    category: _category,
-                    buyPrice: (double.tryParse(widget.buyCtrl.text) ?? 0)
-                        .clamp(0, double.infinity),
-                    sellPrice: (double.tryParse(widget.sellCtrl.text) ?? 0)
-                        .clamp(0, double.infinity),
-                    stock: (int.tryParse(widget.stockCtrl.text) ?? 0)
-                        .clamp(0, 999999),
-                    unit: widget.unitCtrl.text.trim().isEmpty
-                        ? 'pcs'
-                        : widget.unitCtrl.text.trim(),
-                    createdAt: _dateAdded,
-                    reorderPoint: (int.tryParse(_reorderCtrl.text) ?? 5)
-                        .clamp(0, 999999),
-                    expiryDate: _expiryDate,
-                    supplierName: _supplierNameCtrl.text.trim().isEmpty
-                        ? null
-                        : _supplierNameCtrl.text.trim(),
-                    supplierContact: _supplierContactCtrl.text.trim().isEmpty
-                        ? null
-                        : _supplierContactCtrl.text.trim(),
-                    seasonalTag: _seasonalTag == 'None' ? null : _seasonalTag,
-                  );
-                  final isNew = widget.existing == null;
-                  Navigator.of(context, rootNavigator: true).pop(true);
-                  if (isNew) {
-                    widget.prov.addProduct(p);
-                  } else {
-                    widget.prov.updateProduct(p);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _blue,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: Text(
-                    widget.existing == null
-                        ? 'Save Product'
-                        : 'Update Product',
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ),
           ),
-        ),
         ]),
       ),
     );
@@ -1337,9 +1373,8 @@ class _ProductTile extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.xl),
         border: Border.all(
-            color: isLow && !isOut
-                ? Colors.orange.shade200
-                : Colors.grey.shade200,
+            color:
+                isLow && !isOut ? Colors.orange.shade200 : Colors.grey.shade200,
             width: isLow && !isOut ? 1.6 : 1),
         boxShadow: AppShadows.soft,
       ),

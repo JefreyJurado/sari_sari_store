@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
@@ -11,6 +14,18 @@ import '../services/biometric_service.dart';
 // SharedPreferences so force-closing the app can't be used to reset it.
 const _maxAttemptsBeforeLockout = 5;
 const _lockoutDuration = Duration(seconds: 30);
+
+// The PIN is stored as a salted SHA-256 hash (`app_pin_hash`/`app_pin_salt`)
+// rather than plaintext. `app_pin` (the old plaintext key) is only ever read
+// once, as a one-time migration for PINs set before this existed — see
+// _verifyPin.
+String _saltedHash(String pin, String salt) =>
+    sha256.convert(utf8.encode('$salt:$pin')).toString();
+
+String _newSalt() {
+  final bytes = List<int>.generate(16, (_) => Random.secure().nextInt(256));
+  return base64UrlEncode(bytes);
+}
 
 class PinScreen extends StatefulWidget {
   final bool isSetup;
@@ -213,7 +228,10 @@ class _PinScreenState extends State<PinScreen>
   Future<void> _verifySetup() async {
     if (_pin == _confirmPin) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('app_pin', _pin);
+      final salt = _newSalt();
+      await prefs.setString('app_pin_salt', salt);
+      await prefs.setString('app_pin_hash', _saltedHash(_pin, salt));
+      await prefs.remove('app_pin');
       await prefs.setBool('pin_enabled', true);
       if (mounted) {
         Navigator.pop(context, true);
@@ -233,9 +251,27 @@ class _PinScreenState extends State<PinScreen>
 
   Future<void> _verifyPin() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedPin = prefs.getString('app_pin') ?? '';
+    final storedHash = prefs.getString('app_pin_hash');
+    final storedSalt = prefs.getString('app_pin_salt');
+    bool matches;
+    if (storedHash != null && storedSalt != null) {
+      matches = _saltedHash(_pin, storedSalt) == storedHash;
+    } else {
+      // One-time migration: PINs set before hashing existed are still
+      // sitting in plaintext under the old key. Verify against that, and
+      // if it matches, upgrade storage to a hash so the plaintext value
+      // never has to be read (or exist) again.
+      final legacyPin = prefs.getString('app_pin') ?? '';
+      matches = legacyPin.isNotEmpty && _pin == legacyPin;
+      if (matches) {
+        final salt = _newSalt();
+        await prefs.setString('app_pin_salt', salt);
+        await prefs.setString('app_pin_hash', _saltedHash(_pin, salt));
+        await prefs.remove('app_pin');
+      }
+    }
     if (!mounted) return;
-    if (_pin == savedPin) {
+    if (matches) {
       await prefs.remove('pin_failed_attempts');
       await prefs.remove('pin_locked_until_ms');
       if (mounted) Navigator.pushReplacementNamed(context, '/home');

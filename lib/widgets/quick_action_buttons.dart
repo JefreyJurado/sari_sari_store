@@ -7,6 +7,7 @@ import '../screens/daily_summary_screen.dart';
 import '../screens/installment_screen.dart';
 import '../screens/stock_alert_screen.dart';
 import '../screens/barcode_scanner_screen.dart';
+import '../utils/transitions.dart';
 
 const _blue = Color(0xFF1E3A8A);
 const _green = Color(0xFF059669);
@@ -20,51 +21,64 @@ const _amber = Color(0xFFD97706);
 class QuickActionButtons extends StatefulWidget {
   const QuickActionButtons({super.key});
   @override
-  State<QuickActionButtons> createState() =>
-      _QuickActionButtonsState();
+  State<QuickActionButtons> createState() => _QuickActionButtonsState();
 }
 
-class _QuickActionButtonsState
-    extends State<QuickActionButtons> {
+class _QuickActionButtonsState extends State<QuickActionButtons> {
   @override
   Widget build(BuildContext context) {
     final mainActions = [
-      _QA('Credit', Icons.list_alt_outlined, _orange,
-          () => Navigator.push(context,
-              MaterialPageRoute(
-                  builder: (_) => const ListaScreen()))),
-      _QA('Inventory', Icons.inventory_2_outlined, _purple,
-          () => Navigator.push(context,
-              MaterialPageRoute(
-                  builder: (_) => const InventoryScreen()))),
-      _QA('Expenses', Icons.receipt_long_outlined, _red,
-          () => Navigator.push(context,
-              MaterialPageRoute(
-                  builder: (_) => const ExpensesScreen()))),
-      _QA('Calculator', Icons.calculate_outlined, _blue,
-          () => Navigator.push(context,
-              MaterialPageRoute(
-                  builder: (_) => const CalculatorScreen()))),
+      _QA(
+          'Credit',
+          Icons.list_alt_outlined,
+          _orange,
+          () => Navigator.push(
+              context, CrossFadePageRoute(child: const ListaScreen()))),
+      _QA(
+          'Inventory',
+          Icons.inventory_2_outlined,
+          _purple,
+          () => Navigator.push(
+              context, CrossFadePageRoute(child: const InventoryScreen()))),
+      _QA(
+          'Expenses',
+          Icons.receipt_long_outlined,
+          _red,
+          () => Navigator.push(
+              context, CrossFadePageRoute(child: const ExpensesScreen()))),
+      _QA(
+          'Calculator',
+          Icons.calculate_outlined,
+          _blue,
+          () => Navigator.push(
+              context, CrossFadePageRoute(child: const CalculatorScreen()))),
     ];
 
     final moreActions = [
-      _QA('Summary', Icons.bar_chart_outlined, _teal,
+      _QA(
+          'Summary',
+          Icons.bar_chart_outlined,
+          _teal,
+          () => Navigator.push(
+              context, CrossFadePageRoute(child: const DailySummaryScreen()))),
+      _QA(
+          'Installment',
+          Icons.credit_score_outlined,
+          _green,
+          () => Navigator.push(
+              context, CrossFadePageRoute(child: const InstallmentScreen()))),
+      _QA(
+          'Stock Alert',
+          Icons.warning_amber_outlined,
+          _amber,
+          () => Navigator.push(
+              context, CrossFadePageRoute(child: const StockAlertScreen()))),
+      _QA(
+          'Barcode',
+          Icons.qr_code_scanner_outlined,
+          _pink,
           () => Navigator.push(context,
-              MaterialPageRoute(
-                  builder: (_) => const DailySummaryScreen()))),
-      _QA('Installment', Icons.credit_score_outlined, _green,
-          () => Navigator.push(context,
-              MaterialPageRoute(
-                  builder: (_) => const InstallmentScreen()))),
-      _QA('Stock Alert', Icons.warning_amber_outlined, _amber,
-          () => Navigator.push(context,
-              MaterialPageRoute(
-                  builder: (_) => const StockAlertScreen()))),
-      _QA('Barcode', Icons.qr_code_scanner_outlined, _pink,
-          () => Navigator.push(context,
-              MaterialPageRoute(
-                  builder: (_) =>
-                      const BarcodeScannerScreen()))),
+              CrossFadePageRoute(child: const BarcodeScannerScreen()))),
     ];
 
     final allActions = [...mainActions, ...moreActions];
@@ -88,7 +102,8 @@ class _QuickActionButtonsState
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 48, height: 48,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: a.color,
                 borderRadius: BorderRadius.circular(16),

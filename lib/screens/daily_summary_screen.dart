@@ -57,7 +57,9 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
       // back up to the day's total revenue.
       final cashSales = CurrencyFormatter.roundCents(sales
           .where((s) =>
-              s.type == PaymentType.cash || s.type == PaymentType.installment)
+              s.type == PaymentType.cash ||
+              s.type == PaymentType.installment ||
+              s.type == PaymentType.mixed)
           .fold(0.0, (s, t) => s + (t.totalAmount - t.creditAmount)));
       final onlineSales = CurrencyFormatter.roundCents(sales
           .where((s) => s.type == PaymentType.online)
@@ -401,8 +403,10 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
                                   ),
                                   child: Icon(
                                     switch (s.type) {
-                                      PaymentType.cash => Icons.payments_outlined,
-                                      PaymentType.credit => Icons.credit_card_outlined,
+                                      PaymentType.cash =>
+                                        Icons.payments_outlined,
+                                      PaymentType.credit =>
+                                        Icons.credit_card_outlined,
                                       PaymentType.installment =>
                                         Icons.calendar_month_outlined,
                                       PaymentType.online ||

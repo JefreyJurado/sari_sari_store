@@ -290,6 +290,14 @@ class AppProvider extends ChangeNotifier {
   }
 
   // ── Sales ──────────────────────────────────────────────────────
+  // Returns null if the cart is empty, or if a requested loyalty-points
+  // redemption fails — the caller (sales_screen.dart) already validated
+  // `cashPaid` against the *discounted* total before calling this, so
+  // silently dropping the discount here would complete the sale at a
+  // higher total than what was actually collected. Aborting entirely (no
+  // sale, stock, or debt written) keeps the cart intact so the cashier can
+  // retry, rather than leaving a sale on record that doesn't reconcile
+  // with the cash actually taken.
   Future<Sale?> completeSale({
     required double cashPaid,
     required double creditAmount,
@@ -314,18 +322,19 @@ class AppProvider extends ChangeNotifier {
         .toList();
 
     // Redeem loyalty points BEFORE pricing the sale: if the redemption
-    // fails (e.g. the balance was stale and the points are gone), the
-    // discount must not be applied — otherwise the customer gets money
-    // off without any points being deducted.
+    // fails (e.g. the balance was stale and the points are gone), abort
+    // the sale rather than applying the discount anyway (which would give
+    // money off without any points being deducted) or dropping it and
+    // charging more than the cash already collected assumed.
     final saleId = _uuid.v4();
-    var appliedDiscount = discount;
+    final appliedDiscount = discount;
     if (customer != null && pointsToRedeem > 0) {
       final redeemed = await LoyaltyService.instance.redeemPoints(
         customerId: customer.id,
         points: pointsToRedeem,
         saleId: saleId,
       );
-      if (!redeemed) appliedDiscount = 0;
+      if (!redeemed) return null;
     }
 
     final discountedTotal = CurrencyFormatter.roundCents(
@@ -588,16 +597,23 @@ class AppProvider extends ChangeNotifier {
   }
 
   // ── Customers ──────────────────────────────────────────────────
-  Future<void> addCustomer(String name,
+  // Returns the created Customer directly so callers don't have to
+  // re-query `customers` by name afterward — that re-query used to fall
+  // back to "the last customer in the list" if it somehow came up empty,
+  // which could silently attach a sale/debt/installment to a completely
+  // unrelated customer instead of failing loudly.
+  Future<Customer> addCustomer(String name,
       {String? phone, String? address, double creditLimit = 500}) async {
-    await _db.insertCustomer(Customer(
+    final customer = Customer(
         id: _uuid.v4(),
         name: name,
         phone: phone,
         address: address,
         creditLimit: creditLimit,
-        createdAt: DateTime.now()));
+        createdAt: DateTime.now());
+    await _db.insertCustomer(customer);
     await reload();
+    return customer;
   }
 
   Future<void> updateCustomer(Customer c) async {

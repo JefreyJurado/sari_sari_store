@@ -33,8 +33,7 @@ class _SalesScreenState extends State<SalesScreen> {
     super.dispose();
   }
 
-  List<Product> _filter(List<Product> products) =>
-      products.where((p) {
+  List<Product> _filter(List<Product> products) => products.where((p) {
         final ms = _search.isEmpty ||
             p.name.toLowerCase().contains(_search.toLowerCase());
         final mc = _category == 'All' || p.category == _category;
@@ -45,10 +44,7 @@ class _SalesScreenState extends State<SalesScreen> {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(builder: (context, prov, _) {
       final filtered = _filter(prov.products);
-      final categories = [
-        'All',
-        ...FilipinoCategories.productCategories
-      ];
+      final categories = ['All', ...FilipinoCategories.productCategories];
 
       return Scaffold(
         backgroundColor: Colors.white,
@@ -94,7 +90,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                     tween: Tween(begin: 1.3, end: 1.0),
                                     duration: const Duration(milliseconds: 350),
                                     curve: Curves.elasticOut,
-                                    builder: (context, scale, child) => Transform.scale(
+                                    builder: (context, scale, child) =>
+                                        Transform.scale(
                                       scale: scale,
                                       child: child,
                                     ),
@@ -105,12 +102,14 @@ class _SalesScreenState extends State<SalesScreen> {
                                           icon: const Icon(
                                               Icons.shopping_cart_rounded,
                                               color: _blue),
-                                          onPressed: () => _showCart(context, prov)),
+                                          onPressed: () =>
+                                              _showCart(context, prov)),
                                     ),
                                   )
                                 else
                                   const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 16),
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 16),
                                     child: Icon(Icons.shopping_cart_outlined,
                                         color: Colors.black54),
                                   ),
@@ -134,7 +133,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                     suffixIcon: _search.isNotEmpty
                                         ? IconButton(
                                             icon: Icon(Icons.close,
-                                                color: Colors.grey[400], size: 18),
+                                                color: Colors.grey[400],
+                                                size: 18),
                                             onPressed: () {
                                               setState(() => _search = '');
                                               _searchCtrl.clear();
@@ -191,12 +191,16 @@ class _SalesScreenState extends State<SalesScreen> {
                                                           : Colors.grey[600]),
                                                 )
                                               : Row(
-                                                  mainAxisSize: MainAxisSize.min,
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
                                                   children: [
                                                     Icon(
-                                                      FilipinoCategories.getIcon(cat),
+                                                      FilipinoCategories
+                                                          .getIcon(cat),
                                                       size: 14,
-                                                      color: sel ? Colors.white : catColor,
+                                                      color: sel
+                                                          ? Colors.white
+                                                          : catColor,
                                                     ),
                                                     const SizedBox(width: 6),
                                                     Text(
@@ -205,10 +209,12 @@ class _SalesScreenState extends State<SalesScreen> {
                                                           fontSize: 13,
                                                           fontWeight: sel
                                                               ? FontWeight.w600
-                                                              : FontWeight.normal,
+                                                              : FontWeight
+                                                                  .normal,
                                                           color: sel
                                                               ? Colors.white
-                                                              : Colors.grey[600]),
+                                                              : Colors
+                                                                  .grey[600]),
                                                     ),
                                                   ],
                                                 ),
@@ -231,8 +237,7 @@ class _SalesScreenState extends State<SalesScreen> {
                             hasScrollBody: false,
                             child: Center(
                                 child: Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                   Icon(Icons.search_off_outlined,
                                       size: 48, color: Colors.grey[300]),
@@ -275,9 +280,8 @@ class _SalesScreenState extends State<SalesScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      border: Border(
-                          top: BorderSide(
-                              color: Colors.grey.shade200)),
+                      border:
+                          Border(top: BorderSide(color: Colors.grey.shade200)),
                     ),
                     child: GestureDetector(
                       onTap: () => _showCart(context, prov),
@@ -286,8 +290,7 @@ class _SalesScreenState extends State<SalesScreen> {
                             horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: _blue,
-                          borderRadius:
-                              BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
                               color: _blue.withValues(alpha: 0.3),
@@ -306,10 +309,8 @@ class _SalesScreenState extends State<SalesScreen> {
                               scale: scale,
                               child: child,
                             ),
-                            child: const Icon(
-                                Icons.shopping_cart_rounded,
-                                color: Colors.white,
-                                size: 18),
+                            child: const Icon(Icons.shopping_cart_rounded,
+                                color: Colors.white, size: 18),
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -321,8 +322,7 @@ class _SalesScreenState extends State<SalesScreen> {
                           ),
                           const Spacer(),
                           Text(
-                            CurrencyFormatter.format(
-                                prov.cartTotal),
+                            CurrencyFormatter.format(prov.cartTotal),
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -349,8 +349,7 @@ class _SalesScreenState extends State<SalesScreen> {
       backgroundColor: Colors.white,
       useRootNavigator: true,
       shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(16))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => _CartSheet(prov: prov),
     );
   }
@@ -415,10 +414,8 @@ class _ProductSliverGrid extends StatelessWidget {
                             color: catColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
-                          child: Icon(
-                              FilipinoCategories.getIcon(p.category),
-                              size: 15,
-                              color: catColor),
+                          child: Icon(FilipinoCategories.getIcon(p.category),
+                              size: 15, color: catColor),
                         ),
                         const Spacer(),
                         if (p.isOutOfStock)
@@ -467,9 +464,7 @@ class _ProductSliverGrid extends StatelessWidget {
                           width: double.infinity,
                           child: _smallBtn(
                               Icons.add,
-                              p.isOutOfStock
-                                  ? Colors.grey.shade100
-                                  : catColor,
+                              p.isOutOfStock ? Colors.grey.shade100 : catColor,
                               p.isOutOfStock
                                   ? Colors.grey.shade400
                                   : Colors.white,
@@ -537,15 +532,13 @@ class _CartSheetState extends State<_CartSheet> {
         maxDiscount < prov.cartTotal ? maxDiscount : prov.cartTotal;
     // floor, not round: rounding up could redeem a discount slightly
     // larger than the cart total (e.g. ₱7.15 cart → 72 pts → ₱7.20 off).
-    final points =
-        (discount / LoyaltyAccount.pesoPerPoint).floor();
+    final points = (discount / LoyaltyAccount.pesoPerPoint).floor();
     return points > _loyaltyAccount!.availablePoints
         ? _loyaltyAccount!.availablePoints
         : points;
   }
 
-  double get _loyaltyDiscount =>
-      _pointsToRedeem * LoyaltyAccount.pesoPerPoint;
+  double get _loyaltyDiscount => _pointsToRedeem * LoyaltyAccount.pesoPerPoint;
 
   double get _effectiveTotal => prov.cartTotal - _loyaltyDiscount;
 
@@ -560,8 +553,7 @@ class _CartSheetState extends State<_CartSheet> {
       });
       return;
     }
-    final acct =
-        await LoyaltyService.instance.getAccount(customerId);
+    final acct = await LoyaltyService.instance.getAccount(customerId);
     if (!mounted) return;
     setState(() {
       _loyaltyAccount = acct;
@@ -590,19 +582,19 @@ class _CartSheetState extends State<_CartSheet> {
       initialChildSize: 0.92,
       maxChildSize: 0.97,
       builder: (_, ctrl) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: Column(children: [
           Container(
             margin: const EdgeInsets.symmetric(vertical: 10),
-            width: 36, height: 4,
+            width: 36,
+            height: 4,
             decoration: BoxDecoration(
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(2)),
           ),
           Padding(
-            padding:
-                const EdgeInsets.fromLTRB(16, 4, 8, 4),
+            padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
             child: Row(children: [
               const Text('Cart Overview',
                   style: TextStyle(
@@ -639,16 +631,13 @@ class _CartSheetState extends State<_CartSheet> {
               padding: const EdgeInsets.all(16),
               children: [
                 ...prov.cart.entries.map((e) => Container(
-                      margin:
-                          const EdgeInsets.only(bottom: 8),
+                      margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 12),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        border: Border.all(
-                            color: Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
                       ),
                       child: Row(children: [
                         Icon(
@@ -659,52 +648,40 @@ class _CartSheetState extends State<_CartSheet> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                            Text(e.key.name,
-                                style: const TextStyle(
-                                    fontWeight:
-                                        FontWeight.w600,
-                                    fontSize: 13,
-                                    color: Colors.black87)),
-                            const SizedBox(height: 2),
-                            Text(
-                                CurrencyFormatter.format(
-                                    e.key.sellPrice),
-                                style: TextStyle(
-                                    color: Colors.grey[500],
-                                    fontSize: 12)),
-                          ]),
+                                Text(e.key.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                        color: Colors.black87)),
+                                const SizedBox(height: 2),
+                                Text(CurrencyFormatter.format(e.key.sellPrice),
+                                    style: TextStyle(
+                                        color: Colors.grey[500], fontSize: 12)),
+                              ]),
                         ),
                         Row(children: [
                           _qtyBtn(
                             Icons.remove,
-                            () => setState(() =>
-                                prov.setCartQty(
-                                    e.key, e.value - 1)),
+                            () => setState(
+                                () => prov.setCartQty(e.key, e.value - 1)),
                           ),
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(
-                                    horizontal: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text('${e.value}',
                                 style: const TextStyle(
-                                    fontWeight:
-                                        FontWeight.bold,
-                                    fontSize: 14)),
+                                    fontWeight: FontWeight.bold, fontSize: 14)),
                           ),
                           _qtyBtn(
                             Icons.add,
-                            () => setState(() =>
-                                prov.addToCart(e.key)),
+                            () => setState(() => prov.addToCart(e.key)),
                             filled: true,
                           ),
                         ]),
                         const SizedBox(width: 16),
                         Text(
-                          CurrencyFormatter.format(
-                              e.key.sellPrice * e.value),
+                          CurrencyFormatter.format(e.key.sellPrice * e.value),
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -714,45 +691,36 @@ class _CartSheetState extends State<_CartSheet> {
                     )),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.grey.shade200),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: Column(children: [
                     if (_loyaltyDiscount > 0) ...[
                       Row(children: [
                         Text('Subtotal',
                             style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[600])),
+                                fontSize: 13, color: Colors.grey[600])),
                         const Spacer(),
-                        Text(
-                            CurrencyFormatter.format(
-                                prov.cartTotal),
+                        Text(CurrencyFormatter.format(prov.cartTotal),
                             style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[600])),
+                                fontSize: 13, color: Colors.grey[600])),
                       ]),
                       const SizedBox(height: 4),
                       Row(children: [
                         Text('Points Discount',
                             style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.amber.shade800)),
+                                fontSize: 13, color: Colors.amber.shade800)),
                         const Spacer(),
-                        Text(
-                            '-${CurrencyFormatter.format(_loyaltyDiscount)}',
+                        Text('-${CurrencyFormatter.format(_loyaltyDiscount)}',
                             style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.amber.shade800)),
+                                fontSize: 13, color: Colors.amber.shade800)),
                       ]),
                       const SizedBox(height: 8),
-                      Divider(
-                          height: 1, color: Colors.grey.shade300),
+                      Divider(height: 1, color: Colors.grey.shade300),
                       const SizedBox(height: 8),
                     ],
                     Row(children: [
@@ -762,9 +730,7 @@ class _CartSheetState extends State<_CartSheet> {
                               fontSize: 14,
                               color: Colors.grey[700])),
                       const Spacer(),
-                      Text(
-                          CurrencyFormatter.format(
-                              _effectiveTotal),
+                      Text(CurrencyFormatter.format(_effectiveTotal),
                           style: const TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 22,
@@ -781,8 +747,7 @@ class _CartSheetState extends State<_CartSheet> {
                 const SizedBox(height: 4),
                 Text(
                   'Optional — choose or register a client name to log history',
-                  style: TextStyle(
-                      color: Colors.grey[500], fontSize: 12),
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 ),
                 const SizedBox(height: 12),
                 if (prov.customers.isNotEmpty) ...[
@@ -791,12 +756,10 @@ class _CartSheetState extends State<_CartSheet> {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: prov.customers.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(width: 8),
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
                       itemBuilder: (_, i) {
                         final c = prov.customers[i];
-                        final sel =
-                            _selectedCustomer?.id == c.id;
+                        final sel = _selectedCustomer?.id == c.id;
                         return GestureDetector(
                           onTap: () {
                             if (sel) {
@@ -814,22 +777,14 @@ class _CartSheetState extends State<_CartSheet> {
                             }
                           },
                           child: AnimatedContainer(
-                            duration: const Duration(
-                                milliseconds: 150),
-                            padding: const EdgeInsets
-                                .symmetric(
-                                horizontal: 14,
-                                vertical: 8),
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: sel
-                                  ? _blue
-                                  : Colors.white,
-                              borderRadius:
-                                  BorderRadius.circular(20),
+                              color: sel ? _blue : Colors.white,
+                              borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: sel
-                                    ? _blue
-                                    : Colors.grey.shade300,
+                                color: sel ? _blue : Colors.grey.shade300,
                               ),
                             ),
                             child: Text(c.name,
@@ -838,9 +793,8 @@ class _CartSheetState extends State<_CartSheet> {
                                     fontWeight: sel
                                         ? FontWeight.w600
                                         : FontWeight.normal,
-                                    color: sel
-                                        ? Colors.white
-                                        : Colors.grey[700])),
+                                    color:
+                                        sel ? Colors.white : Colors.grey[700])),
                           ),
                         );
                       },
@@ -848,12 +802,9 @@ class _CartSheetState extends State<_CartSheet> {
                   ),
                   const SizedBox(height: 12),
                   Row(children: [
-                    Expanded(
-                        child: Divider(
-                            color: Colors.grey.shade200)),
+                    Expanded(child: Divider(color: Colors.grey.shade200)),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text('OR TYPE NEW',
                           style: TextStyle(
                               color: Colors.grey[400],
@@ -861,58 +812,43 @@ class _CartSheetState extends State<_CartSheet> {
                               fontSize: 10,
                               letterSpacing: 0.5)),
                     ),
-                    Expanded(
-                        child: Divider(
-                            color: Colors.grey.shade200)),
+                    Expanded(child: Divider(color: Colors.grey.shade200)),
                   ]),
                   const SizedBox(height: 12),
                 ],
                 TextField(
                   controller: _customerCtrl,
-                  textCapitalization:
-                      TextCapitalization.words,
+                  textCapitalization: TextCapitalization.words,
                   onChanged: (v) {
                     setState(() => _selectedCustomer = null);
                     _loadLoyaltyAccount(null);
                   },
                   decoration: InputDecoration(
                     hintText: 'e.g. Maria, Juan...',
-                    hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14),
-                    prefixIcon: Icon(
-                        Icons.person_outline,
-                        color: Colors.grey[400],
-                        size: 18),
-                    suffixIcon:
-                        _customerCtrl.text.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(Icons.close,
-                                    color: Colors.grey[400],
-                                    size: 16),
-                                onPressed: () {
-                                  setState(() {
-                                    _customerCtrl.clear();
-                                    _selectedCustomer = null;
-                                  });
-                                  _loadLoyaltyAccount(null);
-                                })
-                            : null,
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                    prefixIcon: Icon(Icons.person_outline,
+                        color: Colors.grey[400], size: 18),
+                    suffixIcon: _customerCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.close,
+                                color: Colors.grey[400], size: 16),
+                            onPressed: () {
+                              setState(() {
+                                _customerCtrl.clear();
+                                _selectedCustomer = null;
+                              });
+                              _loadLoyaltyAccount(null);
+                            })
+                        : null,
                     filled: true,
                     fillColor: Colors.grey.shade50,
                     border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                            color: Colors.grey.shade200)),
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200)),
                     enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                            color: Colors.grey.shade200)),
-                    contentPadding:
-                        const EdgeInsets.symmetric(
-                            vertical: 0),
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200)),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   ),
                 ),
                 if (_selectedCustomer != null &&
@@ -924,8 +860,7 @@ class _CartSheetState extends State<_CartSheet> {
                     decoration: BoxDecoration(
                       color: Colors.amber.shade50,
                       borderRadius: BorderRadius.circular(12),
-                      border:
-                          Border.all(color: Colors.amber.shade200),
+                      border: Border.all(color: Colors.amber.shade200),
                     ),
                     child: Row(children: [
                       Icon(Icons.star_outline,
@@ -933,29 +868,26 @@ class _CartSheetState extends State<_CartSheet> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                          Text(
-                              '${_loyaltyAccount!.availablePoints} pts available',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                  color: Colors.black87)),
-                          Text(
-                              'Worth ${CurrencyFormatter.format(_loyaltyAccount!.pesoValue)}',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey[600])),
-                        ]),
+                              Text(
+                                  '${_loyaltyAccount!.availablePoints} pts available',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: Colors.black87)),
+                              Text(
+                                  'Worth ${CurrencyFormatter.format(_loyaltyAccount!.pesoValue)}',
+                                  style: TextStyle(
+                                      fontSize: 11, color: Colors.grey[600])),
+                            ]),
                       ),
                       Switch(
                         value: _useLoyaltyDiscount,
                         activeThumbColor: Colors.amber.shade700,
                         onChanged: (v) {
                           setState(() => _useLoyaltyDiscount = v);
-                          _cashCtrl.text =
-                              _effectiveTotal.toStringAsFixed(2);
+                          _cashCtrl.text = _effectiveTotal.toStringAsFixed(2);
                         },
                       ),
                     ]),
@@ -974,7 +906,8 @@ class _CartSheetState extends State<_CartSheet> {
                     final picked = await showDatePicker(
                       context: context,
                       initialDate: _saleDate,
-                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
                       lastDate: DateTime.now(),
                     );
                     if (picked != null) setState(() => _saleDate = picked);
@@ -983,7 +916,8 @@ class _CartSheetState extends State<_CartSheet> {
                     final isToday =
                         DateHelper.isSameDay(_saleDate, DateTime.now());
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 14),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(12),
@@ -1008,8 +942,10 @@ class _CartSheetState extends State<_CartSheet> {
                         ),
                         if (!isToday)
                           GestureDetector(
-                            onTap: () => setState(() => _saleDate = DateTime.now()),
-                            child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
+                            onTap: () =>
+                                setState(() => _saleDate = DateTime.now()),
+                            child: Icon(Icons.close,
+                                size: 16, color: Colors.grey[400]),
                           ),
                       ]),
                     );
@@ -1029,8 +965,7 @@ class _CartSheetState extends State<_CartSheet> {
                   selected: _paymentType == 'cash',
                   onTap: () => setState(() {
                     _paymentType = 'cash';
-                    _cashCtrl.text =
-                        prov.cartTotal.toStringAsFixed(2);
+                    _cashCtrl.text = prov.cartTotal.toStringAsFixed(2);
                   }),
                 ),
                 const SizedBox(height: 8),
@@ -1041,8 +976,7 @@ class _CartSheetState extends State<_CartSheet> {
                   selected: _paymentType == 'online',
                   onTap: () => setState(() {
                     _paymentType = 'online';
-                    _cashCtrl.text =
-                        prov.cartTotal.toStringAsFixed(2);
+                    _cashCtrl.text = prov.cartTotal.toStringAsFixed(2);
                   }),
                 ),
                 const SizedBox(height: 20),
@@ -1050,8 +984,7 @@ class _CartSheetState extends State<_CartSheet> {
                   TextField(
                     controller: _cashCtrl,
                     keyboardType:
-                        const TextInputType.numberWithOptions(
-                            decimal: true),
+                        const TextInputType.numberWithOptions(decimal: true),
                     style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -1059,22 +992,17 @@ class _CartSheetState extends State<_CartSheet> {
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       labelText: 'Amount Received From Customer',
-                      labelStyle: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 13),
+                      labelStyle:
+                          TextStyle(color: Colors.grey[500], fontSize: 13),
                       prefixText: '₱ ',
                       filled: true,
                       fillColor: Colors.grey.shade50,
                       border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                              color: Colors.grey.shade200)),
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade200)),
                       enabledBorder: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                              color: Colors.grey.shade200)),
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade200)),
                     ),
                   ),
                   if (change > 0) ...[
@@ -1084,15 +1012,14 @@ class _CartSheetState extends State<_CartSheet> {
                           horizontal: 14, vertical: 14),
                       decoration: BoxDecoration(
                         color: Colors.green.shade50.withValues(alpha: 0.3),
-                        borderRadius:
-                            BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: Colors.green.shade200.withValues(alpha: 0.5)),
+                            color:
+                                Colors.green.shade200.withValues(alpha: 0.5)),
                       ),
                       child: Row(children: [
                         Icon(Icons.currency_exchange,
-                            color: Colors.green.shade700,
-                            size: 18),
+                            color: Colors.green.shade700, size: 18),
                         const SizedBox(width: 10),
                         Text('Change to Return',
                             style: TextStyle(
@@ -1100,8 +1027,7 @@ class _CartSheetState extends State<_CartSheet> {
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14)),
                         const Spacer(),
-                        Text(
-                            CurrencyFormatter.format(change),
+                        Text(CurrencyFormatter.format(change),
                             style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 22,
@@ -1115,35 +1041,26 @@ class _CartSheetState extends State<_CartSheet> {
                     controller: _refCtrl,
                     decoration: InputDecoration(
                       labelText: 'Reference Confirmation Code (Optional)',
-                      labelStyle: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 13),
-                      prefixIcon: Icon(
-                          Icons.tag_outlined,
-                          color: Colors.grey[400],
-                          size: 18),
+                      labelStyle:
+                          TextStyle(color: Colors.grey[500], fontSize: 13),
+                      prefixIcon: Icon(Icons.tag_outlined,
+                          color: Colors.grey[400], size: 18),
                       hintText: 'e.g. 123456789',
-                      hintStyle: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 14),
+                      hintStyle:
+                          TextStyle(color: Colors.grey[400], fontSize: 14),
                       filled: true,
                       fillColor: Colors.grey.shade50,
                       border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                              color: Colors.grey.shade200)),
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade200)),
                       enabledBorder: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                              color: Colors.grey.shade200)),
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade200)),
                     ),
                   ),
                   const SizedBox(height: 10),
                   Row(children: [
-                    const Icon(Icons.info_outline,
-                        color: _blue, size: 14),
+                    const Icon(Icons.info_outline, color: _blue, size: 14),
                     const SizedBox(width: 8),
                     Text(
                       'Please verify receipt statement screen before finalizing.',
@@ -1172,29 +1089,25 @@ class _CartSheetState extends State<_CartSheet> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed:
-                    _isProcessing ? null : _complete,
+                onPressed: _isProcessing ? null : _complete,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _blue,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 child: _isProcessing
                     ? const SizedBox(
-                        width: 20, height: 20,
+                        width: 20,
+                        height: 20,
                         child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2))
+                            color: Colors.white, strokeWidth: 2))
                     : Text(
                         'Process Order Summary  (${CurrencyFormatter.format(_effectiveTotal)})',
                         style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold)),
+                            fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
           ),
@@ -1203,21 +1116,17 @@ class _CartSheetState extends State<_CartSheet> {
     );
   }
 
-  Widget _qtyBtn(IconData icon, VoidCallback onTap,
-      {bool filled = false}) =>
+  Widget _qtyBtn(IconData icon, VoidCallback onTap, {bool filled = false}) =>
       GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 30, height: 30,
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
-              color: filled
-                  ? _blue
-                  : Colors.grey.shade100,
+              color: filled ? _blue : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(8)),
           child: Icon(icon,
-              size: 14,
-              color:
-                  filled ? Colors.white : Colors.grey[700]),
+              size: 14, color: filled ? Colors.white : Colors.grey[700]),
         ),
       );
 
@@ -1232,50 +1141,34 @@ class _CartSheetState extends State<_CartSheet> {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: selected
-                ? _blue
-                : Colors.white,
+            color: selected ? _blue : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected
-                  ? _blue
-                  : Colors.grey.shade200,
+              color: selected ? _blue : Colors.grey.shade200,
               width: selected ? 1.5 : 1,
             ),
           ),
           child: Row(children: [
             Icon(icon,
-                color: selected
-                    ? Colors.white
-                    : Colors.grey[600],
-                size: 22),
+                color: selected ? Colors.white : Colors.grey[600], size: 22),
             const SizedBox(width: 14),
-            Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(label,
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: selected
-                          ? Colors.white
-                          : Colors.black87,
+                      color: selected ? Colors.white : Colors.black87,
                       fontSize: 14)),
               const SizedBox(height: 2),
               Text(sublabel,
                   style: TextStyle(
-                      color: selected
-                          ? Colors.white70
-                          : Colors.grey[500],
+                      color: selected ? Colors.white70 : Colors.grey[500],
                       fontSize: 12)),
             ]),
             const Spacer(),
             if (selected)
-              const Icon(Icons.check_circle,
-                  color: Colors.white, size: 20),
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
           ]),
         ),
       );
@@ -1294,43 +1187,32 @@ class _CartSheetState extends State<_CartSheet> {
 
     if (customer == null && typedName.isNotEmpty) {
       final existing = prov.customers
-          .where((c) =>
-              c.name.toLowerCase() ==
-              typedName.toLowerCase())
+          .where((c) => c.name.toLowerCase() == typedName.toLowerCase())
           .firstOrNull;
       if (existing != null) {
         customer = existing;
       } else {
-        await prov.addCustomer(typedName);
-        customer = prov.customers.firstWhere(
-            (c) => c.name == typedName,
-            orElse: () => prov.customers.last);
+        customer = await prov.addCustomer(typedName);
       }
     }
 
-    if (_paymentType == 'cash' &&
-        cashPaid < _effectiveTotal) {
+    if (_paymentType == 'cash' && cashPaid < _effectiveTotal) {
       if (!mounted) return;
       setState(() => _isProcessing = false);
       CenterToast.showError(context, 'Insufficient cash amount.');
       return;
     }
 
-    final notes = _paymentType == 'online' &&
-            _refCtrl.text.isNotEmpty
+    final notes = _paymentType == 'online' && _refCtrl.text.isNotEmpty
         ? 'Online Payment - Ref#: ${_refCtrl.text}'
         : _paymentType == 'online'
             ? 'Online Payment'
             : null;
 
     final sale = await prov.completeSale(
-      cashPaid: _paymentType == 'cash'
-          ? cashPaid
-          : _effectiveTotal,
+      cashPaid: _paymentType == 'cash' ? cashPaid : _effectiveTotal,
       creditAmount: 0,
-      type: _paymentType == 'cash'
-          ? PaymentType.cash
-          : PaymentType.online,
+      type: _paymentType == 'cash' ? PaymentType.cash : PaymentType.online,
       notes: notes,
       customer: customer,
       saleDate: _saleDate,
@@ -1356,8 +1238,8 @@ class _CartSheetState extends State<_CartSheet> {
         barrierDismissible: false,
         builder: (dialogCtx) => AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(children: [
             Image.asset(
               'assets/mascot/storeph_mascot_celebrating.png',
@@ -1365,22 +1247,19 @@ class _CartSheetState extends State<_CartSheet> {
               height: 40,
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => Container(
-                width: 36, height: 36,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.green,
-                    size: 20),
+                child: const Icon(Icons.check_circle_outline,
+                    color: Colors.green, size: 20),
               ),
             ),
             const SizedBox(width: 12),
             Text(
-              paymentType == 'online'
-                  ? 'Payment confirmed'
-                  : 'Sale complete',
+              paymentType == 'online' ? 'Payment confirmed' : 'Sale complete',
               style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1389,75 +1268,63 @@ class _CartSheetState extends State<_CartSheet> {
           ]),
           content: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            if (customerName != null) ...[
-              Row(children: [
-                Icon(Icons.person_outline,
-                    size: 16, color: Colors.grey[500]),
-                const SizedBox(width: 6),
-                Text(customerName,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Colors.black87)),
-              ]),
-              const SizedBox(height: 6),
-            ],
-            Text(
-                '${sale.items.length} item${sale.items.length > 1 ? 's' : ''} saved securely',
-                style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 13)),
-            if (paymentType == 'online' &&
-                refText.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text('Ref# $refText',
-                  style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600)),
-            ],
-            const SizedBox(height: 16),
-            Divider(color: Colors.grey.shade200),
-            const SizedBox(height: 12),
-            Row(children: [
-              Text('Total Owed',
-                  style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14)),
-              const Spacer(),
-              Text(
-                  CurrencyFormatter.format(
-                      sale.totalAmount),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 22,
-                      color: Colors.black87)),
-            ]),
-            if (paymentType == 'cash' &&
-                saleChange > 0) ...[
-              const SizedBox(height: 8),
-              Row(children: [
-                Text('Change Paid',
-                    style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14)),
-                const Spacer(),
+                if (customerName != null) ...[
+                  Row(children: [
+                    Icon(Icons.person_outline,
+                        size: 16, color: Colors.grey[500]),
+                    const SizedBox(width: 6),
+                    Text(customerName,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Colors.black87)),
+                  ]),
+                  const SizedBox(height: 6),
+                ],
                 Text(
-                    CurrencyFormatter.format(saleChange),
-                    style: const TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18)),
+                    '${sale.items.length} item${sale.items.length > 1 ? 's' : ''} saved securely',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                if (paymentType == 'online' && refText.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text('Ref# $refText',
+                      style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600)),
+                ],
+                const SizedBox(height: 16),
+                Divider(color: Colors.grey.shade200),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Text('Total Owed',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                  const Spacer(),
+                  Text(CurrencyFormatter.format(sale.totalAmount),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 22,
+                          color: Colors.black87)),
+                ]),
+                if (paymentType == 'cash' && saleChange > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Text('Change Paid',
+                        style:
+                            TextStyle(color: Colors.grey[600], fontSize: 14)),
+                    const Spacer(),
+                    Text(CurrencyFormatter.format(saleChange),
+                        style: const TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18)),
+                  ]),
+                ],
               ]),
-            ],
-          ]),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.of(dialogCtx).pop(),
+              onPressed: () => Navigator.of(dialogCtx).pop(),
               child: Text('Dismiss',
                   style: TextStyle(
                       color: Colors.grey[600],
@@ -1479,16 +1346,22 @@ class _CartSheetState extends State<_CartSheet> {
                 backgroundColor: _blue,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
               child: const Text('View Order Slip',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14)),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             ),
           ],
         ),
       );
+    } else {
+      // The only way completeSale() returns null here (the cart-empty
+      // case is already guarded above) is a failed loyalty-points
+      // redemption — the cart and entered amounts are left untouched so
+      // the cashier can just remove the redemption and retry.
+      CenterToast.showError(context,
+          "Couldn't redeem loyalty points — the balance may be out of date. Remove the redemption or try again.");
     }
   }
 }

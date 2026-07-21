@@ -606,7 +606,7 @@ class DatabaseService {
         .subtract(Duration(days: days - 1));
     final result = await (await database).rawQuery('''
       SELECT
-        COALESCE(SUM(CASE WHEN type IN ('cash','installment')
+        COALESCE(SUM(CASE WHEN type IN ('cash','installment','mixed')
           THEN totalAmount - creditAmount ELSE 0 END), 0) as cash,
         COALESCE(SUM(CASE WHEN type = 'online'
           THEN totalAmount ELSE 0 END), 0) as online,

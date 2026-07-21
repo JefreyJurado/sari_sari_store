@@ -988,11 +988,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                               if (existing != null) {
                                 customerId = existing.id;
                               } else {
-                                await prov.addCustomer(customerName);
-                                customerId = prov.customers
-                                    .firstWhere((c) => c.name == customerName,
-                                        orElse: () => prov.customers.last)
-                                    .id;
+                                final newCustomer =
+                                    await prov.addCustomer(customerName);
+                                customerId = newCustomer.id;
                               }
                             }
                             final itemDesc = selectedProducts.entries
@@ -1194,9 +1192,12 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                   status: isComplete
                       ? InstallmentStatus.completed
                       : InstallmentStatus.ongoing,
+                  // Extend from the *original* due date, not from today —
+                  // resetting the clock on a late payment would reward
+                  // lateness by pushing the whole schedule back every time.
                   nextDueDate: isComplete
                       ? inst.nextDueDate
-                      : DateTime.now().add(const Duration(days: 30)),
+                      : inst.nextDueDate.add(const Duration(days: 30)),
                 );
                 await InstallmentService.instance.save(updated);
                 await _load();

@@ -571,12 +571,22 @@ class _CapitalScreenState extends State<CapitalScreen> {
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: _blue.withValues(alpha: 0.15)),
                   ),
-                  child: _detailRow(
-                      'Total Investment',
-                      CurrencyFormatter.format(prov.totalInvestment),
-                      Icons.account_balance_outlined,
-                      _blue,
-                      bold: true),
+                  child: Column(children: [
+                    _detailRow(
+                        'Total Investment',
+                        CurrencyFormatter.format(prov.totalInvestment),
+                        Icons.account_balance_outlined,
+                        _blue,
+                        bold: true),
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      const SizedBox(width: 48),
+                      Text(
+                        '= Total Setup Costs (inventory excluded from ROI)',
+                        style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                      ),
+                    ]),
+                  ]),
                 ),
                 const SizedBox(height: 20),
 
