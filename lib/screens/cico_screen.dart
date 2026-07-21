@@ -84,17 +84,19 @@ class _TypeMeta {
   final String label;
   final IconData icon;
   final Color color;
-  const _TypeMeta(this.label, this.icon, this.color);
+  final String description;
+  const _TypeMeta(this.label, this.icon, this.color, this.description);
 }
 
 const _typeMeta = {
-  CicoType.cashIn:
-      _TypeMeta('Cash In', Icons.south_west_rounded, AppColors.green),
-  CicoType.cashOut:
-      _TypeMeta('Cash Out', Icons.north_east_rounded, AppColors.orange),
-  CicoType.topUp: _TypeMeta('Top Up', Icons.add_circle_outline, _indigo),
-  CicoType.withdraw:
-      _TypeMeta('Withdraw', Icons.remove_circle_outline, AppColors.red),
+  CicoType.cashIn: _TypeMeta('Cash In', Icons.south_west_rounded,
+      AppColors.green, 'Customer gives you cash, you send them e-money'),
+  CicoType.cashOut: _TypeMeta('Cash Out', Icons.north_east_rounded,
+      AppColors.orange, 'Customer sends you e-money, you give them cash'),
+  CicoType.topUp: _TypeMeta('Top Up', Icons.add_circle_outline, _indigo,
+      'Add money into one of your own accounts'),
+  CicoType.withdraw: _TypeMeta('Withdraw', Icons.remove_circle_outline,
+      AppColors.red, 'Take money out of one of your own accounts'),
 };
 
 const _filterLabels = ['All', 'Cash In', 'Cash Out', 'Top Up', 'Withdraw'];
@@ -595,7 +597,7 @@ class _CicoScreenState extends State<CicoScreen> {
           ]),
         ),
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _showForm(context, prov, null),
+          onPressed: () => _showTypeChooser(context, prov),
           backgroundColor: _indigo,
           foregroundColor: Colors.white,
           elevation: 0,
@@ -909,9 +911,106 @@ class _CicoScreenState extends State<CicoScreen> {
     );
   }
 
+  // Lets the "Add Transaction" FAB ask what kind of transaction this is
+  // before opening the form, rather than always defaulting to Cash In and
+  // relying on the type chips inside the form to be noticed and changed.
+  void _showTypeChooser(BuildContext context, AppProvider prov) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (sheetCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const Text('Add Transaction',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87)),
+              const SizedBox(height: 2),
+              Text('What kind of transaction is this?',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              const SizedBox(height: 16),
+              for (final t in CicoType.values) ...[
+                _typeChoiceTile(sheetCtx, context, prov, t),
+                if (t != CicoType.values.last) const SizedBox(height: 10),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _typeChoiceTile(BuildContext sheetCtx, BuildContext pageContext,
+      AppProvider prov, CicoType t) {
+    final meta = _typeMeta[t]!;
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(sheetCtx);
+        _showForm(pageContext, prov, null, initialType: t);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: meta.color.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: meta.color.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                  color: meta.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10)),
+              child: Icon(meta.icon, color: meta.color, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(meta.label,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87)),
+                  const SizedBox(height: 2),
+                  Text(meta.description,
+                      style:
+                          TextStyle(fontSize: 11.5, color: Colors.grey[600])),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showForm(
-      BuildContext context, AppProvider prov, CicoTransaction? existing) {
-    CicoType type = existing?.type ?? CicoType.cashIn;
+      BuildContext context, AppProvider prov, CicoTransaction? existing,
+      {CicoType? initialType}) {
+    CicoType type = existing?.type ?? initialType ?? CicoType.cashIn;
     final isInOutInitial = type == CicoType.cashIn || type == CicoType.cashOut;
 
     // Chip lists always include whatever account this transaction already
