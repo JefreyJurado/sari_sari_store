@@ -291,6 +291,48 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  // Fixed height so all four tiles match regardless of whether their label
+  // happens to wrap to one line ("Import") or two ("Clear Products") at a
+  // given screen width — previously each Container sized itself purely off
+  // its own text content, so the boxes visibly differed in height.
+  Widget _toolTile({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color bg,
+    required Color border,
+    required VoidCallback onTap,
+  }) =>
+      Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            height: 64,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: border),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 18, color: color),
+                const SizedBox(height: 4),
+                Text(label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: color)),
+              ],
+            ),
+          ),
+        ),
+      );
+
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -411,132 +453,49 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   // ── Tools Row ──────────────────────────
                   Row(
                     children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const InventoryLogScreen())),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: _blue.withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                  color: _blue.withValues(alpha: 0.2)),
-                            ),
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.table_chart_outlined,
-                                    size: 18, color: _blue),
-                                SizedBox(height: 4),
-                                Text('Inventory Log',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: _blue)),
-                              ],
-                            ),
-                          ),
-                        ),
+                      _toolTile(
+                        icon: Icons.table_chart_outlined,
+                        label: 'Inventory Log',
+                        color: _blue,
+                        bg: _blue.withValues(alpha: 0.06),
+                        border: _blue.withValues(alpha: 0.2),
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const InventoryLogScreen())),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _confirmClearDefaults(
-                              context, context.read<AppProvider>()),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.red.shade200),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.delete_sweep_outlined,
-                                    size: 18, color: Colors.red.shade600),
-                                const SizedBox(height: 4),
-                                Text('Clear Products',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.red.shade600)),
-                              ],
-                            ),
-                          ),
-                        ),
+                      _toolTile(
+                        icon: Icons.delete_sweep_outlined,
+                        label: 'Clear Products',
+                        color: Colors.red.shade600,
+                        bg: Colors.red.shade50,
+                        border: Colors.red.shade200,
+                        onTap: () => _confirmClearDefaults(
+                            context, context.read<AppProvider>()),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      const ArchivedProductsScreen())),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.orange.shade200),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.restore_outlined,
-                                    size: 18, color: Colors.orange.shade700),
-                                const SizedBox(height: 4),
-                                Text('Archived',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.orange.shade700)),
-                              ],
-                            ),
-                          ),
-                        ),
+                      _toolTile(
+                        icon: Icons.restore_outlined,
+                        label: 'Archived',
+                        color: Colors.orange.shade700,
+                        bg: Colors.orange.shade50,
+                        border: Colors.orange.shade200,
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const ArchivedProductsScreen())),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _showImportSheet(
-                              context, context.read<AppProvider>()),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.purple.withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                  color:
-                                      AppColors.purple.withValues(alpha: 0.2)),
-                            ),
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.file_upload_outlined,
-                                    size: 18, color: AppColors.purple),
-                                SizedBox(height: 4),
-                                Text('Import',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.purple)),
-                              ],
-                            ),
-                          ),
-                        ),
+                      _toolTile(
+                        icon: Icons.file_upload_outlined,
+                        label: 'Import',
+                        color: AppColors.purple,
+                        bg: AppColors.purple.withValues(alpha: 0.06),
+                        border: AppColors.purple.withValues(alpha: 0.2),
+                        onTap: () => _showImportSheet(
+                            context, context.read<AppProvider>()),
                       ),
                     ],
                   ),

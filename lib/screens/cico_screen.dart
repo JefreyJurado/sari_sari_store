@@ -522,22 +522,32 @@ class _CicoScreenState extends State<CicoScreen> {
                       '${CurrencyFormatter.format(prov.cicoTotalCommission)}',
                       style: TextStyle(color: Colors.grey[500], fontSize: 12)),
                 ),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
                           builder: (_) => const RateSettingsScreen())),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Manage Rates',
-                          style: TextStyle(
-                              color: _indigo,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700)),
-                      Icon(Icons.chevron_right_rounded,
-                          size: 16, color: _indigo),
-                    ],
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: _indigo.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Manage Rates',
+                            style: TextStyle(
+                                color: _indigo,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700)),
+                        SizedBox(width: 3),
+                        Icon(Icons.chevron_right_rounded,
+                            size: 16, color: _indigo),
+                      ],
+                    ),
                   ),
                 ),
               ]),
