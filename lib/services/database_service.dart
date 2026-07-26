@@ -8,6 +8,7 @@ import '../models/debt.dart';
 import '../models/payment.dart';
 import '../models/capital_entry.dart';
 import '../models/cico_transaction.dart';
+import '../models/cico_rate.dart';
 
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
@@ -20,7 +21,7 @@ class DatabaseService {
     final path = join(await getDatabasesPath(), 'pos_system.db');
     return openDatabase(
       path,
-      version: 13,
+      version: 14,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -126,6 +127,17 @@ class DatabaseService {
       customerName TEXT,
       customerPhone TEXT,
       transferAccount TEXT)''');
+
+    await db.execute('''CREATE TABLE cico_rates(
+      id TEXT PRIMARY KEY,
+      provider TEXT NOT NULL,
+      txnType TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      value REAL NOT NULL,
+      minAmount REAL NOT NULL DEFAULT 0,
+      maxAmount REAL,
+      isActive INTEGER NOT NULL DEFAULT 1,
+      createdAt TEXT NOT NULL)''');
   }
 
   Future<void> _onUpgrade(Database db, int oldV, int newV) async {
@@ -281,6 +293,18 @@ class DatabaseService {
       // guessed "other side" here would silently change balances that were
       // already relied on.
     }
+    if (oldV < 14) {
+      await db.execute('''CREATE TABLE IF NOT EXISTS cico_rates(
+        id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL,
+        txnType TEXT NOT NULL,
+        mode TEXT NOT NULL,
+        value REAL NOT NULL,
+        minAmount REAL NOT NULL DEFAULT 0,
+        maxAmount REAL,
+        isActive INTEGER NOT NULL DEFAULT 1,
+        createdAt TEXT NOT NULL)''');
+    }
   }
 
   // ── CUSTOMERS ──────────────────────────────────────────
@@ -314,6 +338,19 @@ class DatabaseService {
   Future<void> insertProduct(Product p) async =>
       (await database).insert('products', p.toMap(),
           conflictAlgorithm: ConflictAlgorithm.replace);
+
+  /// Bulk insert for catalog imports — a single batch/transaction instead
+  /// of one [insertProduct] await per row, so importing a few hundred
+  /// products doesn't serialize a few hundred separate DB round-trips.
+  Future<void> importProducts(List<Product> products) async {
+    final db = await database;
+    final batch = db.batch();
+    for (final p in products) {
+      batch.insert('products', p.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
+  }
 
   Future<List<Product>> getProducts({bool activeOnly = true}) async {
     final db = await database;
@@ -505,6 +542,23 @@ class DatabaseService {
 
   Future<void> deleteCicoTransaction(String id) async => (await database)
       .delete('cico_transactions', where: 'id=?', whereArgs: [id]);
+
+  // ── CICO RATES ─────────────────────────────────────────
+  Future<void> insertRateRule(CicoRateRule r) async =>
+      (await database).insert('cico_rates', r.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+
+  Future<List<CicoRateRule>> getRateRules() async {
+    final maps = await (await database)
+        .query('cico_rates', orderBy: 'minAmount ASC');
+    return maps.map(CicoRateRule.fromMap).toList();
+  }
+
+  Future<void> updateRateRule(CicoRateRule r) async => (await database)
+      .update('cico_rates', r.toMap(), where: 'id=?', whereArgs: [r.id]);
+
+  Future<void> deleteRateRule(String id) async =>
+      (await database).delete('cico_rates', where: 'id=?', whereArgs: [id]);
 
   // ── DEBTS ──────────────────────────────────────────────
   Future<void> insertDebt(Debt d) async => (await database)
@@ -1006,6 +1060,7 @@ class DatabaseService {
       'setup_cost_items': await db.query('setup_cost_items'),
       'inventory_snapshots': await db.query('inventory_snapshots'),
       'cico_transactions': await db.query('cico_transactions'),
+      'cico_rates': await db.query('cico_rates'),
     };
   }
 
@@ -1058,6 +1113,10 @@ class DatabaseService {
       if (data['cico_transactions'] != null) {
         await txn.delete('cico_transactions');
         await ins('cico_transactions', data['cico_transactions'] as List);
+      }
+      if (data['cico_rates'] != null) {
+        await txn.delete('cico_rates');
+        await ins('cico_rates', data['cico_rates'] as List);
       }
     });
   }

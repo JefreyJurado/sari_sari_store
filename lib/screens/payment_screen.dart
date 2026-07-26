@@ -60,7 +60,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
               Divider(height: 1, color: Colors.grey.shade200),
         ),
       ),
-      body: SingleChildScrollView(
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,6 +289,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 20),
           ],
+        ),
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'pin_screen.dart';
+import 'rate_settings_screen.dart';
 import '../services/database_service.dart';
 import '../services/biometric_service.dart';
 import '../providers/app_provider.dart';
@@ -603,6 +604,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             points: [
               'Store Name shows up on your Home screen and on every Order Slip — set it to whatever your customers know your tindahan as.',
               'Store Hours tells the app when you\'re actually open — set your real opening and closing time so the Home screen mascot reflects it accurately instead of guessing.',
+              'Cash In/Out Fee Rates lets you configure your GCash/Maya fee tiers so the commission field on new Cash In/Cash Out entries auto-fills — also reachable via "Manage Rates" right on the Cash In-Cash Out screen.',
               'PIN Lock requires a 4-digit code to open the app; Biometric Unlock (fingerprint/face) is an optional shortcut on top of it, never a replacement.',
               "Forgot your PIN? Use \"Forgot PIN?\" on the lock screen — it verifies you through your phone's own screen lock, then lets you set a new one.",
               'Clear Specific Data lets you wipe just one category (e.g. only sales); Clear All Data erases everything — both are permanent, so back up first if unsure.',
@@ -802,6 +804,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         "The Home screen mascot uses these hours and days to know when your store is actually open — set them to match your real schedule.",
                         style:
                             TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  ),
+                  const SizedBox(height: 16),
+                  _label('GCASH & E-WALLET RATES'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          leading: Icon(Icons.percent_rounded,
+                              color: Colors.grey[500], size: 20),
+                          title: const Text('Cash In/Out Fee Rates',
+                              style: TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13)),
+                          subtitle: Text(
+                              'Set fixed or percentage fees per provider',
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 11)),
+                          trailing: Icon(Icons.chevron_right,
+                              color: Colors.grey[400], size: 18),
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const RateSettingsScreen())),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   _label('NOTIFICATIONS'),

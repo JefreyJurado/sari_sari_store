@@ -10,6 +10,7 @@ import '../utils/date_helper.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/help_sheet.dart';
+import 'rate_settings_screen.dart';
 
 const _indigo = Color(0xFF4F46E5);
 // Fallback colors for accounts with no official logo asset below.
@@ -454,6 +455,7 @@ class _CicoScreenState extends State<CicoScreen> {
                 'Tap any GCash/Maya/bank balance card to add or edit the actual mobile/account number for your reference — a "Remove" option there lets you delete an account you registered by mistake or no longer use.',
                 'Cash In/Out entries can also record the customer\'s name and number for your own recordkeeping — both are optional.',
                 "Commission earned per transaction is tracked on its own and doesn't affect the float balances — it's just a running total of what you've earned.",
+                'Tap "Manage Rates" below the balance cards to set up fixed or percentage fee tiers per provider and direction — once configured, the commission field on a new Cash In/Cash Out auto-fills based on the amount you enter (you can still edit it by hand).',
                 "If an amount would push a float negative, you'll see a warning, but you can still save it — you may be topping up right after.",
                 'Tap any transaction to view its full details; use the ⋮ menu on the row to edit or delete it.',
               ],
@@ -514,10 +516,30 @@ class _CicoScreenState extends State<CicoScreen> {
               child: Row(children: [
                 Icon(Icons.percent_rounded, size: 14, color: Colors.grey[500]),
                 const SizedBox(width: 6),
-                Text(
-                    'Commission earned (all time): '
-                    '${CurrencyFormatter.format(prov.cicoTotalCommission)}',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                Expanded(
+                  child: Text(
+                      'Commission earned (all time): '
+                      '${CurrencyFormatter.format(prov.cicoTotalCommission)}',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const RateSettingsScreen())),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Manage Rates',
+                          style: TextStyle(
+                              color: _indigo,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                      Icon(Icons.chevron_right_rounded,
+                          size: 16, color: _indigo),
+                    ],
+                  ),
+                ),
               ]),
             ),
             const SizedBox(height: 10),
@@ -1083,6 +1105,15 @@ class _CicoScreenState extends State<CicoScreen> {
         text: existing != null && existing.commission > 0
             ? existing.commission.toStringAsFixed(2)
             : '');
+    // Auto-fill only ever kicks in while this stays true — flips to false
+    // for good the moment the user types into the commission field
+    // themselves, so a configured rate never clobbers a manual entry. Only
+    // ever starts true for a brand-new transaction — never when editing an
+    // existing one (even one with commission == 0), since rates can change
+    // after the fact and silently rewriting a saved historical record's
+    // commission just because it was reopened to fix an unrelated field
+    // (e.g. a typo in notes) would be a real data-integrity surprise.
+    bool commissionAutoFilled = existing == null;
     final notesCtrl = TextEditingController(text: existing?.notes ?? '');
     final customerNameCtrl =
         TextEditingController(text: existing?.customerName ?? '');
@@ -1124,6 +1155,25 @@ class _CicoScreenState extends State<CicoScreen> {
                       ? transferBank
                       : transferWallet);
           final amount = double.tryParse(amountCtrl.text) ?? 0;
+
+          // Auto-fill the commission from a configured rate tier, but only
+          // ever while the field hasn't been touched by hand — see the
+          // commissionAutoFilled comment above.
+          final matchedRate = isInOut && amount > 0
+              ? prov.resolveRate(
+                  type: type, provider: resolvedWallet, amount: amount)
+              : null;
+          if (isInOut && commissionAutoFilled) {
+            final autoText = matchedRate != null
+                ? matchedRate.commissionFor(amount).toStringAsFixed(2)
+                : '';
+            if (commissionCtrl.text != autoText) {
+              commissionCtrl.text = autoText;
+            }
+          }
+          final showAutoFillHint =
+              isInOut && commissionAutoFilled && matchedRate != null;
+
           final warning = _floatWarning(prov, type,
               wallet: resolvedWallet,
               liquidAccount: resolvedLiquidAccount,
@@ -1508,6 +1558,8 @@ class _CicoScreenState extends State<CicoScreen> {
                           TextField(
                             controller: commissionCtrl,
                             keyboardType: TextInputType.number,
+                            onChanged: (_) =>
+                                setS(() => commissionAutoFilled = false),
                             decoration: InputDecoration(
                               labelText: 'Commission earned (optional)',
                               labelStyle: TextStyle(
@@ -1527,13 +1579,25 @@ class _CicoScreenState extends State<CicoScreen> {
                           ),
                           const SizedBox(height: 6),
                           Row(children: [
-                            Icon(Icons.info_outline,
-                                size: 13, color: Colors.grey[400]),
+                            Icon(
+                                showAutoFillHint
+                                    ? Icons.check_circle_outline
+                                    : Icons.info_outline,
+                                size: 13,
+                                color: showAutoFillHint
+                                    ? AppColors.green
+                                    : Colors.grey[400]),
                             const SizedBox(width: 5),
                             Expanded(
-                              child: Text(_rateHint(type, resolvedWallet),
+                              child: Text(
+                                  showAutoFillHint
+                                      ? 'Auto-filled from your $resolvedWallet rate — edit it if this transaction is different.'
+                                      : _rateHint(type, resolvedWallet),
                                   style: TextStyle(
-                                      fontSize: 10.5, color: Colors.grey[500])),
+                                      fontSize: 10.5,
+                                      color: showAutoFillHint
+                                          ? AppColors.green
+                                          : Colors.grey[500])),
                             ),
                           ]),
                           const SizedBox(height: 12),

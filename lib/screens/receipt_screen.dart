@@ -166,7 +166,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               Divider(height: 1, color: Colors.grey.shade200),
         ),
       ),
-      body: SingleChildScrollView(
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(children: [
 
@@ -645,6 +647,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           ]),
           const SizedBox(height: 20),
         ]),
+        ),
       ),
     );
   }

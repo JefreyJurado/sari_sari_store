@@ -121,7 +121,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 fontWeight: FontWeight.w700,
                 color: Colors.black87)),
       ),
-      body: Column(children: [
+      body: SafeArea(
+        top: false,
+        child: Column(children: [
 
         // ── Display ────────────────────────────────────
         Container(
@@ -184,6 +186,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           ),
         ),
       ]),
+      ),
     );
   }
 

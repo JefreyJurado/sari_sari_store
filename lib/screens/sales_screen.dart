@@ -431,6 +431,7 @@ class _ProductSliverGrid extends StatelessWidget {
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,
+                                height: 1.25,
                                 color: AppColors.textPrimary),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis),

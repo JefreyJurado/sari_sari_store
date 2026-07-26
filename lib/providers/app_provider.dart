@@ -11,6 +11,7 @@ import '../models/payment.dart';
 import '../models/capital_entry.dart';
 import '../models/installment.dart';
 import '../models/cico_transaction.dart';
+import '../models/cico_rate.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../services/backup_service.dart';
@@ -28,6 +29,7 @@ class AppProvider extends ChangeNotifier {
   List<Sale> sales = [];
   List<Expense> expenses = [];
   List<CicoTransaction> cico = [];
+  List<CicoRateRule> rates = [];
   List<Debt> debts = [];
   List<DebtPayment> payments = [];
   CapitalEntry? capital;
@@ -242,6 +244,7 @@ class AppProvider extends ChangeNotifier {
       _db.getDebts(),
       _db.getPayments(),
       _db.getCicoTransactions(),
+      _db.getRateRules(),
     ]);
     customers = results[0] as List<Customer>;
     products = results[1] as List<Product>;
@@ -250,6 +253,7 @@ class AppProvider extends ChangeNotifier {
     debts = results[4] as List<Debt>;
     payments = results[5] as List<DebtPayment>;
     cico = results[6] as List<CicoTransaction>;
+    rates = results[7] as List<CicoRateRule>;
     capital = await _db.getCapital();
     final totals = await _db.getAllTimeTotals();
     _allTimeRevenue = totals['revenue'] ?? 0;
@@ -654,6 +658,16 @@ class AppProvider extends ChangeNotifier {
     _safeNotifyListeners();
   }
 
+  /// Bulk catalog import — one batch insert plus a single reload/notify,
+  /// instead of looping [addProduct] which would reload+notify once per
+  /// row and be far slower for a few hundred products.
+  Future<void> importProducts(List<Product> newProducts) async {
+    if (newProducts.isEmpty) return;
+    await _db.importProducts(newProducts);
+    products = await _db.getProducts();
+    _safeNotifyListeners();
+  }
+
   /// Toggles the active/archive state of a product to hide it without hard deleting data
   Future<void> archiveProduct(String id) async {
     final index = products.indexWhere((p) => p.id == id);
@@ -754,6 +768,41 @@ class AppProvider extends ChangeNotifier {
   Future<void> deleteCicoTransaction(String id) async {
     await _db.deleteCicoTransaction(id);
     await reload();
+  }
+
+  // ── CICO Rates ─────────────────────────────────────────────────
+  Future<void> addRateRule(CicoRateRule rule) async {
+    await _db.insertRateRule(rule);
+    await reload();
+  }
+
+  Future<void> updateRateRule(CicoRateRule rule) async {
+    await _db.updateRateRule(rule);
+    await reload();
+  }
+
+  Future<void> deleteRateRule(String id) async {
+    await _db.deleteRateRule(id);
+    await reload();
+  }
+
+  /// In-memory lookup over the already-loaded [rates] list (same style as
+  /// cicoWalletBalance/cicoBankBalance below, which fold over the loaded
+  /// [cico] list rather than hitting the DB). If tiers overlap, the one
+  /// with the lowest minAmount wins.
+  CicoRateRule? resolveRate({
+    required CicoType type,
+    required String provider,
+    required double amount,
+  }) {
+    final matches = rates.where((r) =>
+        r.isActive &&
+        r.txnType == type &&
+        r.provider == provider &&
+        amount >= r.minAmount &&
+        (r.maxAmount == null || amount <= r.maxAmount!)).toList()
+      ..sort((a, b) => a.minAmount.compareTo(b.minAmount));
+    return matches.firstOrNull;
   }
 
   // topUp/withdraw only: `transferAccount` optionally names the other side

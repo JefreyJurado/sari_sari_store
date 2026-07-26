@@ -445,7 +445,9 @@ class _CapitalScreenState extends State<CapitalScreen> {
               isProfit ? Colors.green.shade600 : Colors.red.shade600;
           final setupItems = prov.capital?.setupItems ?? [];
 
-          return SingleChildScrollView(
+          return SafeArea(
+            top: false,
+            child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,6 +709,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
                 ),
                 const SizedBox(height: 20),
               ],
+            ),
             ),
           );
         },

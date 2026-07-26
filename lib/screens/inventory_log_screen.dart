@@ -77,7 +77,9 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
           child: Divider(height: 1, color: Colors.grey.shade200),
         ),
       ),
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -232,6 +234,7 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
                       }),
           ),
         ],
+        ),
       ),
     );
   }

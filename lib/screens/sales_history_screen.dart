@@ -175,7 +175,9 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
               child: Divider(height: 1, color: Colors.grey.shade200),
             ),
           ),
-          body: Column(
+          body: SafeArea(
+            top: false,
+            child: Column(
             children: [
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -379,6 +381,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                       ),
               ),
             ],
+            ),
           ),
         );
       },

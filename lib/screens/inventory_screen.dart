@@ -9,6 +9,7 @@ import 'barcode_scanner_screen.dart';
 import 'inventory_log_screen.dart';
 import 'archived_products_screen.dart';
 import '../services/database_service.dart';
+import '../services/product_import_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/help_sheet.dart';
@@ -86,6 +87,206 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     fontSize: 13)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showImportSheet(BuildContext context, AppProvider prov) {
+    ImportParseResult? result;
+    bool busy = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          Future<void> downloadTemplate() async {
+            setS(() => busy = true);
+            await ProductImportService.instance.exportTemplate();
+            if (ctx.mounted) setS(() => busy = false);
+          }
+
+          Future<void> chooseFile() async {
+            setS(() => busy = true);
+            final parsed = await ProductImportService.instance.pickAndParseFile();
+            if (!ctx.mounted) return;
+            setS(() {
+              busy = false;
+              if (parsed != null) result = parsed;
+            });
+            if (parsed == null && context.mounted) {
+              CenterToast.showError(
+                  context, 'Import failed. Make sure the file is a valid CSV.');
+            }
+          }
+
+          Future<void> confirmImport() async {
+            final r = result;
+            if (r == null || r.toInsert.isEmpty) return;
+            setS(() => busy = true);
+            await prov.importProducts(r.toInsert);
+            if (sheetCtx.mounted) Navigator.pop(sheetCtx);
+            if (context.mounted) {
+              CenterToast.showSuccess(
+                  context, '${r.toInsert.length} products imported!');
+            }
+          }
+
+          Widget summaryLine(IconData icon, Color color, String text) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(icon, size: 14, color: color),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: Text(text,
+                            style: TextStyle(fontSize: 12, color: color))),
+                  ],
+                ),
+              );
+
+          return SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              // A bad CSV can produce dozens of row errors — without this,
+              // that list would overflow the sheet instead of scrolling.
+              child: SingleChildScrollView(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+                const Text('Import Products',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87)),
+                const SizedBox(height: 4),
+                Text(
+                    'Bring in your existing product list from a CSV file.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                const SizedBox(height: 18),
+                if (result == null) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: busy ? null : downloadTemplate,
+                      icon: const Icon(Icons.download_outlined, size: 18),
+                      label: const Text('Download Template'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.purple,
+                        side: BorderSide(
+                            color: AppColors.purple.withValues(alpha: 0.4)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: busy ? null : chooseFile,
+                      icon: busy
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.upload_file_outlined, size: 18),
+                      label: const Text('Choose File'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.purple,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        summaryLine(Icons.check_circle_outline,
+                            AppColors.green,
+                            '${result!.toInsert.length} products ready to import'),
+                        if (result!.skippedDuplicates > 0)
+                          summaryLine(Icons.info_outline, Colors.grey[600]!,
+                              '${result!.skippedDuplicates} skipped (already exist)'),
+                        for (final err in result!.rowErrors)
+                          summaryLine(Icons.warning_amber_outlined,
+                              Colors.orange.shade700, err),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: busy ? null : () => setS(() => result = null),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: Text('Back',
+                            style:
+                                TextStyle(color: Colors.grey[700], fontSize: 13)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: busy || result!.toInsert.isEmpty
+                            ? null
+                            : confirmImport,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.purple,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: busy
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
+                            : Text('Import ${result!.toInsert.length}',
+                                style: const TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ]),
+                ],
+              ]),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -168,6 +369,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               'Low Stock and Out of Stock chips up top warn you before you run out of something customers want.',
                               'Scan a barcode to quickly find or add a product instead of typing its name.',
                               'Archived products are hidden from the sales grid but keep their sales history intact — nothing is deleted.',
+                              'Onboarding a store with an existing catalog? Tap Import in the tools row to download a CSV template, fill it in, and bring in your whole product list at once — duplicates (matched by barcode or name) are skipped automatically.',
                             ],
                           ),
                         ),
@@ -299,6 +501,38 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.orange.shade700)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _showImportSheet(
+                              context, context.read<AppProvider>()),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.purple.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color:
+                                      AppColors.purple.withValues(alpha: 0.2)),
+                            ),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.file_upload_outlined,
+                                    size: 18, color: AppColors.purple),
+                                SizedBox(height: 4),
+                                Text('Import',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.purple)),
                               ],
                             ),
                           ),

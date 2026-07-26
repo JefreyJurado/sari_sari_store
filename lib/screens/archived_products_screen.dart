@@ -82,7 +82,9 @@ class _ArchivedProductsScreenState extends State<ArchivedProductsScreen> {
           child: Divider(height: 1, color: Colors.grey.shade200),
         ),
       ),
-      body: _loading
+      body: SafeArea(
+        top: false,
+        child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _archived.isEmpty
               ? Center(
@@ -153,6 +155,7 @@ class _ArchivedProductsScreenState extends State<ArchivedProductsScreen> {
                     );
                   },
                 ),
+      ),
     );
   }
 }
