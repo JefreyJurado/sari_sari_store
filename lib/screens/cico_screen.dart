@@ -1418,6 +1418,9 @@ class _CicoScreenState extends State<CicoScreen> {
           final media = MediaQuery.of(ctx);
           final availableHeight = media.size.height - media.viewInsets.bottom;
           return Padding(
+            // Only the keyboard inset — the footer Save button below has
+            // its own SafeArea(top: false) already reserving space for the
+            // system gesture/nav bar, so adding it here too would double it.
             padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
             child: ConstrainedBox(
               constraints: BoxConstraints(maxHeight: availableHeight * 0.88),

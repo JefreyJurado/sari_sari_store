@@ -252,7 +252,12 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
 
           final media = MediaQuery.of(ctx);
           return Padding(
-            padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+            // viewInsets.bottom clears the keyboard; padding.bottom clears
+            // the system gesture/nav bar on edge-to-edge Android — without
+            // it the Add Rate button sat right at the screen edge, behind
+            // or flush against the gesture area, making it hard to tap.
+            padding: EdgeInsets.only(
+                bottom: media.viewInsets.bottom + media.padding.bottom),
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -390,6 +395,7 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                             fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                 ),
+                const SizedBox(height: 8),
               ]),
             ),
           );
