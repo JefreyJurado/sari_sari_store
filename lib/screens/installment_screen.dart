@@ -1003,13 +1003,20 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                             // Records the actual sale (stock decrement, revenue,
                             // profit) now — the goods leave the shelf today even
                             // though the customer pays it off over time.
-                            final saleId = await prov.recordInstallmentSale(
-                              items: selectedProducts,
-                              customerId: customerId,
-                              customerName: customerName,
-                              totalAmount: totalAmount,
-                              downPayment: down,
-                            );
+                            String saleId;
+                            try {
+                              saleId = await prov.recordInstallmentSale(
+                                items: selectedProducts,
+                                customerId: customerId,
+                                customerName: customerName,
+                                totalAmount: totalAmount,
+                                downPayment: down,
+                              );
+                            } on InsufficientStockException catch (e) {
+                              setS(() => isSubmitting = false);
+                              if (mounted) CenterToast.showError(context, '$e');
+                              return;
+                            }
                             final installment = Installment(
                               id: _uuid.v4(),
                               customerId: customerId,
@@ -1279,7 +1286,15 @@ class _InstallmentScreenState extends State<InstallmentScreen>
       // straight from the DB: the provider's in-memory list only holds
       // recent sales, so an old plan's sale may not be in it.
       if (inst.status != InstallmentStatus.completed && inst.saleId != null) {
-        await prov.voidSaleById(inst.saleId!);
+        final error = await prov.voidSaleById(inst.saleId!);
+        if (error != null) {
+          // voidSaleById refused (e.g. monthly payments already collected
+          // on this plan) — deleting the Installment now would destroy the
+          // only record of that money without ever reversing the sale, so
+          // stop here instead of deleting anything.
+          if (mounted) CenterToast.showError(context, error);
+          return;
+        }
       }
       await InstallmentService.instance.delete(inst.id);
       await _load();

@@ -22,6 +22,22 @@ import '../utils/date_helper.dart';
 
 const _uuid = Uuid();
 
+/// Thrown by the sale-writing methods below when a requested quantity
+/// exceeds a product's current stock at the moment of writing. Stock can
+/// move between when items were picked (cart/credit order/installment
+/// picker) and when the sale is actually submitted — e.g. another sale for
+/// the same product completes first — and
+/// [DatabaseService.adjustProductStock] clamps at 0 rather than failing,
+/// so without this check an oversell would complete silently instead of
+/// surfacing an error.
+class InsufficientStockException implements Exception {
+  final String productName;
+  InsufficientStockException(this.productName);
+  @override
+  String toString() => '$productName no longer has enough stock — it may '
+      'have just been sold elsewhere. Please adjust and try again.';
+}
+
 class AppProvider extends ChangeNotifier {
   final _db = DatabaseService.instance;
 
@@ -66,6 +82,18 @@ class AppProvider extends ChangeNotifier {
   }
 
   final Map<Product, int> cart = {};
+
+  // Looks up current stock straight from the in-memory product list (kept
+  // fresh by every reload()) rather than trusting a Product reference a
+  // caller may have been holding onto since before some other sale moved
+  // its stock — throws instead of returning a bool so every call site gets
+  // the same clear, specific error message for free.
+  void _checkStock(String productId, int qty) {
+    final live = _products.where((p) => p.id == productId).firstOrNull;
+    if (live != null && qty > live.stock) {
+      throw InsufficientStockException(live.name);
+    }
+  }
 
   void _safeNotifyListeners() {
     final binding = WidgetsBinding.instance;
@@ -315,6 +343,14 @@ class AppProvider extends ChangeNotifier {
   }) async {
     if (cart.isEmpty) return null;
 
+    // Re-validate against current stock right before writing anything — a
+    // cart's quantity is only checked against stock at the moment an item
+    // is added (addToCart/setCartQty), so it can go stale if another sale
+    // for the same product completes while this cart sits open.
+    for (final entry in cart.entries) {
+      _checkStock(entry.key.id, entry.value);
+    }
+
     final items = cart.entries
         .map((e) => TxItem(
               productId: e.key.id,
@@ -417,6 +453,10 @@ class AppProvider extends ChangeNotifier {
     DateTime? dueDate,
     DateTime? saleDate,
   }) async {
+    for (final e in items) {
+      _checkStock((e['product'] as Product).id, e['qty'] as int);
+    }
+
     final txItems = items.map((e) {
       final product = e['product'] as Product;
       final qty = e['qty'] as int;
@@ -503,6 +543,23 @@ class AppProvider extends ChangeNotifier {
       return 'Cannot void: ${CurrencyFormatter.format(alreadyPaid)} has '
           'already been paid on this credit. Settle or record it first.';
     }
+    // Installment sales never get a `Debt` row (see recordInstallmentSale),
+    // so the check above can't see money collected via monthly payments —
+    // those only exist on the linked Installment's totalPaid. Block the
+    // void the same way if any payment beyond the original down payment
+    // (already baked into this sale's own totals) has been recorded.
+    if (sale.type == PaymentType.installment) {
+      final plan = (await InstallmentService.instance.getAll())
+          .where((p) => p.saleId == sale.id)
+          .firstOrNull;
+      if (plan != null && plan.paidMonths > 0) {
+        final collected =
+            CurrencyFormatter.roundCents(plan.totalPaid - plan.downPayment);
+        return 'Cannot void: ${CurrencyFormatter.format(collected)} in '
+            'installment payments has already been collected. Settle or '
+            'record it first.';
+      }
+    }
     // Adjusts stock in place by id rather than looking the product up in
     // the (active-only) in-memory list and rewriting the whole row — that
     // used to fabricate a blank stand-in for archived products and wipe
@@ -557,6 +614,10 @@ class AppProvider extends ChangeNotifier {
     required double totalAmount,
     required double downPayment,
   }) async {
+    for (final e in items.entries) {
+      _checkStock(e.key.id, e.value);
+    }
+
     final txItems = items.entries
         .map((e) => TxItem(
               productId: e.key.id,

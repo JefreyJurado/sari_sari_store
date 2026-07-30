@@ -1210,16 +1210,25 @@ class _CartSheetState extends State<_CartSheet> {
             ? 'Online Payment'
             : null;
 
-    final sale = await prov.completeSale(
-      cashPaid: _paymentType == 'cash' ? cashPaid : _effectiveTotal,
-      creditAmount: 0,
-      type: _paymentType == 'cash' ? PaymentType.cash : PaymentType.online,
-      notes: notes,
-      customer: customer,
-      saleDate: _saleDate,
-      discount: _loyaltyDiscount,
-      pointsToRedeem: _pointsToRedeem,
-    );
+    Sale? result;
+    try {
+      result = await prov.completeSale(
+        cashPaid: _paymentType == 'cash' ? cashPaid : _effectiveTotal,
+        creditAmount: 0,
+        type: _paymentType == 'cash' ? PaymentType.cash : PaymentType.online,
+        notes: notes,
+        customer: customer,
+        saleDate: _saleDate,
+        discount: _loyaltyDiscount,
+        pointsToRedeem: _pointsToRedeem,
+      );
+    } on InsufficientStockException catch (e) {
+      if (!mounted) return;
+      setState(() => _isProcessing = false);
+      CenterToast.showError(context, '$e');
+      return;
+    }
+    final sale = result;
 
     if (!mounted) return;
     setState(() => _isProcessing = false);
