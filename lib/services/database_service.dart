@@ -548,9 +548,22 @@ class DatabaseService {
       (await database).insert('cico_rates', r.toMap(),
           conflictAlgorithm: ConflictAlgorithm.replace);
 
+  // Batched insert for bulk seeding (e.g. "Load Standard Rates") — one
+  // transaction instead of N separate round-trips.
+  Future<void> insertRateRules(List<CicoRateRule> rules) async {
+    if (rules.isEmpty) return;
+    final db = await database;
+    final batch = db.batch();
+    for (final r in rules) {
+      batch.insert('cico_rates', r.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
+  }
+
   Future<List<CicoRateRule>> getRateRules() async {
-    final maps = await (await database)
-        .query('cico_rates', orderBy: 'minAmount ASC');
+    final maps =
+        await (await database).query('cico_rates', orderBy: 'minAmount ASC');
     return maps.map(CicoRateRule.fromMap).toList();
   }
 
@@ -559,6 +572,9 @@ class DatabaseService {
 
   Future<void> deleteRateRule(String id) async =>
       (await database).delete('cico_rates', where: 'id=?', whereArgs: [id]);
+
+  Future<void> deleteAllRateRules() async =>
+      (await database).delete('cico_rates');
 
   // ── DEBTS ──────────────────────────────────────────────
   Future<void> insertDebt(Debt d) async => (await database)

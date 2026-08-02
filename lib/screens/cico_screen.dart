@@ -1,15 +1,17 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/app_provider.dart';
 import '../models/cico_transaction.dart';
+import '../models/cico_rate.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/help_sheet.dart';
+import '../widgets/rate_ladder.dart';
+import '../utils/cico_type_meta.dart';
+import 'padala_calculator_screen.dart';
 import 'rate_settings_screen.dart';
 
 const _indigo = Color(0xFF4F46E5);
@@ -17,9 +19,6 @@ const _indigo = Color(0xFF4F46E5);
 const _gcashBlue = Color(0xFF0072CE);
 const _mayaGreen = Color(0xFF1DB58C);
 const _bankColor = AppColors.purple;
-const _accountNumbersPrefKey = 'cico_account_numbers';
-const _registeredBanksPrefKey = 'cico_registered_banks';
-const _registeredWalletsPrefKey = 'cico_registered_wallets';
 
 // Official logos supplied by the store owner, matched case-insensitively
 // against the account name. Falls back to a colored initial/icon for any
@@ -81,37 +80,27 @@ Color _walletColor(String name) => switch (name) {
       _ => _indigo,
     };
 
-class _TypeMeta {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final String description;
-  const _TypeMeta(this.label, this.icon, this.color, this.description);
-}
+// Type label/icon/color live in one shared place (cicoTypeMeta) so the
+// ledger and the calculator can't drift apart on branding.
+const _typeMeta = cicoTypeMeta;
 
-const _typeMeta = {
-  CicoType.cashIn: _TypeMeta('Cash In', Icons.south_west_rounded,
-      AppColors.green, 'Customer gives you cash, you send them e-money'),
-  CicoType.cashOut: _TypeMeta('Cash Out', Icons.north_east_rounded,
-      AppColors.orange, 'Customer sends you e-money, you give them cash'),
-  CicoType.topUp: _TypeMeta('Top Up', Icons.add_circle_outline, _indigo,
-      'Add money into one of your own accounts'),
-  CicoType.withdraw: _TypeMeta('Withdraw', Icons.remove_circle_outline,
-      AppColors.red, 'Take money out of one of your own accounts'),
-};
+// Top Up/Withdraw (rebalancing between your own accounts) are no longer
+// offered as a new-transaction choice — Cash In/Cash Out (customer
+// transactions) are the only thing this app records going forward. Any
+// historical Top Up/Withdraw rows are left alone (still visible under the
+// "All" filter, still editable) rather than deleted or hidden outright.
+const _recordableTypes = [CicoType.cashIn, CicoType.cashOut];
 
-const _filterLabels = ['All', 'Cash In', 'Cash Out', 'Top Up', 'Withdraw'];
+final _filterLabels = [
+  'All',
+  for (final t in _recordableTypes) _typeMeta[t]!.label,
+];
 
-CicoType? _typeForFilter(String label) => switch (label) {
-      'Cash In' => CicoType.cashIn,
-      'Cash Out' => CicoType.cashOut,
-      'Top Up' => CicoType.topUp,
-      'Withdraw' => CicoType.withdraw,
-      _ => null,
-    };
+CicoType? _typeForFilter(String label) => _recordableTypes
+    .cast<CicoType?>()
+    .firstWhere((t) => _typeMeta[t]!.label == label, orElse: () => null);
 
-String _providerLabel(String provider) =>
-    provider == CicoTransaction.cashAccount ? 'Cash Float' : provider;
+String _providerLabel(String provider) => cicoProviderLabel(provider);
 
 // Reference only — actual agent commission depends on your specific
 // provider agreement and changes over time, so this is a rough guide,
@@ -133,294 +122,40 @@ String _rateHint(CicoType type, String provider) {
 }
 
 class CicoScreen extends StatefulWidget {
-  const CicoScreen({super.key});
+  // Set together when arriving from the Padala Calculator's "Record as
+  // Transaction" button (pushed as a fresh screen rather than popped back
+  // to, since the calculator has nothing to pop to when it's the root tab)
+  // — opens the Add Transaction form pre-filled as soon as this screen
+  // mounts.
+  final CicoType? prefillType;
+  final double? prefillAmount;
+  final String? prefillProvider;
+
+  const CicoScreen(
+      {super.key, this.prefillType, this.prefillAmount, this.prefillProvider});
   @override
   State<CicoScreen> createState() => _CicoScreenState();
 }
 
 class _CicoScreenState extends State<CicoScreen> {
   String _filter = 'All';
-  Map<String, String> _accountNumbers = {};
-  Set<String> _registeredBanks = {};
-  Set<String> _registeredWallets = {};
 
   @override
   void initState() {
     super.initState();
-    _loadAccountNumbers();
-    _loadRegisteredAccounts();
-  }
-
-  Future<void> _loadAccountNumbers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_accountNumbersPrefKey);
-    if (raw == null) return;
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    if (mounted) {
-      setState(() => _accountNumbers = decoded.cast<String, String>());
-    }
-  }
-
-  Future<void> _loadRegisteredAccounts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final banks = prefs.getStringList(_registeredBanksPrefKey) ?? [];
-    final wallets = prefs.getStringList(_registeredWalletsPrefKey) ?? [];
-    if (mounted) {
-      setState(() {
-        _registeredBanks = banks.toSet();
-        _registeredWallets = wallets.toSet();
+    if (widget.prefillType != null && widget.prefillAmount != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        // This screen only exists here to host the prefilled form — once
+        // it closes (saved or dismissed), go straight back to the
+        // Calculator instead of leaving the user stranded on the ledger.
+        await _showForm(context, context.read<AppProvider>(), null,
+            initialType: widget.prefillType,
+            prefillAmount: widget.prefillAmount,
+            prefillProvider: widget.prefillProvider);
+        if (mounted) Navigator.pop(context);
       });
     }
-  }
-
-  Future<void> _registerAccount(String name, {required bool isBank}) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = isBank ? _registeredBanksPrefKey : _registeredWalletsPrefKey;
-    final updated = {...(isBank ? _registeredBanks : _registeredWallets), name};
-    await prefs.setStringList(key, updated.toList());
-    if (mounted) {
-      setState(() {
-        if (isBank) {
-          _registeredBanks = updated;
-        } else {
-          _registeredWallets = updated;
-        }
-      });
-    }
-  }
-
-  Future<void> _removeRegisteredAccount(String name,
-      {required bool isBank}) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = isBank ? _registeredBanksPrefKey : _registeredWalletsPrefKey;
-    final updated = {...(isBank ? _registeredBanks : _registeredWallets)}
-      ..remove(name);
-    await prefs.setStringList(key, updated.toList());
-    if (mounted) {
-      setState(() {
-        if (isBank) {
-          _registeredBanks = updated;
-        } else {
-          _registeredWallets = updated;
-        }
-      });
-    }
-  }
-
-  void _addAccountDialog(AppProvider prov) {
-    bool isBank = true;
-    final nameCtrl = TextEditingController();
-    final numberCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => StatefulBuilder(
-        builder: (dCtx, setD) => AlertDialog(
-          backgroundColor: Colors.white,
-          scrollable: true,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: const Text('Add Account',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(spacing: 8, children: [
-                GestureDetector(
-                  onTap: () => setD(() => isBank = true),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isBank ? _bankColor : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text('Bank',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight:
-                                isBank ? FontWeight.w600 : FontWeight.normal,
-                            color: isBank ? Colors.white : Colors.grey[600])),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => setD(() => isBank = false),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: !isBank ? _indigo : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text('E-Wallet',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight:
-                                !isBank ? FontWeight.w600 : FontWeight.normal,
-                            color: !isBank ? Colors.white : Colors.grey[600])),
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 14),
-              TextField(
-                controller: nameCtrl,
-                decoration: InputDecoration(
-                  labelText: isBank ? 'Bank name *' : 'Wallet name *',
-                  hintText: isBank
-                      ? 'e.g. BDO, BPI'
-                      : 'e.g. GCash 2, Maya (Business)',
-                  hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
-                  labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey.shade300)),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: numberCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Mobile/account number (optional)',
-                  labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey.shade300)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(dialogCtx),
-                child: Text('Cancel',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13))),
-            TextButton(
-              onPressed: () async {
-                final name = nameCtrl.text.trim();
-                if (name.isEmpty) {
-                  CenterToast.showError(context, 'Account name required.');
-                  return;
-                }
-                await _registerAccount(name, isBank: isBank);
-                if (numberCtrl.text.trim().isNotEmpty) {
-                  await _saveAccountNumber(name, numberCtrl.text);
-                }
-                if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-              },
-              child: const Text('Add',
-                  style: TextStyle(
-                      color: _indigo,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _saveAccountNumber(String account, String number) async {
-    final prefs = await SharedPreferences.getInstance();
-    final updated = {..._accountNumbers};
-    if (number.trim().isEmpty) {
-      updated.remove(account);
-    } else {
-      updated[account] = number.trim();
-    }
-    await prefs.setString(_accountNumbersPrefKey, jsonEncode(updated));
-    if (mounted) setState(() => _accountNumbers = updated);
-  }
-
-  void _editAccountNumber(AppProvider prov, String account,
-      {required bool isBank}) {
-    final ctrl = TextEditingController(text: _accountNumbers[account] ?? '');
-    // "Remove" is only meaningful for accounts you explicitly registered —
-    // GCash/Maya are permanent presets, and anything else only exists here
-    // because it's in _registeredBanks/_registeredWallets in the first place.
-    final hasHistory = isBank
-        ? prov.cicoKnownBanks.contains(account)
-        : prov.cicoKnownProviders.contains(account);
-    final canRemove =
-        (isBank ? _registeredBanks : _registeredWallets).contains(account);
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: Colors.white,
-        scrollable: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: Text('$account Number',
-            style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: ctrl,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: 'Mobile/account number',
-                labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.grey.shade300)),
-              ),
-            ),
-            if (canRemove && hasHistory) ...[
-              const SizedBox(height: 10),
-              Text(
-                "This account has past transactions, so it'll keep appearing "
-                'in your history and balances until those are deleted too.',
-                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          if (canRemove)
-            TextButton(
-              onPressed: () async {
-                await _removeRegisteredAccount(account, isBank: isBank);
-                if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-              },
-              child: const Text('Remove',
-                  style: TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13)),
-            ),
-          TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: Text('Cancel',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13))),
-          TextButton(
-            onPressed: () async {
-              await _saveAccountNumber(account, ctrl.text);
-              if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-            },
-            child: const Text('Save',
-                style: TextStyle(
-                    color: _indigo, fontWeight: FontWeight.w600, fontSize: 13)),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -436,27 +171,50 @@ class _CicoScreenState extends State<CicoScreen> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          title: const Text('Cash In-Cash Out',
-              style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                  letterSpacing: -0.5)),
-          actions: const [
-            HelpIconButton(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('PADALA COUNTER',
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                      color: Colors.grey[500])),
+              const Text('Cash In-Cash Out',
+                  style: TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      letterSpacing: -0.5)),
+            ],
+          ),
+          actions: [
+            IconButton(
+              tooltip: 'Padala Calculator',
+              icon: const Icon(Icons.calculate_outlined, color: Colors.black87),
+              onPressed: () async {
+                final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const PadalaCalculatorScreen()));
+                if (result is Map && context.mounted) {
+                  _showForm(context, prov, null,
+                      initialType: result['type'] as CicoType,
+                      prefillAmount: result['amount'] as double,
+                      prefillProvider: result['provider'] as String);
+                }
+              },
+            ),
+            const HelpIconButton(
               title: 'Cash In-Cash Out (E-Wallet)',
               points: [
-                'Use this to track your GCash/Maya agent side-business: cash-in sends e-money to a customer for cash they hand you; cash-out gives a customer cash for e-money they send you.',
-                'Cash In raises your Cash Float and lowers the wallet you sent from. Cash Out does the opposite.',
-                "If a customer's cash-in/out was funded via bank transfer instead of physical cash, tap the bank directly under \"Received Into\" (Cash In) or \"Paid From\" (Cash Out) — each shows its registered number so you can confirm you picked the right one.",
-                'Tap the "Add Account" tile at the end of the balance row to register a new bank or e-wallet before it shows up here as an option — with an optional number too.',
-                'Need more than one GCash or Maya (e.g. a personal and a business number)? Register it from "Add Account" with its own name, like "GCash 2" — it gets tracked separately from the start.',
-                'Top Up and Withdraw are for rebalancing — moving cash, bank funds, or e-wallet balance between your own accounts, separate from a customer transaction. Pick a "Funded From" (Top Up) or "Sent To" (Withdraw) account to have both sides update together; leave it as "None" to just adjust one account on its own.',
-                'Tap any GCash/Maya/bank balance card to add or edit the actual mobile/account number for your reference — a "Remove" option there lets you delete an account you registered by mistake or no longer use.',
+                'Use this to monitor your GCash/Maya agent side-business: log every Cash In (customer gives you cash, you send them e-money) and Cash Out (customer sends you e-money, you give them cash).',
+                "If a customer's cash-in/out was funded via bank transfer instead of physical cash, pick the bank directly under \"Received Into\" (Cash In) or \"Paid From\" (Cash Out).",
                 'Cash In/Out entries can also record the customer\'s name and number for your own recordkeeping — both are optional.',
-                "Commission earned per transaction is tracked on its own and doesn't affect the float balances — it's just a running total of what you've earned.",
-                'Tap "Manage Rates" below the balance cards to set up fixed or percentage fee tiers per provider and direction — once configured, the commission field on a new Cash In/Cash Out auto-fills based on the amount you enter (you can still edit it by hand).',
-                "If an amount would push a float negative, you'll see a warning, but you can still save it — you may be topping up right after.",
+                "Commission earned per transaction is tracked on its own — it's just a running total of what you've earned, shown up top.",
+                'Tap "Manage Rates" to set up fixed or percentage fee tiers per provider and direction — once configured, the commission field on a new Cash In/Cash Out auto-fills based on the amount you enter (you can still edit it by hand).',
+                'Record any amount — this screen is for monitoring your transactions, not validating them against a balance.',
                 'Tap any transaction to view its full details; use the ⋮ menu on the row to edit or delete it.',
               ],
             ),
@@ -479,38 +237,6 @@ class _CicoScreenState extends State<CicoScreen> {
                 ],
               ),
             ),
-
-            // ── Balance summary ─────────────────────
-            // Tall enough for the 4th line (account number) plus the
-            // taller 26px brand-logo badge (vs. the plain 18px icon) that
-            // some cards show instead of the generic icon.
-            SizedBox(
-              height: 120,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _balanceCard('Cash Float', prov.cicoCashFloatBalance,
-                      Icons.payments_outlined, AppColors.green, null),
-                  for (final b in _allBanks(prov))
-                    _balanceCard(
-                        b,
-                        prov.cicoBankBalance(b),
-                        Icons.account_balance_outlined,
-                        _bankColor,
-                        () => _editAccountNumber(prov, b, isBank: true)),
-                  for (final p in _allWallets(prov))
-                    _balanceCard(
-                        p,
-                        prov.cicoWalletBalance(p),
-                        Icons.account_balance_wallet_outlined,
-                        _walletColor(p),
-                        () => _editAccountNumber(prov, p, isBank: false)),
-                  _addAccountCard(prov),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(children: [
@@ -643,98 +369,10 @@ class _CicoScreenState extends State<CicoScreen> {
     });
   }
 
-  List<String> _allBanks(AppProvider prov) =>
-      {..._registeredBanks, ...prov.cicoKnownBanks}.toList();
+  List<String> _allBanks(AppProvider prov) => prov.cicoKnownBanks.toList();
 
-  List<String> _allWallets(AppProvider prov) =>
-      {...prov.cicoKnownProviders, ..._registeredWallets}.toList();
-
-  Widget _addAccountCard(AppProvider prov) {
-    return GestureDetector(
-      onTap: () => _addAccountDialog(prov),
-      child: Container(
-        width: 90,
-        margin: const EdgeInsets.only(right: 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(
-              color: Colors.grey.shade300,
-              width: 1.5,
-              style: BorderStyle.solid),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_circle_outline, color: Colors.grey[400], size: 24),
-            const SizedBox(height: 6),
-            Text('Add\nAccount',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _balanceCard(String label, double value, IconData icon, Color color,
-      VoidCallback? onTap) {
-    final number = _accountNumbers[label];
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 150,
-        margin: const EdgeInsets.only(right: 10),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color, Color.lerp(color, Colors.black, 0.25)!],
-          ),
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          boxShadow: AppShadows.colored(color),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _brandAssetFor(label) != null
-                ? _brandBadge(label, size: 26)
-                : Icon(icon,
-                    color: Colors.white.withValues(alpha: 0.85), size: 18),
-            const SizedBox(height: 8),
-            Text(label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.75),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 2),
-            Text(CurrencyFormatter.format(value),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800)),
-            if (number != null) ...[
-              const SizedBox(height: 1),
-              Text(number,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.65),
-                      fontSize: 9.5)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  // cicoKnownProviders already folds in CicoTransaction.presetProviders.
+  List<String> _allWallets(AppProvider prov) => prov.cicoKnownProviders;
 
   String? _floatWarning(
     AppProvider prov,
@@ -748,25 +386,14 @@ class _CicoScreenState extends State<CicoScreen> {
   }) {
     if (amount <= 0) return null;
     switch (type) {
+      // This screen is for monitoring/recording transactions, not
+      // validating them against a running balance — record any amount,
+      // regardless of the wallet/float balance. (Also: with Top Up removed,
+      // a wallet balance here can no longer be topped up from within the
+      // app at all, so "exceeds balance" would trigger on nearly every
+      // entry and stop being meaningful.)
       case CicoType.cashIn:
-        final bal = prov.cicoWalletBalance(wallet);
-        if (amount > bal) {
-          return 'This exceeds your $wallet e-wallet balance '
-              '(${CurrencyFormatter.format(bal)}). You can still save, '
-              'but the balance will go negative.';
-        }
-        return null;
       case CicoType.cashOut:
-        final isBank = liquidAccount != CicoTransaction.cashAccount;
-        final bal = isBank
-            ? prov.cicoBankBalance(liquidAccount)
-            : prov.cicoCashFloatBalance;
-        final label = isBank ? '$liquidAccount balance' : 'cash float';
-        if (amount > bal) {
-          return 'This exceeds your current $label '
-              '(${CurrencyFormatter.format(bal)}). You can still save, '
-              'but it will go negative.';
-        }
         return null;
       case CicoType.withdraw:
         final (bal, label) = switch (accountKind) {
@@ -981,9 +608,9 @@ class _CicoScreenState extends State<CicoScreen> {
               Text('What kind of transaction is this?',
                   style: TextStyle(fontSize: 12, color: Colors.grey[600])),
               const SizedBox(height: 16),
-              for (final t in CicoType.values) ...[
+              for (final t in _recordableTypes) ...[
                 _typeChoiceTile(sheetCtx, context, prov, t),
-                if (t != CicoType.values.last) const SizedBox(height: 10),
+                if (t != _recordableTypes.last) const SizedBox(height: 10),
               ],
             ],
           ),
@@ -1041,9 +668,9 @@ class _CicoScreenState extends State<CicoScreen> {
     );
   }
 
-  void _showForm(
+  Future<void> _showForm(
       BuildContext context, AppProvider prov, CicoTransaction? existing,
-      {CicoType? initialType}) {
+      {CicoType? initialType, double? prefillAmount, String? prefillProvider}) {
     CicoType type = existing?.type ?? initialType ?? CicoType.cashIn;
     final isInOutInitial = type == CicoType.cashIn || type == CicoType.cashOut;
 
@@ -1069,6 +696,9 @@ class _CicoScreenState extends State<CicoScreen> {
 
     if (existing == null) {
       accountKindChoice = 'Cash';
+      if (prefillProvider != null && prefillProvider.isNotEmpty) {
+        walletChoice = prefillProvider;
+      }
     } else if (isInOutInitial) {
       accountKindChoice = existing.liquidAccount == CicoTransaction.cashAccount
           ? 'Cash'
@@ -1110,7 +740,11 @@ class _CicoScreenState extends State<CicoScreen> {
     }
 
     final amountCtrl = TextEditingController(
-        text: existing != null ? existing.amount.toStringAsFixed(2) : '');
+        text: existing != null
+            ? existing.amount.toStringAsFixed(2)
+            : (prefillAmount != null && prefillAmount > 0
+                ? prefillAmount.toStringAsFixed(2)
+                : ''));
     final commissionCtrl = TextEditingController(
         text: existing != null && existing.commission > 0
             ? existing.commission.toStringAsFixed(2)
@@ -1131,7 +765,7 @@ class _CicoScreenState extends State<CicoScreen> {
         TextEditingController(text: existing?.customerPhone ?? '');
     DateTime txnDate = existing?.createdAt ?? DateTime.now();
 
-    showModalBottomSheet(
+    return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -1192,6 +826,10 @@ class _CicoScreenState extends State<CicoScreen> {
               transferAccount: resolvedTransferAccount,
               amount: amount);
           final showsCommission = isInOut;
+          final meta = _typeMeta[type]!;
+          final rateLadderTiers = isInOut
+              ? prov.rateTiersFor(provider: resolvedWallet, type: type)
+              : <CicoRateRule>[];
           // cashIn: this account receives the customer's cash. cashOut: this
           // account pays it out. Same picker, but the label now says which.
           final fundedViaLabel =
@@ -1225,12 +863,8 @@ class _CicoScreenState extends State<CicoScreen> {
             );
           }
 
-          // Shows the registered number under the name (when saved via the
-          // main screen's "Add Account"/balance-card tap), so you can
-          // confirm you're picking the right account at a glance.
           Widget accountChip(
               String name, bool selected, Color color, VoidCallback onTap) {
-            final number = _accountNumbers[name];
             final hasBrand = _brandAssetFor(name) != null;
             return GestureDetector(
               onTap: onTap,
@@ -1249,28 +883,12 @@ class _CicoScreenState extends State<CicoScreen> {
                       _brandBadge(name, size: 20),
                       const SizedBox(width: 6),
                     ],
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(name,
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: selected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                color: selected
-                                    ? Colors.white
-                                    : Colors.grey[600])),
-                        if (number != null && number.isNotEmpty)
-                          Text(number,
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  color: selected
-                                      ? Colors.white.withValues(alpha: 0.8)
-                                      : Colors.grey[500])),
-                      ],
-                    ),
+                    Text(name,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight:
+                                selected ? FontWeight.w600 : FontWeight.normal,
+                            color: selected ? Colors.white : Colors.grey[600])),
                   ],
                 ),
               ),
@@ -1301,6 +919,20 @@ class _CicoScreenState extends State<CicoScreen> {
                   ],
                 ),
               );
+
+          Widget rateLadderCard() {
+            if (rateLadderTiers.isEmpty) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: RateLadderCard(
+                tiers: rateLadderTiers,
+                matched: matchedRate,
+                color: meta.color,
+                amount: amount,
+                commission: double.tryParse(commissionCtrl.text) ?? 0,
+              ),
+            );
+          }
 
           Widget fundedViaPicker() => Wrap(
                 spacing: 8,
@@ -1448,13 +1080,22 @@ class _CicoScreenState extends State<CicoScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Type chips
+                        // Type chips — Cash In/Cash Out only for anything
+                        // new; an existing Top Up/Withdraw entry keeps its
+                        // own type selectable too so editing it (e.g. a
+                        // typo in notes) doesn't force a type change.
                         sectionLabel('Type'),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: CicoType.values.map((t) {
+                          children: [
+                            ..._recordableTypes,
+                            if (existing != null &&
+                                (existing.type == CicoType.topUp ||
+                                    existing.type == CicoType.withdraw))
+                              existing.type,
+                          ].map((t) {
                             final sel = type == t;
                             final meta = _typeMeta[t]!;
                             return GestureDetector(
@@ -1565,6 +1206,8 @@ class _CicoScreenState extends State<CicoScreen> {
                             ]),
                           ),
                         ],
+
+                        rateLadderCard(),
 
                         if (showsCommission) ...[
                           const SizedBox(height: 12),

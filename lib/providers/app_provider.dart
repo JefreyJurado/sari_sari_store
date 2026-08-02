@@ -837,6 +837,14 @@ class AppProvider extends ChangeNotifier {
     await reload();
   }
 
+  // Bulk add (e.g. "Load Standard Rates") — one batched insert and one
+  // reload instead of one of each per rule.
+  Future<void> addRateRules(List<CicoRateRule> newRules) async {
+    if (newRules.isEmpty) return;
+    await _db.insertRateRules(newRules);
+    await reload();
+  }
+
   Future<void> updateRateRule(CicoRateRule rule) async {
     await _db.updateRateRule(rule);
     await reload();
@@ -844,6 +852,11 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> deleteRateRule(String id) async {
     await _db.deleteRateRule(id);
+    await reload();
+  }
+
+  Future<void> deleteAllRateRules() async {
+    await _db.deleteAllRateRules();
     await reload();
   }
 
@@ -856,14 +869,28 @@ class AppProvider extends ChangeNotifier {
     required String provider,
     required double amount,
   }) {
-    final matches = rates.where((r) =>
-        r.isActive &&
-        r.txnType == type &&
-        r.provider == provider &&
-        amount >= r.minAmount &&
-        (r.maxAmount == null || amount <= r.maxAmount!)).toList()
+    final matches = rates
+        .where((r) =>
+            r.isActive &&
+            r.txnType == type &&
+            r.provider == provider &&
+            amount >= r.minAmount &&
+            (r.maxAmount == null || amount <= r.maxAmount!))
+        .toList()
       ..sort((a, b) => a.minAmount.compareTo(b.minAmount));
     return matches.firstOrNull;
+  }
+
+  /// The full rate ladder for a provider+direction, sorted by minAmount —
+  /// shared by the Add Transaction form's and the Padala Calculator's rate
+  /// ladder previews so they don't each re-filter/sort [rates] themselves.
+  List<CicoRateRule> rateTiersFor(
+      {required String provider, required CicoType type}) {
+    final tiers = rates
+        .where((r) => r.provider == provider && r.txnType == type)
+        .toList()
+      ..sort((a, b) => a.minAmount.compareTo(b.minAmount));
+    return tiers;
   }
 
   // topUp/withdraw only: `transferAccount` optionally names the other side

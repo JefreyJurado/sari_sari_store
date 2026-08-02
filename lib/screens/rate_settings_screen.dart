@@ -1,31 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/app_provider.dart';
-import '../models/cico_transaction.dart';
+import '../models/cico_transaction.dart' show CicoType;
 import '../models/cico_rate.dart';
-import '../utils/currency_formatter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/help_sheet.dart';
+import '../widgets/rate_ladder.dart';
+import 'padala_calculator_screen.dart';
 
 const _uuid = Uuid();
 const _indigo = Color(0xFF4F46E5);
-// Same key cico_screen.dart writes to via its "Add Account" flow — read
-// here too so a wallet registered there but never yet transacted (so it's
-// absent from AppProvider.cicoKnownProviders) still shows up as a rate
-// target instead of silently being unselectable.
-const _registeredWalletsPrefKey = 'cico_registered_wallets';
 
-String _rangeLabel(CicoRateRule r) => r.maxAmount == null
-    ? '${CurrencyFormatter.format(r.minAmount)}+'
-    : '${CurrencyFormatter.format(r.minAmount)} – '
-        '${CurrencyFormatter.format(r.maxAmount!)}';
-
-String _feeLabel(CicoRateRule r) => r.mode == CicoRateMode.fixed
-    ? '${CurrencyFormatter.format(r.value)} flat'
-    : '${r.value.toStringAsFixed(r.value == r.value.roundToDouble() ? 0 : 1)}%';
+// The standard fixed-fee rate ladder from the reference Padala Counter
+// mockup — identical for Cash In and Cash Out there, so it's loaded the
+// same for both directions here too. (min, max, fee).
+const _standardTiers = <(double, double, double)>[
+  (1, 100, 5),
+  (101, 500, 10),
+  (501, 750, 15),
+  (751, 1000, 20),
+  (1001, 1500, 30),
+  (1501, 2000, 40),
+  (2001, 2500, 50),
+  (2501, 3000, 60),
+  (3001, 3500, 70),
+  (3501, 4000, 80),
+  (4001, 4500, 90),
+  (4501, 5000, 100),
+  (5001, 5500, 110),
+  (5501, 6000, 120),
+];
+const _standardProviders = ['GCash', 'Maya'];
 
 class RateSettingsScreen extends StatefulWidget {
   const RateSettingsScreen({super.key});
@@ -34,31 +41,15 @@ class RateSettingsScreen extends StatefulWidget {
 }
 
 class _RateSettingsScreenState extends State<RateSettingsScreen> {
-  Set<String> _registeredWallets = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadRegisteredWallets();
-  }
-
-  Future<void> _loadRegisteredWallets() async {
-    final prefs = await SharedPreferences.getInstance();
-    final wallets = prefs.getStringList(_registeredWalletsPrefKey) ?? [];
-    if (mounted) setState(() => _registeredWallets = wallets.toSet());
-  }
-
-  List<String> _allProviders(AppProvider prov) => {
-        ...CicoTransaction.presetProviders,
-        ...prov.cicoKnownProviders,
-        ..._registeredWallets,
-      }.toList();
+  // cicoKnownProviders already folds in CicoTransaction.presetProviders.
+  List<String> _allProviders(AppProvider prov) => prov.cicoKnownProviders;
 
   // Non-blocking, same spirit as the float warnings on the CICO screen —
   // flags an overlapping tier for the same provider+direction but never
   // stops the save, since a deliberate overlap (e.g. temporarily testing a
   // new tier) is the store owner's call, not this screen's.
-  bool _overlaps(AppProvider prov, {
+  bool _overlaps(
+    AppProvider prov, {
     required String provider,
     required CicoType type,
     required double min,
@@ -74,6 +65,59 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
     }
     return false;
   }
+
+  // Standard-tier (provider, direction, range) combos not yet present in
+  // prov.rates — shared by _loadStandardRates (what to insert) and
+  // _standardRatesLoaded (whether anything's left to insert), so the two
+  // never disagree about what "already loaded" means.
+  Iterable<(String, CicoType, (double, double, double))> _missingStandardTiers(
+      AppProvider prov) sync* {
+    for (final provider in _standardProviders) {
+      for (final type in [CicoType.cashIn, CicoType.cashOut]) {
+        for (final tier in _standardTiers) {
+          final exists = prov.rates.any((r) =>
+              r.provider == provider &&
+              r.txnType == type &&
+              r.minAmount == tier.$1 &&
+              r.maxAmount == tier.$2);
+          if (!exists) yield (provider, type, tier);
+        }
+      }
+    }
+  }
+
+  // Adds the standard mockup rate ladder for GCash + Maya, both directions.
+  // Skips any (provider, direction, range) combo that already exists so
+  // tapping this again after tweaking one provider doesn't create
+  // duplicates or false overlap warnings. One batched insert + one reload,
+  // not one of each per tier.
+  Future<void> _loadStandardRates(AppProvider prov) async {
+    final now = DateTime.now();
+    final missing = _missingStandardTiers(prov)
+        .map((m) => CicoRateRule(
+              id: _uuid.v4(),
+              provider: m.$1,
+              txnType: m.$2,
+              mode: CicoRateMode.fixed,
+              value: m.$3.$3,
+              minAmount: m.$3.$1,
+              maxAmount: m.$3.$2,
+              isActive: true,
+              createdAt: now,
+            ))
+        .toList();
+    await prov.addRateRules(missing);
+    if (!mounted) return;
+    if (missing.isNotEmpty) {
+      CenterToast.showSuccess(context,
+          'Loaded ${missing.length} standard rate tiers for GCash & Maya.');
+    } else {
+      CenterToast.showWarning(context, 'Standard rates are already loaded.');
+    }
+  }
+
+  bool _standardRatesLoaded(AppProvider prov) =>
+      _missingStandardTiers(prov).isEmpty;
 
   Future<void> _confirmDelete(AppProvider prov, CicoRateRule rule) async {
     final confirm = await showDialog<bool>(
@@ -110,6 +154,44 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
     if (mounted) CenterToast.showWarning(context, 'Rate deleted.');
   }
 
+  Future<void> _confirmClearAll(AppProvider prov) async {
+    final count = prov.rates.length;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Clear all rates?',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
+        content: Text(
+            'This deletes all $count rate tiers across every provider. '
+            'This cannot be undone.',
+            style: const TextStyle(fontSize: 13, color: Colors.black87)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear All',
+                style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    await prov.deleteAllRateRules();
+    if (mounted) CenterToast.showWarning(context, 'All rates cleared.');
+  }
+
   void _showForm(AppProvider prov, {CicoRateRule? existing}) {
     final providers = _allProviders(prov);
     String provider = existing?.provider ?? providers.first;
@@ -128,7 +210,8 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
     final minCtrl = TextEditingController(
         text: existing != null ? existing.minAmount.toString() : '0');
     final maxCtrl = TextEditingController(
-        text: existing?.maxAmount != null ? existing!.maxAmount.toString() : '');
+        text:
+            existing?.maxAmount != null ? existing!.maxAmount.toString() : '');
 
     showModalBottomSheet(
       context: context,
@@ -156,7 +239,17 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                 excludeId: existing?.id,
               ));
 
-          Widget chip(String label, bool selected, VoidCallback onTap) =>
+          // Colors the sheet's top accent + the "Applies To" chips by
+          // direction, same green/orange convention as the CICO screen —
+          // "Both" stays neutral indigo since it isn't one direction.
+          final directionColor = direction == 'Cash In'
+              ? AppColors.green
+              : direction == 'Cash Out'
+                  ? AppColors.orange
+                  : _indigo;
+
+          Widget chip(String label, bool selected, VoidCallback onTap,
+                  {Color color = _indigo}) =>
               GestureDetector(
                 onTap: onTap,
                 child: AnimatedContainer(
@@ -164,7 +257,7 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: selected ? _indigo : Colors.grey.shade100,
+                    color: selected ? color : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(label,
@@ -261,6 +354,15 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: double.infinity,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                      color: directionColor,
+                      borderRadius: BorderRadius.circular(2)),
+                ),
                 Container(
                   width: 36,
                   height: 4,
@@ -275,7 +377,6 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                         fontWeight: FontWeight.w600,
                         color: Colors.black87)),
                 const SizedBox(height: 16),
-
                 sectionLabel('Provider'),
                 const SizedBox(height: 8),
                 Wrap(
@@ -287,7 +388,6 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-
                 sectionLabel('Applies To'),
                 const SizedBox(height: 8),
                 Wrap(
@@ -298,13 +398,14 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                       chip('Both', direction == 'Both',
                           () => setS(() => direction = 'Both')),
                     chip('Cash In', direction == 'Cash In',
-                        () => setS(() => direction = 'Cash In')),
+                        () => setS(() => direction = 'Cash In'),
+                        color: AppColors.green),
                     chip('Cash Out', direction == 'Cash Out',
-                        () => setS(() => direction = 'Cash Out')),
+                        () => setS(() => direction = 'Cash Out'),
+                        color: AppColors.orange),
                   ],
                 ),
                 const SizedBox(height: 16),
-
                 sectionLabel('Fee Type'),
                 const SizedBox(height: 8),
                 Wrap(spacing: 8, runSpacing: 8, children: [
@@ -314,13 +415,11 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                       () => setS(() => mode = CicoRateMode.percentage)),
                 ]),
                 const SizedBox(height: 12),
-
                 field(valueCtrl,
                     mode == CicoRateMode.fixed ? 'Fee Amount' : 'Fee',
                     prefix: mode == CicoRateMode.fixed ? '₱ ' : null,
                     suffix: mode == CicoRateMode.percentage ? '%' : null),
                 const SizedBox(height: 12),
-
                 sectionLabel('Transaction Amount Range'),
                 const SizedBox(height: 8),
                 Row(children: [
@@ -329,7 +428,6 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                   Expanded(
                       child: field(maxCtrl, 'Max (optional)', prefix: '₱ ')),
                 ]),
-
                 if (overlapWarning) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -360,7 +458,6 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                     ),
                   ),
                 ],
-
                 const SizedBox(height: 12),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -377,7 +474,6 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                       style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                 ),
                 const SizedBox(height: 12),
-
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -417,17 +513,37 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          title: const Text('GCash & E-Wallet Rates',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87)),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('PADALA COUNTER',
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                      color: Colors.grey[500])),
+              const Text('GCash & E-Wallet Rates',
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87)),
+            ],
+          ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black87),
             onPressed: () => Navigator.pop(context),
           ),
-          actions: const [
-            HelpIconButton(
+          actions: [
+            IconButton(
+              tooltip: 'Padala Calculator',
+              icon: const Icon(Icons.calculate_outlined, color: Colors.black87),
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const PadalaCalculatorScreen())),
+            ),
+            const HelpIconButton(
               title: 'GCash & E-Wallet Rates',
               points: [
                 'Define fee tiers per provider and direction (Cash In / Cash Out) — fixed peso amount or a percentage of the transaction.',
@@ -437,6 +553,27 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                 'Turn a rate off with the Active switch to keep it on record without it being applied.',
               ],
             ),
+            if (prov.rates.isNotEmpty)
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.black87),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'clear_all',
+                    child: Row(children: [
+                      Icon(Icons.delete_sweep_outlined,
+                          size: 16, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Clear All Rates',
+                          style: TextStyle(color: Colors.red, fontSize: 13)),
+                    ]),
+                  ),
+                ],
+                onSelected: (v) {
+                  if (v == 'clear_all') _confirmClearAll(prov);
+                },
+              ),
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
@@ -447,6 +584,8 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
           top: false,
           child: byProvider.isEmpty
               ? Center(
+                  child: Padding(
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -457,13 +596,71 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
                             style: TextStyle(
                                 color: Colors.grey[400], fontSize: 14)),
                         const SizedBox(height: 4),
-                        Text('Tap + to add your first fee tier',
+                        Text(
+                            'Tap + to add your first fee tier, or load '
+                            'the standard rates below.',
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: Colors.grey[400], fontSize: 12)),
-                      ]))
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => _loadStandardRates(prov),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _indigo,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Load Standard Rates',
+                              style: TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w600)),
+                        ),
+                      ]),
+                ))
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 12, color: Colors.grey[400]),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                                'These are your store\'s default rates — '
+                                'edit, deactivate, or delete any tier below '
+                                'to match how you actually charge.',
+                                style: TextStyle(
+                                    fontSize: 10.5, color: Colors.grey[500])),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!_standardRatesLoaded(prov))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: OutlinedButton.icon(
+                          onPressed: () => _loadStandardRates(prov),
+                          icon: const Icon(Icons.playlist_add, size: 16),
+                          label: const Text('Load Standard Rates',
+                              style: TextStyle(fontSize: 12.5)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _indigo,
+                            side: BorderSide(
+                                color: _indigo.withValues(alpha: 0.4)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
                     for (final entry in byProvider.entries) ...[
                       Text(entry.key,
                           style: const TextStyle(
@@ -511,77 +708,104 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
   }
 
   Widget _rateRow(AppProvider prov, CicoRateRule r) {
+    final accentColor =
+        r.txnType == CicoType.cashIn ? AppColors.green : AppColors.orange;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: r.isActive ? Colors.white : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Row(children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(_rangeLabel(r),
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: r.isActive ? Colors.black87 : Colors.grey[400])),
-              const SizedBox(height: 2),
-              Text(_feeLabel(r),
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: r.isActive ? Colors.grey[500] : Colors.grey[400])),
-            ],
-          ),
-        ),
-        if (!r.isActive)
+      child: IntrinsicHeight(
+        child: Row(children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            margin: const EdgeInsets.only(right: 6),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(30),
+              width: 3,
+              color: accentColor.withValues(alpha: r.isActive ? 1 : 0.3)),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(rateRangeLabel(r),
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              decoration: r.isActive
+                                  ? null
+                                  : TextDecoration.lineThrough,
+                              decorationColor: Colors.grey[400],
+                              color: r.isActive
+                                  ? Colors.black87
+                                  : Colors.grey[400])),
+                      const SizedBox(height: 2),
+                      Text(rateFeeLabel(r),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: r.isActive
+                                  ? Colors.grey[500]
+                                  : Colors.grey[400])),
+                    ],
+                  ),
+                ),
+                if (!r.isActive)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    margin: const EdgeInsets.only(right: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Text('INACTIVE',
+                        style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.grey[600])),
+                  ),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert_outlined,
+                      size: 16, color: Colors.grey[400]),
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(children: [
+                        Icon(Icons.edit_outlined,
+                            size: 16, color: Colors.black54),
+                        SizedBox(width: 8),
+                        Text('Edit', style: TextStyle(fontSize: 13)),
+                      ]),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(children: [
+                        Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Delete',
+                            style: TextStyle(color: Colors.red, fontSize: 13)),
+                      ]),
+                    ),
+                  ],
+                  onSelected: (v) {
+                    if (v == 'edit') {
+                      _showForm(prov, existing: r);
+                    } else if (v == 'delete') {
+                      _confirmDelete(prov, r);
+                    }
+                  },
+                ),
+              ]),
             ),
-            child: Text('INACTIVE',
-                style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.grey[600])),
           ),
-        PopupMenuButton<String>(
-          icon: Icon(Icons.more_vert_outlined, size: 16, color: Colors.grey[400]),
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          itemBuilder: (_) => [
-            const PopupMenuItem(
-              value: 'edit',
-              child: Row(children: [
-                Icon(Icons.edit_outlined, size: 16, color: Colors.black54),
-                SizedBox(width: 8),
-                Text('Edit', style: TextStyle(fontSize: 13)),
-              ]),
-            ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(children: [
-                Icon(Icons.delete_outline, size: 16, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Delete', style: TextStyle(color: Colors.red, fontSize: 13)),
-              ]),
-            ),
-          ],
-          onSelected: (v) {
-            if (v == 'edit') {
-              _showForm(prov, existing: r);
-            } else if (v == 'delete') {
-              _confirmDelete(prov, r);
-            }
-          },
-        ),
-      ]),
+        ]),
+      ),
     );
   }
 }

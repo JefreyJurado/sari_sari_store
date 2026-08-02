@@ -17,6 +17,10 @@ const _blue = AppColors.blue;
 const _green = Color(0xFF059669);
 const _red = Color(0xFFDC2626);
 const _purple = Color(0xFF7C3AED);
+// Same brand indigo used across the Cash In/Cash Out feature (CicoScreen,
+// Rate Settings, Padala Calculator) — ties this report card visually to
+// that redesigned area instead of it reading as a leftover of the old UI.
+const _cicoIndigo = Color(0xFF4F46E5);
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -409,49 +413,75 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       onTap: () => Navigator.push(context,
                           MaterialPageRoute(builder: (_) => const CicoScreen())),
                       child: Container(
-                        padding: const EdgeInsets.all(16),
+                        clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.grey.shade200)),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(children: [
-                              Icon(Icons.account_balance_wallet_outlined,
-                                  color: Colors.grey[400], size: 18),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Cash In-Cash Out',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                              color: Colors.black87)),
-                                      Text('Within $_periodLabel',
-                                          style: TextStyle(
-                                              color: Colors.grey[500], fontSize: 11)),
-                                    ]),
-                              ),
-                              Icon(Icons.chevron_right,
-                                  color: Colors.grey[400], size: 18),
-                            ]),
-                            const SizedBox(height: 14),
-                            Row(children: [
-                              _cicoMiniStat('Commission',
-                                  CurrencyFormatter.format(_report!.cicoCommission),
-                                  _green),
-                              _cicoMiniStat('Cash In',
-                                  CurrencyFormatter.format(_report!.cicoCashInVolume),
-                                  _green),
-                              _cicoMiniStat('Cash Out',
-                                  CurrencyFormatter.format(_report!.cicoCashOutVolume),
-                                  _red),
-                            ]),
-                          ],
-                        ),
+                        child: Column(children: [
+                          Container(height: 4, color: _cicoIndigo),
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(children: [
+                                  Container(
+                                    width: 30,
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                        color: _cicoIndigo.withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(9),
+                                        border: Border.all(
+                                            color: _cicoIndigo
+                                                .withValues(alpha: 0.15))),
+                                    child: const Icon(
+                                        Icons.account_balance_wallet_outlined,
+                                        color: _cicoIndigo,
+                                        size: 16),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Cash In-Cash Out',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
+                                                  color: Colors.black87)),
+                                          Text('Within $_periodLabel',
+                                              style: TextStyle(
+                                                  color: Colors.grey[500],
+                                                  fontSize: 11)),
+                                        ]),
+                                  ),
+                                  Icon(Icons.chevron_right,
+                                      color: Colors.grey[400], size: 18),
+                                ]),
+                                const SizedBox(height: 14),
+                                Row(children: [
+                                  _cicoMiniStat(
+                                      'Commission',
+                                      CurrencyFormatter.format(
+                                          _report!.cicoCommission),
+                                      _cicoIndigo),
+                                  _cicoMiniStat(
+                                      'Cash In',
+                                      CurrencyFormatter.format(
+                                          _report!.cicoCashInVolume),
+                                      AppColors.green),
+                                  _cicoMiniStat(
+                                      'Cash Out',
+                                      CurrencyFormatter.format(
+                                          _report!.cicoCashOutVolume),
+                                      AppColors.orange),
+                                ]),
+                              ],
+                            ),
+                          ),
+                        ]),
                       ),
                     ),
                   ],

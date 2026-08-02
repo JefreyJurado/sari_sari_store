@@ -10,7 +10,7 @@ import 'screens/sales_screen.dart';
 import 'screens/lista_screen.dart';
 import 'screens/inventory_screen.dart';
 import 'screens/reports_screen.dart';
-import 'screens/cico_screen.dart';
+import 'screens/padala_calculator_screen.dart';
 import 'screens/pin_screen.dart';
 import 'services/notification_service.dart';
 import 'services/database_service.dart';
@@ -272,7 +272,7 @@ class _MainShellState extends State<_MainShell> {
     SalesScreen(),
     ListaScreen(),
     InventoryScreen(),
-    CicoScreen(),
+    PadalaCalculatorScreen(),
     ReportsScreen(),
   ];
 
