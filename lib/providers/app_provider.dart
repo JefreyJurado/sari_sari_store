@@ -743,6 +743,14 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  // Bulk version of archiveProduct for "Clear All Products" — one DB
+  // statement and one reload/rebuild instead of one of each per product.
+  Future<void> archiveAllProducts() async {
+    await _db.archiveAllProducts();
+    products = await _db.getProducts();
+    _safeNotifyListeners();
+  }
+
   Future<void> restoreProduct(String id) async {
     await _db.restoreProduct(id);
     products = await _db.getProducts();

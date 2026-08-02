@@ -158,7 +158,7 @@ class _ListaScreenState extends State<ListaScreen>
                             TextField(
                               onChanged: (v) => setState(() => _search = v),
                               decoration: InputDecoration(
-                                hintText: 'Search debtors by name...',
+                                hintText: 'Search by customer name...',
                                 hintStyle: TextStyle(
                                     color: Colors.grey[400], fontSize: 14),
                                 prefixIcon: Icon(Icons.search_outlined,
@@ -191,8 +191,8 @@ class _ListaScreenState extends State<ListaScreen>
                         tabs: [
                           Tab(
                               text:
-                                  'Unpaid Session (${unpaidCustomers.length})'),
-                          Tab(text: 'Fully Settled (${paidCustomers.length})'),
+                                  'Unpaid (${unpaidCustomers.length})'),
+                          Tab(text: 'Paid (${paidCustomers.length})'),
                         ],
                       ),
                       Divider(height: 1, color: Colors.grey.shade200),
@@ -244,7 +244,7 @@ class _ListaScreenState extends State<ListaScreen>
           const SizedBox(height: 12),
           Text(
               _search.isEmpty
-                  ? 'No outstanding credit lines logged'
+                  ? 'No unpaid credit yet'
                   : 'No customer matches search query',
               style: TextStyle(fontSize: 14, color: Colors.grey[500])),
         ]),
@@ -320,7 +320,7 @@ class _ListaScreenState extends State<ListaScreen>
                 subtitle: Padding(
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(
-                      '${unpaidDebts.length} unresolved log'
+                      '${unpaidDebts.length} unpaid purchase${unpaidDebts.length > 1 ? 's' : ''}'
                       '${c.phone != null ? '  •  ${c.phone}' : ''}',
                       style: TextStyle(color: Colors.grey[500], fontSize: 12)),
                 ),
@@ -354,8 +354,8 @@ class _ListaScreenState extends State<ListaScreen>
           const SizedBox(height: 12),
           Text(
               _search.isEmpty
-                  ? 'No fully paid ledger sessions archived'
-                  : 'No customer historical items match',
+                  ? 'No paid accounts yet'
+                  : 'No matches found',
               style: TextStyle(fontSize: 14, color: Colors.grey[500])),
         ]),
       );
@@ -573,7 +573,7 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
                           color: Colors.black87,
                           fontSize: 14)),
                   const SizedBox(height: 2),
-                  Text('Active Unpaid',
+                  Text('Unpaid',
                       style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                 ]),
               ),
@@ -594,7 +594,7 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
                           color: Colors.black87,
                           fontSize: 14)),
                   const SizedBox(height: 2),
-                  Text('Settled Archived',
+                  Text('Paid',
                       style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                 ]),
               ),
@@ -616,13 +616,13 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
                       padding: const EdgeInsets.all(16),
                       children: [
                         if (unpaid.isNotEmpty) ...[
-                          _sectionLabel('UNSETTLED CREDITS'),
+                          _sectionLabel('UNPAID'),
                           const SizedBox(height: 8),
                           ...unpaid.map((d) => _debtCard(d, isUnpaid: true)),
                           const SizedBox(height: 16),
                         ],
                         if (paid.isNotEmpty) ...[
-                          _sectionLabel('COMPLETED LEDGER HISTORY'),
+                          _sectionLabel('PAID'),
                           const SizedBox(height: 8),
                           ...paid.map((d) => _debtCard(d, isUnpaid: false)),
                         ],
@@ -715,7 +715,8 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
               ],
               if (sale != null) ...[
                 const SizedBox(height: 2),
-                Text('${sale.items.length} product units log',
+                Text(
+                    '${sale.items.length} item${sale.items.length > 1 ? 's' : ''} purchased',
                     style: TextStyle(color: Colors.grey[400], fontSize: 11)),
               ]
             ]),
@@ -800,7 +801,7 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
               const SizedBox(width: 12),
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(
-                    isUnpaid ? 'Unpaid Record Details' : 'Settled Summary Logs',
+                    isUnpaid ? 'Unpaid Details' : 'Payment Details',
                     style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -826,7 +827,7 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
               padding: const EdgeInsets.all(16),
               children: [
                 if (sale != null && sale.items.isNotEmpty) ...[
-                  Text('Purchased Items Context',
+                  Text('Items Purchased',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -874,16 +875,16 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
                         color: Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.grey.shade200)),
-                    child: Text('No item statement parameters tracked.',
+                    child: Text('No item details recorded.',
                         style:
                             TextStyle(color: Colors.grey[400], fontSize: 13)),
                   ),
                   const SizedBox(height: 8),
                 ],
-                _summaryRow('Original balance logged:',
+                _summaryRow('Original amount:',
                     CurrencyFormatter.format(d.originalAmount)),
                 if (d.paidAmount > 0)
-                  _summaryRow('Sum cumulative paid:',
+                  _summaryRow('Total paid:',
                       CurrencyFormatter.format(d.paidAmount)),
                 const SizedBox(height: 12),
                 if (isUnpaid) ...[
@@ -915,7 +916,7 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
                         size: 14,
                       ),
                       const SizedBox(width: 8),
-                      Text('Maturity Due Date:',
+                      Text('Due Date:',
                           style: TextStyle(
                               color: d.isOverdue
                                   ? Colors.red
@@ -942,7 +943,7 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        'Account is flag deferred (${-daysUntilDue} days overdue)',
+                        'This payment is ${-daysUntilDue} day${-daysUntilDue > 1 ? 's' : ''} overdue',
                         style: TextStyle(
                             color: Colors.red.shade600,
                             fontSize: 12,
@@ -954,7 +955,7 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        'Account deadline warnings ($daysUntilDue days left)',
+                        'Due in $daysUntilDue day${daysUntilDue > 1 ? 's' : ''}',
                         style: TextStyle(
                             color: Colors.orange.shade700,
                             fontSize: 12,
@@ -975,8 +976,8 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
                   child: Row(children: [
                     Text(
                         isUnpaid
-                            ? 'Net Remaining Deficit'
-                            : 'Total Verified Settled Amount',
+                            ? 'Amount Remaining'
+                            : 'Total Paid',
                         style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: Colors.grey[700],
@@ -1029,7 +1030,7 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Accept Balance Tender Payment',
+                    child: const Text('Accept Payment',
                         style: TextStyle(
                             fontSize: 14, fontWeight: FontWeight.bold)),
                   ),

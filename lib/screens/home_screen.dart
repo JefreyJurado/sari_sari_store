@@ -18,7 +18,7 @@ import 'capital_screen.dart';
 import 'daily_summary_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'sales_history_screen.dart';
-import 'cico_screen.dart';
+import 'padala_calculator_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/help_sheet.dart';
 
@@ -437,14 +437,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 12),
                           Row(children: [
                             _statCard(
-                              'CICO Commission Today',
+                              'Padala Commission Today',
                               CurrencyFormatter.format(prov.cicoTodayCommission),
                               Icons.account_balance_wallet_rounded,
                               accentColor: _brandIndigo,
                               onTap: () => Navigator.push(
                                   context,
                                   CrossFadePageRoute(
-                                      child: const CicoScreen())),
+                                      child: const PadalaCalculatorScreen())),
                             ),
                           ]),
                         ],
@@ -1347,13 +1347,18 @@ class _SaleTile extends StatelessWidget {
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  isOnline ? 'Online Transfer' : 'Counter Cash Sale',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: Colors.black87),
+                Expanded(
+                  child: Text(
+                    isOnline ? 'Online Transfer' : 'Counter Cash Sale',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Colors.black87),
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   DateHelper.formatTime(sale.createdAt),
                   style: const TextStyle(

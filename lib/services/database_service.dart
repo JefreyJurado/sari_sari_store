@@ -382,6 +382,12 @@ class DatabaseService {
   Future<void> archiveProduct(String id) async => (await database)
       .update('products', {'isActive': 0}, where: 'id=?', whereArgs: [id]);
 
+  // One SQL statement for "Clear All Products" instead of archiving each
+  // row individually — a store's whole catalog can be dozens to hundreds
+  // of products, and this needs only one round-trip regardless of size.
+  Future<void> archiveAllProducts() async =>
+      (await database).update('products', {'isActive': 0});
+
   Future<void> restoreProduct(String id) async => (await database)
       .update('products', {'isActive': 1}, where: 'id=?', whereArgs: [id]);
 

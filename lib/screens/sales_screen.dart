@@ -606,7 +606,7 @@ class _CartSheetState extends State<_CartSheet> {
                 title: 'Checking Out a Sale',
                 points: [
                   'Review the items and quantities here before settling — swipe or use the delete icon on a row to remove something.',
-                  'Cash Settlement: type in exactly what the customer handed you; the app works out their change automatically.',
+                  'Cash Payment: type in exactly what the customer handed you; the app works out their change automatically.',
                   "Online E-Wallet: use this when the customer already paid you via GCash, Maya, or bank transfer on their own phone. This doesn't send or receive any payment — it just logs the sale as paid online, with an optional reference number for your records.",
                   'Always check the customer\'s GCash/Maya app or SMS confirmation yourself before finalizing an Online E-Wallet sale — StorePH has no way to verify the money actually arrived.',
                 ],
@@ -725,7 +725,7 @@ class _CartSheetState extends State<_CartSheet> {
                       const SizedBox(height: 8),
                     ],
                     Row(children: [
-                      Text('Total Amount Due',
+                      Text('Total',
                           style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
@@ -740,7 +740,7 @@ class _CartSheetState extends State<_CartSheet> {
                   ]),
                 ),
                 const SizedBox(height: 24),
-                const Text('Customer Assignment',
+                const Text('Customer',
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -911,7 +911,18 @@ class _CartSheetState extends State<_CartSheet> {
                           DateTime.now().subtract(const Duration(days: 365)),
                       lastDate: DateTime.now(),
                     );
-                    if (picked != null) setState(() => _saleDate = picked);
+                    if (picked != null) {
+                      // showDatePicker returns midnight for the chosen date
+                      // — keep the time-of-day already on _saleDate instead
+                      // of losing it.
+                      setState(() => _saleDate = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                          _saleDate.hour,
+                          _saleDate.minute,
+                          _saleDate.second));
+                    }
                   },
                   child: Builder(builder: (context) {
                     final isToday =
@@ -953,7 +964,7 @@ class _CartSheetState extends State<_CartSheet> {
                   }),
                 ),
                 const SizedBox(height: 24),
-                const Text('Choose Settlement Mode',
+                const Text('Payment Method',
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -961,8 +972,8 @@ class _CartSheetState extends State<_CartSheet> {
                 const SizedBox(height: 12),
                 _paymentBtn(
                   icon: Icons.payments_outlined,
-                  label: 'Cash Settlement',
-                  sublabel: 'Physical tender verification',
+                  label: 'Cash',
+                  sublabel: 'Customer pays with cash',
                   selected: _paymentType == 'cash',
                   onTap: () => setState(() {
                     _paymentType = 'cash';
@@ -992,7 +1003,7 @@ class _CartSheetState extends State<_CartSheet> {
                         color: Colors.black87),
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      labelText: 'Amount Received From Customer',
+                      labelText: 'Amount Received',
                       labelStyle:
                           TextStyle(color: Colors.grey[500], fontSize: 13),
                       prefixText: '₱ ',
@@ -1041,7 +1052,7 @@ class _CartSheetState extends State<_CartSheet> {
                   TextField(
                     controller: _refCtrl,
                     decoration: InputDecoration(
-                      labelText: 'Reference Confirmation Code (Optional)',
+                      labelText: 'Reference Number (Optional)',
                       labelStyle:
                           TextStyle(color: Colors.grey[500], fontSize: 13),
                       prefixIcon: Icon(Icons.tag_outlined,
@@ -1064,7 +1075,7 @@ class _CartSheetState extends State<_CartSheet> {
                     const Icon(Icons.info_outline, color: _blue, size: 14),
                     const SizedBox(width: 8),
                     Text(
-                      'Please verify receipt statement screen before finalizing.',
+                      "Double-check the customer's GCash/Maya app or SMS before finalizing.",
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -1106,7 +1117,7 @@ class _CartSheetState extends State<_CartSheet> {
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2))
                     : Text(
-                        'Process Order Summary  (${CurrencyFormatter.format(_effectiveTotal)})',
+                        'Complete Sale (${CurrencyFormatter.format(_effectiveTotal)})',
                         style: const TextStyle(
                             fontSize: 15, fontWeight: FontWeight.bold)),
               ),
@@ -1308,7 +1319,7 @@ class _CartSheetState extends State<_CartSheet> {
                 Divider(color: Colors.grey.shade200),
                 const SizedBox(height: 12),
                 Row(children: [
-                  Text('Total Owed',
+                  Text('Total Paid',
                       style: TextStyle(color: Colors.grey[600], fontSize: 14)),
                   const Spacer(),
                   Text(CurrencyFormatter.format(sale.totalAmount),

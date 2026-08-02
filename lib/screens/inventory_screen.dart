@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../providers/app_provider.dart';
 import '../models/product.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/date_helper.dart';
 import '../utils/filipino_categories.dart';
 import 'barcode_scanner_screen.dart';
 import 'inventory_log_screen.dart';
@@ -72,9 +73,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogCtx);
-              for (final product in prov.products) {
-                await prov.archiveProduct(product.id);
-              }
+              await prov.archiveAllProducts();
               if (context.mounted) {
                 CenterToast.showSuccess(
                     context, 'All products cleared successfully.');
@@ -1010,7 +1009,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                           Expanded(
                             child: Text(
                               _expiryDate != null
-                                  ? 'Expiry: ${_expiryDate!.month}/${_expiryDate!.day}/${_expiryDate!.year}'
+                                  ? 'Expiry: ${DateHelper.formatDate(_expiryDate!)}'
                                   : 'Expiry Date (optional)',
                               style: TextStyle(
                                   fontSize: 13,
@@ -1064,7 +1063,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                               style: TextStyle(
                                   fontSize: 13, color: Colors.grey[600])),
                           Text(
-                              '${_dateAdded.month}/${_dateAdded.day}/${_dateAdded.year}',
+                              DateHelper.formatDate(_dateAdded),
                               style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -1455,7 +1454,7 @@ class _ProductTile extends StatelessWidget {
                 const SizedBox(height: 8),
                 _infoRow(
                   'Expiry Date',
-                  '${product.expiryDate!.month}/${product.expiryDate!.day}/${product.expiryDate!.year}',
+                  DateHelper.formatDate(product.expiryDate!),
                   valueColor: product.isExpired
                       ? Colors.red
                       : product.isNearExpiry
@@ -1667,7 +1666,7 @@ class _ProductTile extends StatelessWidget {
                     !product.isExpired &&
                     !product.isNearExpiry)
                   Text(
-                    'Exp: ${product.expiryDate!.month}/${product.expiryDate!.day}/${product.expiryDate!.year}',
+                    'Exp: ${DateHelper.formatDate(product.expiryDate!)}',
                     style: TextStyle(
                         fontSize: 10,
                         color: isOut ? Colors.grey[400] : Colors.grey[500]),

@@ -7,6 +7,8 @@ class DateHelper {
 
   static String formatDate(DateTime d) => _date.format(d);
   static String formatTime(DateTime d) => _time.format(d);
+  static String formatDateTime(DateTime d) =>
+      '${_date.format(d)} • ${_time.format(d)}';
   static String todayFormatted() => _date.format(DateTime.now());
   static String todayFormattedWithDay() => _dateWithDay.format(DateTime.now());
 

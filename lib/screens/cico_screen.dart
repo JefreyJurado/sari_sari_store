@@ -512,6 +512,7 @@ class _CicoScreenState extends State<CicoScreen> {
               ]),
               const SizedBox(height: 20),
               row('Amount', CurrencyFormatter.format(txn.amount)),
+              if (isInOut) row('Provider', _providerLabel(txn.provider)),
               if (txn.commission > 0)
                 row('Commission', CurrencyFormatter.format(txn.commission)),
               if (fundedViaBank) row(fundedViaLabel, txn.liquidAccount),
@@ -527,7 +528,7 @@ class _CicoScreenState extends State<CicoScreen> {
                 row('Number', txn.customerPhone!),
               if (txn.notes != null && txn.notes!.isNotEmpty)
                 row('Notes', txn.notes!),
-              row('Date', DateHelper.formatDate(txn.createdAt)),
+              row('Date', DateHelper.formatDateTime(txn.createdAt)),
               const SizedBox(height: 8),
               Row(children: [
                 Expanded(
@@ -1343,7 +1344,16 @@ class _CicoScreenState extends State<CicoScreen> {
                               lastDate: lastDate,
                             );
                             if (picked != null) {
-                              setS(() => txnDate = picked);
+                              // showDatePicker returns midnight for the
+                              // chosen date — keep the time-of-day already
+                              // on txnDate instead of losing it.
+                              setS(() => txnDate = DateTime(
+                                  picked.year,
+                                  picked.month,
+                                  picked.day,
+                                  txnDate.hour,
+                                  txnDate.minute,
+                                  txnDate.second));
                             }
                           },
                           child: Container(
@@ -1645,7 +1655,7 @@ class _CicoTile extends StatelessWidget {
                     fontSize: 13,
                     color: Colors.black87)),
             subtitle: Text(
-                '${DateHelper.formatDate(txn.createdAt)}'
+                '${DateHelper.formatDateTime(txn.createdAt)}'
                 '$fundedViaBit'
                 '$transferBit'
                 '$customerBit'

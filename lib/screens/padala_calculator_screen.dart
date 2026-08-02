@@ -148,7 +148,7 @@ class _PadalaCalculatorScreenState extends State<PadalaCalculatorScreen> {
                 fontWeight: FontWeight.w600,
                 fontSize: 12.5,
                 color: Colors.black87)),
-        subtitle: Text(DateHelper.formatDate(txn.createdAt),
+        subtitle: Text(DateHelper.formatDateTime(txn.createdAt),
             style: TextStyle(color: Colors.grey[500], fontSize: 10.5)),
         trailing: Text(CurrencyFormatter.format(txn.amount),
             style: const TextStyle(
@@ -226,6 +226,7 @@ class _PadalaCalculatorScreenState extends State<PadalaCalculatorScreen> {
                 ]),
                 const SizedBox(height: 20),
                 row('Amount', CurrencyFormatter.format(txn.amount)),
+                if (isInOut) row('Provider', cicoProviderLabel(txn.provider)),
                 if (txn.commission > 0)
                   row('Commission', CurrencyFormatter.format(txn.commission)),
                 if (fundedViaBank) row(fundedViaLabel, txn.liquidAccount),
@@ -239,7 +240,7 @@ class _PadalaCalculatorScreenState extends State<PadalaCalculatorScreen> {
                   row('Number', txn.customerPhone!),
                 if (txn.notes != null && txn.notes!.isNotEmpty)
                   row('Notes', txn.notes!),
-                row('Date', DateHelper.formatDate(txn.createdAt)),
+                row('Date', DateHelper.formatDateTime(txn.createdAt)),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,

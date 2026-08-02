@@ -237,6 +237,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               value: 90,
                               child: Text('3 Months')),
                           DropdownMenuItem(
+                              value: 180,
+                              child: Text('6 Months')),
+                          DropdownMenuItem(
                               value: 365,
                               child: Text('1 Year')),
                         ],
