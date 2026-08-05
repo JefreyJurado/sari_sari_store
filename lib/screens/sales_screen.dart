@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 import 'receipt_screen.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/help_sheet.dart';
+import '../widgets/search_field.dart';
 
 const _blue = AppColors.blue;
 
@@ -121,33 +122,10 @@ class _SalesScreenState extends State<SalesScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Column(
                               children: [
-                                TextField(
+                                SearchField(
                                   controller: _searchCtrl,
                                   onChanged: (v) => setState(() => _search = v),
-                                  decoration: InputDecoration(
-                                    hintText: 'Search products...',
-                                    hintStyle: TextStyle(
-                                        color: Colors.grey[400], fontSize: 14),
-                                    prefixIcon: Icon(Icons.search_outlined,
-                                        color: Colors.grey[400], size: 20),
-                                    suffixIcon: _search.isNotEmpty
-                                        ? IconButton(
-                                            icon: Icon(Icons.close,
-                                                color: Colors.grey[400],
-                                                size: 18),
-                                            onPressed: () {
-                                              setState(() => _search = '');
-                                              _searchCtrl.clear();
-                                            })
-                                        : null,
-                                    filled: true,
-                                    fillColor: Colors.grey.shade100,
-                                    border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide: BorderSide.none),
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(vertical: 0),
-                                  ),
+                                  hintText: 'Search products...',
                                 ),
                                 const SizedBox(height: 12),
                                 SizedBox(

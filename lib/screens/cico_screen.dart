@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/help_sheet.dart';
 import '../widgets/rate_ladder.dart';
+import '../widgets/search_field.dart';
 import '../utils/cico_type_meta.dart';
 import 'padala_calculator_screen.dart';
 import 'rate_settings_screen.dart';
@@ -139,6 +140,14 @@ class CicoScreen extends StatefulWidget {
 
 class _CicoScreenState extends State<CicoScreen> {
   String _filter = 'All';
+  final _searchCtrl = TextEditingController();
+  String _search = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -162,9 +171,19 @@ class _CicoScreenState extends State<CicoScreen> {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(builder: (context, prov, _) {
       final filterType = _typeForFilter(_filter);
-      final transactions = filterType == null
+      var transactions = filterType == null
           ? prov.cico
           : prov.cico.where((t) => t.type == filterType).toList();
+      if (_search.isNotEmpty) {
+        final q = _search.toLowerCase();
+        transactions = transactions
+            .where((t) =>
+                _providerLabel(t.provider).toLowerCase().contains(q) ||
+                (t.customerName?.toLowerCase().contains(q) ?? false) ||
+                (t.customerPhone?.toLowerCase().contains(q) ?? false) ||
+                (t.notes?.toLowerCase().contains(q) ?? false))
+            .toList();
+      }
 
       return Scaffold(
         backgroundColor: Colors.white,
@@ -277,6 +296,16 @@ class _CicoScreenState extends State<CicoScreen> {
                   ),
                 ),
               ]),
+            ),
+            const SizedBox(height: 10),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SearchField(
+                controller: _searchCtrl,
+                onChanged: (v) => setState(() => _search = v),
+                hintText: 'Search customer, provider, or notes...',
+              ),
             ),
             const SizedBox(height: 10),
 

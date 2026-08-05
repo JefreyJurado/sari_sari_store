@@ -39,13 +39,11 @@ class PdfReportService {
 
   Future<void> generateAndPrint({
     required AppProvider prov,
-    required int days,
     required String periodLabel,
     required ReportData report,
   }) async {
     final pdf = await buildDocument(
       prov: prov,
-      days: days,
       periodLabel: periodLabel,
       report: report,
     );
@@ -64,7 +62,6 @@ class PdfReportService {
   /// dialog — used by [generateAndPrint] and directly testable on its own.
   Future<pw.Document> buildDocument({
     required AppProvider prov,
-    required int days,
     required String periodLabel,
     required ReportData report,
   }) async {
@@ -106,7 +103,7 @@ class PdfReportService {
           pw.SizedBox(height: 16),
           _buildTopProductsSection(report, bold, font),
           pw.SizedBox(height: 16),
-          _buildExpensesSection(prov, days, bold, font),
+          _buildExpensesSection(report, bold, font),
           pw.SizedBox(height: 16),
           _buildCreditSection(prov, bold, font),
           pw.SizedBox(height: 16),
@@ -533,25 +530,18 @@ class PdfReportService {
 
   // ── EXPENSES ──────────────────────────────────────────
   pw.Widget _buildExpensesSection(
-    AppProvider prov,
-    int days,
+    ReportData report,
     pw.Font bold,
     pw.Font font,
   ) {
-    final now = DateTime.now();
-    final since = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: days - 1));
-    final filtered = prov.expenses
-        .where((e) => !e.date.isBefore(since))
-        .toList();
+    final filtered = report.expenses;
 
     final Map<String, double> byCategory = {};
     for (final e in filtered) {
       byCategory[e.category] =
           (byCategory[e.category] ?? 0) + e.amount;
     }
-    final total = CurrencyFormatter.roundCents(
-        filtered.fold(0.0, (s, e) => s + e.amount));
+    final total = report.totalExpenses;
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,

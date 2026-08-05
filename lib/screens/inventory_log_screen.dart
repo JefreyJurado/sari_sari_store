@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../utils/currency_formatter.dart';
 import '../theme/app_theme.dart';
+import '../widgets/search_field.dart';
 
 const _blue = AppColors.blue;
 
@@ -15,6 +16,14 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
   late String _selectedMonth;
   List<Map<String, dynamic>> _snapshot = [];
   bool _loading = true;
+  final _searchCtrl = TextEditingController();
+  String _search = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -139,6 +148,14 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _blue)),
             ]),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: SearchField(
+              controller: _searchCtrl,
+              onChanged: (v) => setState(() => _search = v),
+              hintText: 'Search products...',
+            ),
+          ),
           // Column headers
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -176,11 +193,28 @@ class _InventoryLogScreenState extends State<InventoryLogScreen> {
                     : Builder(builder: (_) {
                         final sorted = List<Map<String, dynamic>>.from(_snapshot)
                           ..sort((a, b) => (b['stockSold'] as num).compareTo(a['stockSold'] as num));
+                        final filtered = _search.isEmpty
+                            ? sorted
+                            : sorted
+                                .where((p) => (p['productName'] as String)
+                                    .toLowerCase()
+                                    .contains(_search.toLowerCase()))
+                                .toList();
+                        if (filtered.isEmpty) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 40),
+                              child: Text('No products found',
+                                  style: TextStyle(
+                                      color: Colors.grey[400], fontSize: 14)),
+                            ),
+                          );
+                        }
                         return ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        itemCount: sorted.length,
+                        itemCount: filtered.length,
                         itemBuilder: (_, i) {
-                          final p = sorted[i];
+                          final p = filtered[i];
                           final endingStock = (p['endingStock'] as num).toInt();
                           final stockSold = (p['stockSold'] as num).toInt();
                           final beginningStock = (p['beginningStock'] as num).toInt();

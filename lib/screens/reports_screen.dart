@@ -29,14 +29,39 @@ class ReportsScreen extends StatefulWidget {
 }
 
 class _ReportsScreenState extends State<ReportsScreen> {
+  // Sentinel dropdown value standing in for "Custom Range..." — distinct
+  // from every real day-count value (1, 7, 14, ...) above.
+  static const _customDaysValue = -1;
+
   int _days = 7;
+  DateTimeRange? _customRange;
   ReportData? _report;
   bool _loading = false;
   bool _isPrinting = false;
-  int? _lastComputedDays;
+  DateTime? _lastComputedSince;
+  DateTime? _lastComputedUntil;
   int? _lastSalesHash;
   int? _lastExpensesHash;
   int? _lastCicoHash;
+
+  int get _dropdownValue => _customRange != null ? _customDaysValue : _days;
+
+  DateTime get _periodSince {
+    if (_customRange != null) return _customRange!.start;
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: _days - 1));
+  }
+
+  // Truncated to the date (no time-of-day) so it stays stable across
+  // repeated calls within the same day — a fresh DateTime.now() on every
+  // call would never compare equal to _lastComputedUntil, defeating the
+  // unchanged-period cache check in _load below.
+  DateTime get _periodUntil {
+    if (_customRange != null) return _customRange!.end;
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
 
   @override
   void initState() {
@@ -64,13 +89,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _load({bool force = false}) async {
     if (!mounted) return;
     final prov = context.read<AppProvider>();
+    final since = _periodSince;
+    final until = _periodUntil;
     final currentSalesHash = Object.hashAll(prov.sales);
     final currentExpensesHash =
         Object.hashAll(prov.expenses);
     final currentCicoHash = Object.hashAll(prov.cico);
     if (!force &&
         _report != null &&
-        _days == _lastComputedDays &&
+        since == _lastComputedSince &&
+        until == _lastComputedUntil &&
         currentSalesHash == _lastSalesHash &&
         currentExpensesHash == _lastExpensesHash &&
         currentCicoHash == _lastCicoHash) {
@@ -81,12 +109,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
       final r = await ReportService.instance.generateReport(
         expenses: prov.expenses,
         cico: prov.cico,
-        days: _days,
+        since: since,
+        until: until,
       );
       if (mounted) {
         setState(() {
           _report = r;
-          _lastComputedDays = _days;
+          _lastComputedSince = since;
+          _lastComputedUntil = until;
           _lastSalesHash = currentSalesHash;
           _lastExpensesHash = currentExpensesHash;
           _lastCicoHash = currentCicoHash;
@@ -105,6 +135,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
       'May', 'June', 'July', 'August',
       'September', 'October', 'November', 'December'
     ];
+    if (_customRange != null) {
+      final s = _customRange!.start;
+      final e = _customRange!.end;
+      if (s.year == e.year && s.month == e.month && s.day == e.day) {
+        return '${months[s.month - 1]} ${s.day}, ${s.year}';
+      }
+      return '${months[s.month - 1]} ${s.day}, ${s.year} – '
+          '${months[e.month - 1]} ${e.day}, ${e.year}';
+    }
     switch (_days) {
       case 1:
         return 'Today — ${months[now.month - 1]} ${now.day}, ${now.year}';
@@ -206,7 +245,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             color: Colors.grey.shade300),
                       ),
                       child: DropdownButton<int>(
-                        value: _days,
+                        value: _dropdownValue,
                         isDense: true,
                         underline: const SizedBox(),
                         style: const TextStyle(
@@ -217,37 +256,66 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             Icons.keyboard_arrow_down,
                             color: _blue,
                             size: 18),
-                        items: const [
-                          DropdownMenuItem(
+                        items: [
+                          const DropdownMenuItem(
                               value: 1,
                               child: Text('Today')),
-                          DropdownMenuItem(
+                          const DropdownMenuItem(
                               value: 7,
                               child: Text('7 Days')),
-                          DropdownMenuItem(
+                          const DropdownMenuItem(
                               value: 14,
                               child: Text('14 Days')),
-                          DropdownMenuItem(
+                          const DropdownMenuItem(
                               value: 30,
                               child: Text('1 Month')),
-                          DropdownMenuItem(
+                          const DropdownMenuItem(
                               value: 60,
                               child: Text('2 Months')),
-                          DropdownMenuItem(
+                          const DropdownMenuItem(
                               value: 90,
                               child: Text('3 Months')),
-                          DropdownMenuItem(
+                          const DropdownMenuItem(
                               value: 180,
                               child: Text('6 Months')),
-                          DropdownMenuItem(
+                          const DropdownMenuItem(
                               value: 365,
                               child: Text('1 Year')),
+                          DropdownMenuItem(
+                              value: _customDaysValue,
+                              child: Text(_customRange == null
+                                  ? 'Custom Range...'
+                                  : 'Custom')),
                         ],
-                        onChanged: (v) {
-                          if (v != null) {
-                            setState(() => _days = v);
-                            _load();
+                        onChanged: (v) async {
+                          if (v == null) return;
+                          if (v == _customDaysValue) {
+                            final now = DateTime.now();
+                            final picked = await showDateRangePicker(
+                              context: context,
+                              firstDate: DateTime(now.year - 3),
+                              lastDate: now,
+                              initialDateRange: _customRange ??
+                                  DateTimeRange(
+                                      start: now.subtract(
+                                          const Duration(days: 6)),
+                                      end: now),
+                            );
+                            if (picked != null) {
+                              setState(() => _customRange = DateTimeRange(
+                                  start: DateTime(picked.start.year,
+                                      picked.start.month, picked.start.day),
+                                  end: DateTime(picked.end.year,
+                                      picked.end.month, picked.end.day)));
+                              _load();
+                            }
+                            return;
                           }
+                          setState(() {
+                            _days = v;
+                            _customRange = null;
+                          });
+                          _load();
                         },
                       ),
                     ),
@@ -712,7 +780,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     try {
       await PdfReportService.instance.generateAndPrint(
         prov: prov,
-        days: _days,
         periodLabel: _periodLabel,
         report: _report!,
       );

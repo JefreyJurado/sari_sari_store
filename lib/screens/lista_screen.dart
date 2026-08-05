@@ -10,6 +10,7 @@ import 'payment_screen.dart';
 import 'credit_order_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/help_sheet.dart';
+import '../widgets/search_field.dart';
 
 const _blue = AppColors.blue;
 
@@ -24,6 +25,7 @@ class _ListaScreenState extends State<ListaScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
   String _search = '';
+  final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -34,6 +36,7 @@ class _ListaScreenState extends State<ListaScreen>
   @override
   void dispose() {
     _tabCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -155,22 +158,10 @@ class _ListaScreenState extends State<ListaScreen>
                               ),
                             ]),
                             const SizedBox(height: 12),
-                            TextField(
+                            SearchField(
+                              controller: _searchCtrl,
                               onChanged: (v) => setState(() => _search = v),
-                              decoration: InputDecoration(
-                                hintText: 'Search by customer name...',
-                                hintStyle: TextStyle(
-                                    color: Colors.grey[400], fontSize: 14),
-                                prefixIcon: Icon(Icons.search_outlined,
-                                    color: Colors.grey[400], size: 20),
-                                filled: true,
-                                fillColor: Colors.grey.shade100,
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide.none),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 0),
-                              ),
+                              hintText: 'Search by customer name...',
                             ),
                             const SizedBox(height: 16),
                           ],

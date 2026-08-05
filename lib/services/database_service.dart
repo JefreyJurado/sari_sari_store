@@ -648,10 +648,15 @@ class DatabaseService {
   }
 
   // ── REPORTS ────────────────────────────────────────────
-  Future<List<Map<String, dynamic>>> getDailyRevenue(int days) async {
-    final since = DateTime.now().subtract(Duration(days: days - 1));
+  /// [since]/[until] bound the period (inclusive); [until] is normalized to
+  /// the end of its day so a custom range's last day is fully included.
+  Future<List<Map<String, dynamic>>> getDailyRevenue(
+      DateTime since, DateTime until) async {
     final sinceStr =
         DateTime(since.year, since.month, since.day).toIso8601String();
+    final untilStr =
+        DateTime(until.year, until.month, until.day, 23, 59, 59, 999)
+            .toIso8601String();
     // Profit is computed via a correlated subquery (rather than a JOIN on
     // sale_items) so it doesn't multiply/duplicate the revenue SUM when a
     // sale has more than one line item.
@@ -664,9 +669,9 @@ class DatabaseService {
          JOIN sales s2 ON si.saleId = s2.id
          WHERE date(s2.createdAt) = date(sales.createdAt)
            AND s2.status = 'completed') as profit
-      FROM sales WHERE createdAt >= ? AND status='completed'
+      FROM sales WHERE createdAt >= ? AND createdAt <= ? AND status='completed'
       GROUP BY date(createdAt) ORDER BY day ASC
-    ''', [sinceStr]);
+    ''', [sinceStr, untilStr]);
   }
 
   /// Cash/online/credit split across an entire period, aggregated in SQL
@@ -676,10 +681,13 @@ class DatabaseService {
   /// nets out installment sales' credit portion; credit bucket also
   /// covers mixed/installment types) so a period total and a same-day
   /// single-day total never disagree over how a sale type is bucketed.
-  Future<Map<String, double>> getPaymentTypeBreakdown(int days) async {
-    final now = DateTime.now();
-    final since = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: days - 1));
+  Future<Map<String, double>> getPaymentTypeBreakdown(
+      DateTime since, DateTime until) async {
+    final sinceStr =
+        DateTime(since.year, since.month, since.day).toIso8601String();
+    final untilStr =
+        DateTime(until.year, until.month, until.day, 23, 59, 59, 999)
+            .toIso8601String();
     final result = await (await database).rawQuery('''
       SELECT
         COALESCE(SUM(CASE WHEN type IN ('cash','installment','mixed')
@@ -689,8 +697,8 @@ class DatabaseService {
         COALESCE(SUM(CASE WHEN type IN ('credit','mixed','installment')
           THEN creditAmount ELSE 0 END), 0) as credit
       FROM sales
-      WHERE createdAt >= ? AND status = 'completed'
-    ''', [since.toIso8601String()]);
+      WHERE createdAt >= ? AND createdAt <= ? AND status = 'completed'
+    ''', [sinceStr, untilStr]);
     final row = result.first;
     return {
       'cash': (row['cash'] as num).toDouble(),
@@ -699,20 +707,23 @@ class DatabaseService {
     };
   }
 
-  Future<List<Map<String, dynamic>>> getTopProducts(int days) async {
-    final now = DateTime.now();
-    final since = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: days - 1));
+  Future<List<Map<String, dynamic>>> getTopProducts(
+      DateTime since, DateTime until) async {
+    final sinceStr =
+        DateTime(since.year, since.month, since.day).toIso8601String();
+    final untilStr =
+        DateTime(until.year, until.month, until.day, 23, 59, 59, 999)
+            .toIso8601String();
     return (await database).rawQuery('''
       SELECT si.productName,
         SUM(si.quantity) as totalQty,
         SUM(si.price * si.quantity) as totalRevenue,
         SUM((si.price - si.buyPrice) * si.quantity) as totalProfit
       FROM sale_items si JOIN sales s ON si.saleId = s.id
-      WHERE s.createdAt >= ? AND s.status='completed'
+      WHERE s.createdAt >= ? AND s.createdAt <= ? AND s.status='completed'
       GROUP BY si.productId, si.productName
       ORDER BY totalQty DESC LIMIT 10
-    ''', [since.toIso8601String()]);
+    ''', [sinceStr, untilStr]);
   }
 
   Future<List<Map<String, dynamic>>> getHourlySales(DateTime date) async {

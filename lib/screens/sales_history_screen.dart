@@ -6,6 +6,7 @@ import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
+import '../widgets/search_field.dart';
 
 const _blue = AppColors.blue;
 
@@ -181,19 +182,10 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: TextField(
+                child: SearchField(
                   controller: _searchCtrl,
                   onChanged: (v) => setState(() => _search = v),
-                  decoration: InputDecoration(
-                    hintText: 'Search by item, customer, or receipt #...',
-                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                    prefixIcon: Icon(Icons.search_outlined, color: Colors.grey[400], size: 20),
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  ),
+                  hintText: 'Search by item, customer, or receipt #...',
                 ),
               ),
               Container(

@@ -6,6 +6,7 @@ import '../services/database_service.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
 import '../widgets/center_toast.dart';
+import '../widgets/search_field.dart';
 
 class ArchivedProductsScreen extends StatefulWidget {
   const ArchivedProductsScreen({super.key});
@@ -16,11 +17,29 @@ class ArchivedProductsScreen extends StatefulWidget {
 class _ArchivedProductsScreenState extends State<ArchivedProductsScreen> {
   List<Product> _archived = [];
   bool _loading = true;
+  final _searchCtrl = TextEditingController();
+  String _search = '';
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<Product> get _filtered {
+    if (_search.isEmpty) return _archived;
+    final q = _search.toLowerCase();
+    return _archived
+        .where((p) =>
+            p.name.toLowerCase().contains(q) ||
+            p.category.toLowerCase().contains(q))
+        .toList();
   }
 
   Future<void> _load() async {
@@ -84,22 +103,38 @@ class _ArchivedProductsScreenState extends State<ArchivedProductsScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _archived.isEmpty
-              ? Center(
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[300]),
-                    const SizedBox(height: 12),
-                    Text('No archived products',
-                        style: TextStyle(color: Colors.grey[400], fontSize: 14)),
-                  ]),
-                )
-              : ListView.builder(
+        child: Column(children: [
+          if (!_loading && _archived.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: SearchField(
+                controller: _searchCtrl,
+                onChanged: (v) => setState(() => _search = v),
+                hintText: 'Search archived products...',
+              ),
+            ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _archived.isEmpty
+                    ? Center(
+                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[300]),
+                          const SizedBox(height: 12),
+                          Text('No archived products',
+                              style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+                        ]),
+                      )
+                    : _filtered.isEmpty
+                        ? Center(
+                            child: Text('No products found',
+                                style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+                          )
+                        : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: _archived.length,
+                  itemCount: _filtered.length,
                   itemBuilder: (_, i) {
-                    final p = _archived[i];
+                    final p = _filtered[i];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(14),
@@ -155,6 +190,8 @@ class _ArchivedProductsScreenState extends State<ArchivedProductsScreen> {
                     );
                   },
                 ),
+          ),
+        ]),
       ),
     );
   }

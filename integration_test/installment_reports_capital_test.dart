@@ -194,13 +194,17 @@ void main() {
     expect(find.textContaining('Total Sales'), findsOneWidget,
         reason: 'reports screen should render its stat cards without error');
 
-    // Precisely verify the date-window fix: Reports "Today" (days=1) must
-    // equal Home/AppProvider's calendar-day todayRevenue, not a rolling
-    // 24h window that could double-count or miss part of today's sales.
+    // Precisely verify the date-window fix: Reports "Today" (a single-day
+    // since/until window) must equal Home/AppProvider's calendar-day
+    // todayRevenue, not a rolling 24h window that could double-count or
+    // miss part of today's sales.
+    final startOfToday =
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final todayReport = await ReportService.instance.generateReport(
       expenses: prov.expenses,
       cico: prov.cico,
-      days: 1,
+      since: startOfToday,
+      until: startOfToday,
     );
     expect(todayReport.totalRevenue, prov.todayRevenue,
         reason:

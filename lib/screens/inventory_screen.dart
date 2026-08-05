@@ -14,6 +14,7 @@ import '../services/product_import_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/help_sheet.dart';
+import '../widgets/search_field.dart';
 
 const _uuid = Uuid();
 const _blue = AppColors.blue;
@@ -510,22 +511,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     ]),
                   ),
                   const SizedBox(height: 14),
-                  TextField(
+                  SearchField(
                     controller: _searchCtrl,
                     onChanged: (v) => setState(() => _search = v),
-                    decoration: InputDecoration(
-                      hintText: 'Search products...',
-                      hintStyle:
-                          TextStyle(color: Colors.grey[400], fontSize: 14),
-                      prefixIcon: Icon(Icons.search_outlined,
-                          color: Colors.grey[400], size: 20),
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                    ),
+                    hintText: 'Search products...',
                   ),
                   const SizedBox(height: 24),
                   if (products.isEmpty)

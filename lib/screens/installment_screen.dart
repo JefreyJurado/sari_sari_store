@@ -11,6 +11,7 @@ import '../models/product.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/help_sheet.dart';
+import '../widgets/search_field.dart';
 
 const _uuid = Uuid();
 const _blue = AppColors.blue;
@@ -27,6 +28,8 @@ class _InstallmentScreenState extends State<InstallmentScreen>
   List<Installment> _installments = [];
   bool _loading = true;
   bool _payInFlight = false;
+  final _searchCtrl = TextEditingController();
+  String _search = '';
 
   @override
   void initState() {
@@ -38,7 +41,18 @@ class _InstallmentScreenState extends State<InstallmentScreen>
   @override
   void dispose() {
     _tabCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
+  }
+
+  List<Installment> _applySearch(List<Installment> list) {
+    if (_search.isEmpty) return list;
+    final q = _search.toLowerCase();
+    return list
+        .where((i) =>
+            i.customerName.toLowerCase().contains(q) ||
+            i.itemDescription.toLowerCase().contains(q))
+        .toList();
   }
 
   Future<void> _load() async {
@@ -66,6 +80,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(builder: (context, prov, _) {
+      final ongoing = _applySearch(_ongoing);
+      final overdue = _applySearch(_overdue);
+      final completed = _applySearch(_completed);
       return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -103,6 +120,15 @@ class _InstallmentScreenState extends State<InstallmentScreen>
               child: Text('Manage payment plans',
                   style: TextStyle(color: Colors.grey[500], fontSize: 13)),
             ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SearchField(
+                controller: _searchCtrl,
+                onChanged: (v) => setState(() => _search = v),
+                hintText: 'Search customer or item...',
+              ),
+            ),
             const SizedBox(height: 8),
 
             // ── Tab Bar ────────────────────────────
@@ -121,9 +147,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                     const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                 unselectedLabelStyle: const TextStyle(fontSize: 12),
                 tabs: [
-                  Tab(text: 'Ongoing (${_ongoing.length})'),
-                  Tab(text: 'Overdue (${_overdue.length})'),
-                  Tab(text: 'Completed (${_completed.length})'),
+                  Tab(text: 'Ongoing (${ongoing.length})'),
+                  Tab(text: 'Overdue (${overdue.length})'),
+                  Tab(text: 'Completed (${completed.length})'),
                 ],
               ),
             ),
@@ -135,9 +161,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                   : TabBarView(
                       controller: _tabCtrl,
                       children: [
-                        _buildList(_ongoing, prov),
-                        _buildList(_overdue, prov),
-                        _buildList(_completed, prov),
+                        _buildList(ongoing, prov),
+                        _buildList(overdue, prov),
+                        _buildList(completed, prov),
                       ],
                     ),
             ),

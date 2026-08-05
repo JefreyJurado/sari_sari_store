@@ -6,17 +6,36 @@ import '../utils/currency_formatter.dart';
 import '../utils/filipino_categories.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
+import '../widgets/search_field.dart';
 
 const _blue = AppColors.blue;
 
-class StockAlertScreen extends StatelessWidget {
+class StockAlertScreen extends StatefulWidget {
   const StockAlertScreen({super.key});
+  @override
+  State<StockAlertScreen> createState() => _StockAlertScreenState();
+}
+
+class _StockAlertScreenState extends State<StockAlertScreen> {
+  final _searchCtrl = TextEditingController();
+  String _search = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(builder: (context, prov, _) {
-      final outOfStock = prov.outOfStock;
-      final lowStock = prov.lowStock;
+      var outOfStock = prov.outOfStock;
+      var lowStock = prov.lowStock;
+      if (_search.isNotEmpty) {
+        final q = _search.toLowerCase();
+        outOfStock = outOfStock.where((p) => p.name.toLowerCase().contains(q)).toList();
+        lowStock = lowStock.where((p) => p.name.toLowerCase().contains(q)).toList();
+      }
 
       // FIXED: Used DefaultTabController to eliminate manually tracking mixin lifecycles
       return DefaultTabController(
@@ -44,6 +63,15 @@ class StockAlertScreen extends StatelessWidget {
                 child: Text('Monitor inventory levels',
                     style: TextStyle(color: Colors.grey[500], fontSize: 13)),
               ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SearchField(
+                  controller: _searchCtrl,
+                  onChanged: (v) => setState(() => _search = v),
+                  hintText: 'Search products...',
+                ),
+              ),
+              const SizedBox(height: 8),
 
               // ── Tab Bar ──────────────────────────
               Container(

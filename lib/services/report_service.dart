@@ -51,18 +51,25 @@ class ReportService {
 
   final _db = DatabaseService.instance;
 
+  /// [since]/[until] bound the period (inclusive); both are normalized to
+  /// day boundaries so a custom range's start and end days are fully
+  /// included regardless of what time-of-day the caller passed in.
   Future<ReportData> generateReport({
     required List<Expense> expenses,
     required List<CicoTransaction> cico,
-    required int days,
+    required DateTime since,
+    required DateTime until,
   }) async {
-    final now = DateTime.now();
-    final since = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: days - 1));
-    final filteredExpenses =
-        expenses.where((e) => !e.date.isBefore(since)).toList();
-    final filteredCico =
-        cico.where((t) => !t.createdAt.isBefore(since)).toList();
+    final sinceDay = DateTime(since.year, since.month, since.day);
+    final untilDay =
+        DateTime(until.year, until.month, until.day, 23, 59, 59, 999);
+    final filteredExpenses = expenses
+        .where((e) => !e.date.isBefore(sinceDay) && !e.date.isAfter(untilDay))
+        .toList();
+    final filteredCico = cico
+        .where((t) =>
+            !t.createdAt.isBefore(sinceDay) && !t.createdAt.isAfter(untilDay))
+        .toList();
     final cicoCommission = CurrencyFormatter.roundCents(
         filteredCico.fold(0.0, (s, t) => s + t.commission));
     final cicoCashInVolume = CurrencyFormatter.roundCents(filteredCico
@@ -78,9 +85,9 @@ class ReportService {
     final expTotal = CurrencyFormatter.roundCents(
         filteredExpenses.fold(0.0, (s, e) => s + e.amount));
 
-    final daily = await _db.getDailyRevenue(days);
-    final top = await _db.getTopProducts(days);
-    final paymentSplit = await _db.getPaymentTypeBreakdown(days);
+    final daily = await _db.getDailyRevenue(sinceDay, untilDay);
+    final top = await _db.getTopProducts(sinceDay, untilDay);
+    final paymentSplit = await _db.getPaymentTypeBreakdown(sinceDay, untilDay);
 
     // Period totals are summed from the SQL per-day rows rather than the
     // provider's in-memory sales list — that list is capped to recent

@@ -7,6 +7,7 @@ import '../utils/date_helper.dart';
 import '../utils/filipino_categories.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
+import '../widgets/search_field.dart';
 
 const _blue = AppColors.blue;
 
@@ -18,6 +19,14 @@ class ExpensesScreen extends StatefulWidget {
 
 class _ExpensesScreenState extends State<ExpensesScreen> {
   String _filterCat = 'All';
+  final _searchCtrl = TextEditingController();
+  String _search = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +34,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       var expenses = prov.expenses;
       if (_filterCat != 'All') {
         expenses = expenses.where((e) => e.category == _filterCat).toList();
+      }
+      if (_search.isNotEmpty) {
+        final q = _search.toLowerCase();
+        expenses = expenses
+            .where((e) =>
+                e.description.toLowerCase().contains(q) ||
+                e.category.toLowerCase().contains(q) ||
+                (e.notes?.toLowerCase().contains(q) ?? false))
+            .toList();
       }
       final total = CurrencyFormatter.roundCents(
           expenses.fold(0.0, (s, e) => s + e.amount));
@@ -107,6 +125,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               fontWeight: FontWeight.w500)),
                     ),
                   ]),
+                ),
+                const SizedBox(height: 10),
+
+                SearchField(
+                  controller: _searchCtrl,
+                  onChanged: (v) => setState(() => _search = v),
+                  hintText: 'Search expenses...',
                 ),
                 const SizedBox(height: 10),
 
