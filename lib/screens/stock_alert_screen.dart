@@ -288,16 +288,20 @@ class _StockAlertScreenState extends State<StockAlertScreen> {
               onPressed: () => Navigator.pop(dialogCtx),
               child: Text('Cancel', style: TextStyle(color: Colors.grey[600], fontSize: 13))),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               final adj = int.tryParse(ctrl.text);
               if (adj == null) return;
-              
-              final newStock = (product.stock + adj).clamp(0, 99999);
-              prov.adjustProductStock(product.id, adj);
 
-              // FIXED: Use localized dialog context to pop, check screen safety before showing SnackBar
-              Navigator.pop(dialogCtx);
-              
+              await prov.adjustProductStock(product.id, adj);
+              final newStock = prov.products
+                      .where((p) => p.id == product.id)
+                      .firstOrNull
+                      ?.stock ??
+                  (product.stock + adj).clamp(0, 99999);
+
+              // Use localized dialog context to pop, check screen safety before showing SnackBar
+              if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+
               if (screenCtx.mounted) {
                 CenterToast.showSuccess(
                     screenCtx, '${product.name} updated: $newStock ${product.unit ?? 'pcs'}');

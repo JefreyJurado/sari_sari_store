@@ -149,7 +149,7 @@ class ProductImportService {
       );
     }
 
-    final existing = await DatabaseService.instance.getProducts();
+    final existing = await DatabaseService.instance.getProducts(activeOnly: false);
     final knownBarcodes = {
       for (final p in existing)
         if (p.barcode != null && p.barcode!.isNotEmpty) p.barcode!,
@@ -198,8 +198,9 @@ class ProductImportService {
         (c) => c.toLowerCase() == rawCategory.toLowerCase(),
         orElse: () => 'Others',
       );
-      final stock = parseInt(cell(row, stockCol)) ?? 0;
-      final reorderPoint = parseInt(cell(row, reorderCol)) ?? 5;
+      final stock = (parseInt(cell(row, stockCol)) ?? 0).clamp(0, 99999).toInt();
+      final reorderPoint =
+          (parseInt(cell(row, reorderCol)) ?? 5).clamp(0, 99999).toInt();
       final unit = cell(row, unitCol);
       final supplierName = cell(row, supplierNameCol);
       final supplierContact = cell(row, supplierContactCol);

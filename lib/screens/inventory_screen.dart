@@ -1282,14 +1282,22 @@ class _StockAdjustDialogState extends State<_StockAdjustDialog> {
             child: Text('Cancel',
                 style: TextStyle(color: Colors.grey[600], fontSize: 13))),
         TextButton(
-          onPressed: () {
+          onPressed: () async {
             final adj = int.tryParse(_ctrl.text);
             if (adj == null) return;
-            final newStock = (widget.product.stock + adj).clamp(0, 99999);
-            widget.prov.adjustProductStock(widget.product.id, adj);
-            Navigator.pop(context);
+            final navigator = Navigator.of(context);
+            final messenger = ScaffoldMessenger.of(context);
 
-            ScaffoldMessenger.of(context).showSnackBar(
+            await widget.prov.adjustProductStock(widget.product.id, adj);
+            final newStock = widget.prov.products
+                    .where((p) => p.id == widget.product.id)
+                    .firstOrNull
+                    ?.stock ??
+                (widget.product.stock + adj).clamp(0, 99999);
+
+            if (!mounted) return;
+            navigator.pop();
+            messenger.showSnackBar(
               SnackBar(
                 content: Text(
                     'Stock adjusted to $newStock for "${widget.product.name}".'),

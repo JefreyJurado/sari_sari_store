@@ -731,16 +731,9 @@ class AppProvider extends ChangeNotifier {
 
   /// Toggles the active/archive state of a product to hide it without hard deleting data
   Future<void> archiveProduct(String id) async {
-    final index = products.indexWhere((p) => p.id == id);
-    if (index != -1) {
-      // Flips the status flag. Assumes your Product model has an `isActive` property.
-      // If it uses another variable name like `isArchived`, change it here.
-      final updatedProduct = products[index].copyWith(isActive: false);
-      await _db.updateProduct(updatedProduct);
-
-      products = await _db.getProducts();
-      _safeNotifyListeners();
-    }
+    await _db.archiveProduct(id);
+    products = await _db.getProducts();
+    _safeNotifyListeners();
   }
 
   // Bulk version of archiveProduct for "Clear All Products" — one DB
