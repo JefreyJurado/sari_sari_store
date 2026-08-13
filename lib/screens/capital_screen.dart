@@ -75,8 +75,12 @@ class _CapitalScreenState extends State<CapitalScreen> {
               TextField(
                 controller: labelCtrl,
                 decoration: InputDecoration(
-                  labelText: 'Description',
-                  hintText: 'e.g. DTI, Equipment...',
+                  labelText: category == 'Others'
+                      ? 'OTHERS — type the exact purpose *'
+                      : 'Description',
+                  hintText: category == 'Others'
+                      ? 'e.g. tricycle repair, ID lamination fee...'
+                      : 'e.g. DTI, Equipment...',
                   labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
                   hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
                   filled: true,

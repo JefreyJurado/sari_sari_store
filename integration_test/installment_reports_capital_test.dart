@@ -202,6 +202,7 @@ void main() {
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final todayReport = await ReportService.instance.generateReport(
       expenses: prov.expenses,
+      groceryEntries: prov.groceryEntries,
       cico: prov.cico,
       since: startOfToday,
       until: startOfToday,

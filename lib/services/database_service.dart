@@ -9,6 +9,7 @@ import '../models/payment.dart';
 import '../models/capital_entry.dart';
 import '../models/cico_transaction.dart';
 import '../models/cico_rate.dart';
+import '../models/grocery_entry.dart';
 
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._();
@@ -21,7 +22,7 @@ class DatabaseService {
     final path = join(await getDatabasesPath(), 'pos_system.db');
     return openDatabase(
       path,
-      version: 14,
+      version: 16,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -138,6 +139,17 @@ class DatabaseService {
       maxAmount REAL,
       isActive INTEGER NOT NULL DEFAULT 1,
       createdAt TEXT NOT NULL)''');
+
+    await db.execute('''CREATE TABLE grocery_entries(
+      id TEXT PRIMARY KEY,
+      productId TEXT NOT NULL DEFAULT '',
+      productName TEXT NOT NULL DEFAULT '',
+      quantity INTEGER NOT NULL DEFAULT 0,
+      budget REAL NOT NULL DEFAULT 0,
+      expensesForProducts REAL NOT NULL DEFAULT 0,
+      transpo REAL NOT NULL DEFAULT 0,
+      date TEXT NOT NULL,
+      notes TEXT)''');
   }
 
   Future<void> _onUpgrade(Database db, int oldV, int newV) async {
@@ -304,6 +316,23 @@ class DatabaseService {
         maxAmount REAL,
         isActive INTEGER NOT NULL DEFAULT 1,
         createdAt TEXT NOT NULL)''');
+    }
+    if (oldV < 16) {
+      // Grocery links to a real Product (so logging a trip can update
+      // stock) rather than a free-text name. This table never shipped in
+      // a released build before this schema, so there's no installed-base
+      // "product TEXT NOT NULL" version to migrate away from — every real
+      // upgrade can just get the final shape directly in one step.
+      await db.execute('''CREATE TABLE IF NOT EXISTS grocery_entries(
+        id TEXT PRIMARY KEY,
+        productId TEXT NOT NULL DEFAULT '',
+        productName TEXT NOT NULL DEFAULT '',
+        quantity INTEGER NOT NULL DEFAULT 0,
+        budget REAL NOT NULL DEFAULT 0,
+        expensesForProducts REAL NOT NULL DEFAULT 0,
+        transpo REAL NOT NULL DEFAULT 0,
+        date TEXT NOT NULL,
+        notes TEXT)''');
     }
   }
 
@@ -530,6 +559,23 @@ class DatabaseService {
 
   Future<void> deleteExpense(String id) async =>
       (await database).delete('expenses', where: 'id=?', whereArgs: [id]);
+
+  // ── GROCERY ────────────────────────────────────────────
+  Future<void> insertGroceryEntry(GroceryEntry g) async =>
+      (await database).insert('grocery_entries', g.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+
+  Future<List<GroceryEntry>> getGroceryEntries() async {
+    final maps = await (await database)
+        .query('grocery_entries', orderBy: 'date DESC');
+    return maps.map(GroceryEntry.fromMap).toList();
+  }
+
+  Future<void> updateGroceryEntry(GroceryEntry g) async => (await database)
+      .update('grocery_entries', g.toMap(), where: 'id=?', whereArgs: [g.id]);
+
+  Future<void> deleteGroceryEntry(String id) async =>
+      (await database).delete('grocery_entries', where: 'id=?', whereArgs: [id]);
 
   // ── CICO (E-WALLET) ────────────────────────────────────
   Future<void> insertCicoTransaction(CicoTransaction t) async =>
@@ -1094,6 +1140,7 @@ class DatabaseService {
       'inventory_snapshots': await db.query('inventory_snapshots'),
       'cico_transactions': await db.query('cico_transactions'),
       'cico_rates': await db.query('cico_rates'),
+      'grocery_entries': await db.query('grocery_entries'),
     };
   }
 
@@ -1150,6 +1197,10 @@ class DatabaseService {
       if (data['cico_rates'] != null) {
         await txn.delete('cico_rates');
         await ins('cico_rates', data['cico_rates'] as List);
+      }
+      if (data['grocery_entries'] != null) {
+        await txn.delete('grocery_entries');
+        await ins('grocery_entries', data['grocery_entries'] as List);
       }
     });
   }

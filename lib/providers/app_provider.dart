@@ -12,6 +12,7 @@ import '../models/capital_entry.dart';
 import '../models/installment.dart';
 import '../models/cico_transaction.dart';
 import '../models/cico_rate.dart';
+import '../models/grocery_entry.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../services/backup_service.dart';
@@ -48,6 +49,7 @@ class AppProvider extends ChangeNotifier {
   List<CicoRateRule> rates = [];
   List<Debt> debts = [];
   List<DebtPayment> payments = [];
+  List<GroceryEntry> groceryEntries = [];
   CapitalEntry? capital;
   bool isLoading = false;
 
@@ -183,8 +185,47 @@ class AppProvider extends ChangeNotifier {
 
   double get totalSalesProfit => grossProfit;
 
-  double get totalExpensesAmount =>
-      CurrencyFormatter.roundCents(expenses.fold(0.0, (s, e) => s + e.amount));
+  // Expense records + grocery resupply trips combined — a grocery entry
+  // is real cash leaving the register just like a "Stocks / Resupply"
+  // expense, so it has to count here too or Net Profit/Current Capital/
+  // Break-Even would understate cash outflow every time stock is bought
+  // through Grocery instead of the Expenses screen.
+  double get totalExpensesAmount => CurrencyFormatter.roundCents(
+      expenses.fold(0.0, (s, e) => s + e.amount) +
+      groceryEntries.fold(0.0, (s, g) => s + g.totalExpenses));
+
+  // ── Grocery Computed ────────────────────────────────────────────
+  // General Total — all-time grocery spend across every logged trip.
+  double get generalGroceryTotal => CurrencyFormatter.roundCents(
+      groceryEntries.fold(0.0, (s, g) => s + g.totalExpenses));
+
+  // Total per calendar month ("MONTHLY GROCERY"), keyed by "YYYY-MM" and
+  // sorted most-recent month first, so the summary can show at a glance
+  // how much was spent on groceries each month rather than only the
+  // lifetime figure.
+  List<MapEntry<String, double>> get groceryTotalsByMonth {
+    final totals = <String, double>{};
+    for (final g in groceryEntries) {
+      totals[g.monthKey] =
+          CurrencyFormatter.roundCents((totals[g.monthKey] ?? 0) + g.totalExpenses);
+    }
+    final entries = totals.entries.toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+    return entries;
+  }
+
+  // Same idea, grouped by Mon–Sun week ("WEEKLY GROCERY") instead of by
+  // calendar month — the key is the Monday of that week as "yyyy-MM-dd".
+  List<MapEntry<String, double>> get groceryTotalsByWeek {
+    final totals = <String, double>{};
+    for (final g in groceryEntries) {
+      totals[g.weekKey] =
+          CurrencyFormatter.roundCents((totals[g.weekKey] ?? 0) + g.totalExpenses);
+    }
+    final entries = totals.entries.toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+    return entries;
+  }
 
   // All-time revenue/COGS come from SQL aggregates (loaded in _loadAll),
   // not from folding `sales` — that list is capped to the most recent
@@ -273,6 +314,7 @@ class AppProvider extends ChangeNotifier {
       _db.getPayments(),
       _db.getCicoTransactions(),
       _db.getRateRules(),
+      _db.getGroceryEntries(),
     ]);
     customers = results[0] as List<Customer>;
     products = results[1] as List<Product>;
@@ -282,6 +324,7 @@ class AppProvider extends ChangeNotifier {
     payments = results[5] as List<DebtPayment>;
     cico = results[6] as List<CicoTransaction>;
     rates = results[7] as List<CicoRateRule>;
+    groceryEntries = results[8] as List<GroceryEntry>;
     capital = await _db.getCapital();
     final totals = await _db.getAllTimeTotals();
     _allTimeRevenue = totals['revenue'] ?? 0;
@@ -789,6 +832,72 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> deleteExpense(String id) async {
     await _db.deleteExpense(id);
+    await reload();
+  }
+
+  // ── Grocery ────────────────────────────────────────────────────
+  // A grocery entry is a store resupply trip — logging one adds its
+  // quantity straight to the picked product's stock via the same atomic
+  // SQL adjustment sales/voids use, so two near-simultaneous stock
+  // changes can never clobber each other.
+  Future<void> addGroceryEntry({
+    required String productId,
+    required String productName,
+    required int quantity,
+    required double budget,
+    required double expensesForProducts,
+    required double transpo,
+    DateTime? date,
+    String? notes,
+  }) async {
+    await _db.insertGroceryEntry(GroceryEntry(
+        id: _uuid.v4(),
+        productId: productId,
+        productName: productName,
+        quantity: quantity,
+        budget: budget,
+        expensesForProducts: expensesForProducts,
+        transpo: transpo,
+        date: date ?? DateTime.now(),
+        notes: notes));
+    if (productId.isNotEmpty) {
+      await _db.adjustProductStock(productId, quantity);
+    }
+    await reload();
+  }
+
+  // Reverses the original entry's stock effect before applying the
+  // updated one — same product just nets the quantity difference, a
+  // changed product reverses the old one and credits the new one —
+  // so editing a trip (e.g. fixing a mistyped quantity) never leaves
+  // stock double-counted or stuck at the old figure.
+  Future<void> updateGroceryEntry(GroceryEntry updated) async {
+    final old = groceryEntries.where((g) => g.id == updated.id).firstOrNull;
+    if (old != null) {
+      if (old.productId == updated.productId) {
+        final delta = updated.quantity - old.quantity;
+        if (delta != 0 && updated.productId.isNotEmpty) {
+          await _db.adjustProductStock(updated.productId, delta);
+        }
+      } else {
+        if (old.productId.isNotEmpty) {
+          await _db.adjustProductStock(old.productId, -old.quantity);
+        }
+        if (updated.productId.isNotEmpty) {
+          await _db.adjustProductStock(updated.productId, updated.quantity);
+        }
+      }
+    }
+    await _db.updateGroceryEntry(updated);
+    await reload();
+  }
+
+  Future<void> deleteGroceryEntry(String id) async {
+    final entry = groceryEntries.where((g) => g.id == id).firstOrNull;
+    if (entry != null && entry.productId.isNotEmpty) {
+      await _db.adjustProductStock(entry.productId, -entry.quantity);
+    }
+    await _db.deleteGroceryEntry(id);
     await reload();
   }
 

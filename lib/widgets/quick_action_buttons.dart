@@ -7,6 +7,7 @@ import '../screens/daily_summary_screen.dart';
 import '../screens/installment_screen.dart';
 import '../screens/stock_alert_screen.dart';
 import '../screens/barcode_scanner_screen.dart';
+import '../screens/grocery_screen.dart';
 import '../utils/transitions.dart';
 
 const _blue = Color(0xFF1E3A8A);
@@ -17,6 +18,7 @@ const _teal = Color(0xFF0891B2);
 const _pink = Color(0xFFDB2777);
 const _red = Color(0xFFDC2626);
 const _amber = Color(0xFFD97706);
+const _indigo = Color(0xFF4F46E5);
 
 class QuickActionButtons extends StatefulWidget {
   const QuickActionButtons({super.key});
@@ -47,14 +49,20 @@ class _QuickActionButtonsState extends State<QuickActionButtons> {
           () => Navigator.push(
               context, CrossFadePageRoute(child: const ExpensesScreen()))),
       _QA(
+          'Grocery Budget',
+          Icons.shopping_basket_outlined,
+          _green,
+          () => Navigator.push(
+              context, CrossFadePageRoute(child: const GroceryScreen()))),
+    ];
+
+    final moreActions = [
+      _QA(
           'Calculator',
           Icons.calculate_outlined,
           _blue,
           () => Navigator.push(
               context, CrossFadePageRoute(child: const CalculatorScreen()))),
-    ];
-
-    final moreActions = [
       _QA(
           'Summary',
           Icons.bar_chart_outlined,
@@ -64,7 +72,7 @@ class _QuickActionButtonsState extends State<QuickActionButtons> {
       _QA(
           'Installment',
           Icons.credit_score_outlined,
-          _green,
+          _indigo,
           () => Navigator.push(
               context, CrossFadePageRoute(child: const InstallmentScreen()))),
       _QA(

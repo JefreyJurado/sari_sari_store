@@ -263,7 +263,16 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     color: Colors.black87),
               ),
               const SizedBox(height: 16),
-              _field(descCtrl, 'Description *', Icons.description_outlined),
+              _field(
+                descCtrl,
+                category == 'Others'
+                    ? 'OTHERS — type the exact purpose *'
+                    : 'Description *',
+                Icons.description_outlined,
+                hint: category == 'Others'
+                    ? 'e.g. padlock for stall, umbrella repair...'
+                    : null,
+              ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: category,
@@ -449,12 +458,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
   }
 
-  Widget _field(TextEditingController ctrl, String label, IconData icon) =>
+  Widget _field(TextEditingController ctrl, String label, IconData icon,
+          {String? hint}) =>
       TextField(
         controller: ctrl,
         decoration: InputDecoration(
           labelText: label,
+          hintText: hint,
           labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
           prefixIcon: Icon(icon, size: 18, color: Colors.grey[500]),
           filled: true,
           fillColor: Colors.grey.shade50,

@@ -534,12 +534,30 @@ class PdfReportService {
     pw.Font bold,
     pw.Font font,
   ) {
-    final filtered = report.expenses;
+    // Expense records + grocery resupply trips merged into one shape so
+    // the category totals and itemized table both add up to
+    // report.totalExpenses — grocery entries aren't Expense rows, but
+    // their cost is folded into that total (see ReportService), so they
+    // have to appear here too or the listed rows would undercount it.
+    final rows = [
+      ...report.expenses.map((e) => (
+            description: e.description,
+            category: e.category,
+            date: e.date,
+            amount: e.amount,
+          )),
+      ...report.groceryEntries.map((g) => (
+            description: '${g.productName} ×${g.quantity}',
+            category: 'Grocery / Resupply',
+            date: g.date,
+            amount: g.totalExpenses,
+          )),
+    ]..sort((a, b) => b.date.compareTo(a.date));
 
     final Map<String, double> byCategory = {};
-    for (final e in filtered) {
-      byCategory[e.category] =
-          (byCategory[e.category] ?? 0) + e.amount;
+    for (final r in rows) {
+      byCategory[r.category] =
+          (byCategory[r.category] ?? 0) + r.amount;
     }
     final total = report.totalExpenses;
 
@@ -548,7 +566,7 @@ class PdfReportService {
       children: [
         _sectionTitle('EXPENSES BREAKDOWN', bold),
         pw.SizedBox(height: 8),
-        if (filtered.isEmpty)
+        if (rows.isEmpty)
           _emptyBox(
               'No expenses recorded for this period',
               font)
@@ -642,9 +660,9 @@ class PdfReportService {
                           color: PdfColors.white))),
             ]),
           ),
-          ...filtered.asMap().entries.map((e) {
+          ...rows.asMap().entries.map((e) {
             final isEven = e.key.isEven;
-            final exp = e.value;
+            final row = e.value;
             return pw.Container(
               padding: const pw.EdgeInsets.symmetric(
                   horizontal: 10, vertical: 5),
@@ -659,14 +677,14 @@ class PdfReportService {
               child: pw.Row(children: [
                 pw.Expanded(
                     flex: 3,
-                    child: pw.Text(exp.description,
+                    child: pw.Text(row.description,
                         style: pw.TextStyle(
                             font: font,
                             fontSize: 9,
                             color: _black))),
                 pw.Expanded(
                     flex: 2,
-                    child: pw.Text(exp.category,
+                    child: pw.Text(row.category,
                         style: pw.TextStyle(
                             font: font,
                             fontSize: 9,
@@ -674,7 +692,7 @@ class PdfReportService {
                 pw.SizedBox(
                     width: 70,
                     child: pw.Text(
-                        '${exp.date.month}/${exp.date.day}/${exp.date.year}',
+                        '${row.date.month}/${row.date.day}/${row.date.year}',
                         textAlign: pw.TextAlign.center,
                         style: pw.TextStyle(
                             font: font,
@@ -683,7 +701,7 @@ class PdfReportService {
                 pw.SizedBox(
                     width: 90,
                     child: pw.Text(
-                        _c(exp.amount),
+                        _c(row.amount),
                         textAlign: pw.TextAlign.right,
                         style: pw.TextStyle(
                             font: bold,

@@ -19,7 +19,7 @@ SetupCostItem({
 
   static const categories = [
     'Equipment', 'Legal', 'Marketing',
-    'Rent', 'Utilities', 'Others'
+    'Rent', 'Utilities', 'Product & Restoration Expenses', 'Others'
   ];
 
   static const paymentMethods = [

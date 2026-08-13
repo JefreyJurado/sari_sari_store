@@ -42,6 +42,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   DateTime? _lastComputedUntil;
   int? _lastSalesHash;
   int? _lastExpensesHash;
+  int? _lastGroceryHash;
   int? _lastCicoHash;
 
   int get _dropdownValue => _customRange != null ? _customDaysValue : _days;
@@ -76,10 +77,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final prov = context.watch<AppProvider>();
     final currentSalesHash = Object.hashAll(prov.sales);
     final currentExpensesHash = Object.hashAll(prov.expenses);
+    final currentGroceryHash = Object.hashAll(prov.groceryEntries);
     final currentCicoHash = Object.hashAll(prov.cico);
     if (!_loading &&
         (currentSalesHash != _lastSalesHash ||
             currentExpensesHash != _lastExpensesHash ||
+            currentGroceryHash != _lastGroceryHash ||
             currentCicoHash != _lastCicoHash)) {
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _load());
@@ -94,6 +97,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final currentSalesHash = Object.hashAll(prov.sales);
     final currentExpensesHash =
         Object.hashAll(prov.expenses);
+    final currentGroceryHash = Object.hashAll(prov.groceryEntries);
     final currentCicoHash = Object.hashAll(prov.cico);
     if (!force &&
         _report != null &&
@@ -101,6 +105,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         until == _lastComputedUntil &&
         currentSalesHash == _lastSalesHash &&
         currentExpensesHash == _lastExpensesHash &&
+        currentGroceryHash == _lastGroceryHash &&
         currentCicoHash == _lastCicoHash) {
       return;
     }
@@ -108,6 +113,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     try {
       final r = await ReportService.instance.generateReport(
         expenses: prov.expenses,
+        groceryEntries: prov.groceryEntries,
         cico: prov.cico,
         since: since,
         until: until,
@@ -119,6 +125,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           _lastComputedUntil = until;
           _lastSalesHash = currentSalesHash;
           _lastExpensesHash = currentExpensesHash;
+          _lastGroceryHash = currentGroceryHash;
           _lastCicoHash = currentCicoHash;
           _loading = false;
         });

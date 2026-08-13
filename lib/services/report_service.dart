@@ -1,4 +1,5 @@
 import '../models/expense.dart';
+import '../models/grocery_entry.dart';
 import '../models/cico_transaction.dart';
 import '../services/database_service.dart';
 import '../utils/currency_formatter.dart';
@@ -6,7 +7,12 @@ import '../utils/currency_formatter.dart';
 class ReportData {
   final double totalRevenue;
   final double totalProfit;
+  // Expense records + grocery resupply trips combined — both are real
+  // cash leaving the register, so Net Income/Break-Even/reports treat
+  // them the same way. [groceryTotal] is exposed separately so callers
+  // that need just the Expense-table portion can still get it.
   final double totalExpenses;
+  final double groceryTotal;
   final double netIncome;
   final int transactionCount;
   final List<Map<String, dynamic>> dailyRevenue;
@@ -18,6 +24,8 @@ class ReportData {
   // just their sum) so a detail screen can break Total Expenses down by
   // category without re-deriving its own, possibly different, date window.
   final List<Expense> expenses;
+  // Same idea for grocery trips logged within the period.
+  final List<GroceryEntry> groceryEntries;
   // Cash-in/cash-out (E-wallet) agent side-business, kept separate from
   // product-sale profit above — see cicoCommission for the commission
   // earned specifically, not folded into netIncome.
@@ -30,6 +38,7 @@ class ReportData {
     required this.totalRevenue,
     required this.totalProfit,
     required this.totalExpenses,
+    required this.groceryTotal,
     required this.netIncome,
     required this.transactionCount,
     required this.dailyRevenue,
@@ -38,6 +47,7 @@ class ReportData {
     required this.onlineSales,
     required this.creditSales,
     required this.expenses,
+    required this.groceryEntries,
     required this.cicoCommission,
     required this.cicoCashInVolume,
     required this.cicoCashOutVolume,
@@ -56,6 +66,7 @@ class ReportService {
   /// included regardless of what time-of-day the caller passed in.
   Future<ReportData> generateReport({
     required List<Expense> expenses,
+    required List<GroceryEntry> groceryEntries,
     required List<CicoTransaction> cico,
     required DateTime since,
     required DateTime until,
@@ -65,6 +76,9 @@ class ReportService {
         DateTime(until.year, until.month, until.day, 23, 59, 59, 999);
     final filteredExpenses = expenses
         .where((e) => !e.date.isBefore(sinceDay) && !e.date.isAfter(untilDay))
+        .toList();
+    final filteredGrocery = groceryEntries
+        .where((g) => !g.date.isBefore(sinceDay) && !g.date.isAfter(untilDay))
         .toList();
     final filteredCico = cico
         .where((t) =>
@@ -84,6 +98,10 @@ class ReportService {
 
     final expTotal = CurrencyFormatter.roundCents(
         filteredExpenses.fold(0.0, (s, e) => s + e.amount));
+    final groceryTotal = CurrencyFormatter.roundCents(
+        filteredGrocery.fold(0.0, (s, g) => s + g.totalExpenses));
+    final combinedExpenses =
+        CurrencyFormatter.roundCents(expTotal + groceryTotal);
 
     final daily = await _db.getDailyRevenue(sinceDay, untilDay);
     final top = await _db.getTopProducts(sinceDay, untilDay);
@@ -103,8 +121,9 @@ class ReportService {
     return ReportData(
       totalRevenue: revenue,
       totalProfit: profit,
-      totalExpenses: expTotal,
-      netIncome: CurrencyFormatter.roundCents(profit - expTotal),
+      totalExpenses: combinedExpenses,
+      groceryTotal: groceryTotal,
+      netIncome: CurrencyFormatter.roundCents(profit - combinedExpenses),
       transactionCount: txCount,
       dailyRevenue: daily,
       topProducts: top,
@@ -112,6 +131,7 @@ class ReportService {
       onlineSales: CurrencyFormatter.roundCents(paymentSplit['online'] ?? 0),
       creditSales: CurrencyFormatter.roundCents(paymentSplit['credit'] ?? 0),
       expenses: filteredExpenses,
+      groceryEntries: filteredGrocery,
       cicoCommission: cicoCommission,
       cicoCashInVolume: cicoCashInVolume,
       cicoCashOutVolume: cicoCashOutVolume,
