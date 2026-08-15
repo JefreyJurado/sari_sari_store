@@ -49,7 +49,7 @@ class _QuickActionButtonsState extends State<QuickActionButtons> {
           () => Navigator.push(
               context, CrossFadePageRoute(child: const ExpensesScreen()))),
       _QA(
-          'Grocery Budget',
+          'Grocery',
           Icons.shopping_basket_outlined,
           _green,
           () => Navigator.push(

@@ -14,11 +14,21 @@ import '../widgets/search_field.dart';
 import '../widgets/help_sheet.dart';
 
 const _blue = AppColors.blue;
-const _green = AppColors.green;
 const _uuid = Uuid();
 
 class GroceryScreen extends StatefulWidget {
-  const GroceryScreen({super.key});
+  // Set when arriving via Inventory's "Restock (Grocery)" shortcut, so the
+  // Add Grocery sheet opens immediately with this product already picked
+  // instead of making you search for it again right after you were just
+  // looking at it.
+  final Product? prefillProduct;
+  // Set when arriving via Inventory's "log it in Grocery instead" nudge on
+  // its own Add to Catalog form, so the Add Grocery sheet opens straight
+  // into new-product mode (name + category) instead of the restock search.
+  final bool startAsNewProduct;
+
+  const GroceryScreen(
+      {super.key, this.prefillProduct, this.startAsNewProduct = false});
   @override
   State<GroceryScreen> createState() => _GroceryScreenState();
 }
@@ -26,6 +36,21 @@ class GroceryScreen extends StatefulWidget {
 class _GroceryScreenState extends State<GroceryScreen> {
   final _searchCtrl = TextEditingController();
   String _search = '';
+
+  @override
+  void initState() {
+    super.initState();
+    final prefill = widget.prefillProduct;
+    if (prefill != null || widget.startAsNewProduct) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showForm(context, context.read<AppProvider>(), null,
+              prefillProduct: prefill,
+              startAsNewProduct: widget.startAsNewProduct);
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -74,7 +99,7 @@ class _GroceryScreenState extends State<GroceryScreen> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          title: const Text('Grocery Budget',
+          title: const Text('Grocery',
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -85,11 +110,12 @@ class _GroceryScreenState extends State<GroceryScreen> {
           ),
           actions: const [
             HelpIconButton(
-              title: 'Understanding Grocery Budget',
+              title: 'Understanding Grocery',
               points: [
-                'Use this for store resupply trips — pick the product you bought and how many, and its stock in Inventory updates automatically.',
-                'Budget is what you planned to spend; Expenses for Products is what the items actually cost; Transpo is fare/delivery to get them.',
-                'Total Expenses = Expenses for Products + Transpo. Change (Sukli) = Budget − Total Expenses — it goes negative if the trip ran over budget.',
+                'Use this for store resupply trips — restock something already in Inventory by searching its name, or tap Add New Product if it isn\'t in the catalog yet.',
+                'Enter Quantity and Price per Unit straight from the receipt — Expenses for Products is calculated for you, so there\'s no manual math.',
+                'A brand-new product only needs a name and category here — no prices yet. Its buy price is set automatically from the Price per Unit you enter for this trip; set a sell price anytime in Inventory once you\'ve decided one.',
+                'Fare or delivery cost isn\'t entered here — a single trip can restock several products, so it\'s logged once, separately, in Expenses under Fare / Transport, instead of being asked for (and double-counted) on every product.',
                 'Editing or deleting an entry automatically corrects the stock it added, so it never gets double-counted or stuck.',
                 'General Total adds up every grocery trip ever logged. Weekly Grocery and Monthly Grocery break that down per week and per month so you can see how much resupply cost over time.',
               ],
@@ -330,44 +356,15 @@ class _GroceryScreenState extends State<GroceryScreen> {
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87)),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
+                Text(
+                    'Restocking? Just type the name below and tap it in the list.',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 11.5)),
+                const SizedBox(height: 8),
                 SearchField(
                   controller: searchCtrl,
                   onChanged: (_) => setS(() {}),
                   hintText: 'Search products...',
-                ),
-                const SizedBox(height: 10),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: () async {
-                      final newProduct =
-                          await _showQuickAddProduct(context, prov);
-                      if (newProduct != null && sheetCtx.mounted) {
-                        Navigator.pop(sheetCtx, newProduct);
-                      }
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: _blue.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: _blue.withValues(alpha: 0.2)),
-                      ),
-                      child: const Row(children: [
-                        Icon(Icons.add_circle_outline, color: _blue, size: 18),
-                        SizedBox(width: 10),
-                        Text('Add New Product',
-                            style: TextStyle(
-                                color: _blue,
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600)),
-                      ]),
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 10),
                 Expanded(
@@ -431,245 +428,39 @@ class _GroceryScreenState extends State<GroceryScreen> {
     return wordsA.intersection(wordsB).isNotEmpty;
   }
 
-  /// Quick product creation from within the Grocery flow, so a resupply
-  /// trip for something new doesn't force a detour to the Products
-  /// screen and back. Mirrors the minimum fields inventory_screen.dart's
-  /// full add-product form requires (name, category, buy/sell price) —
-  /// stock starts at 0 since the grocery entry itself adds the quantity
-  /// right after this returns. Flags likely-duplicate existing products
-  /// as you type the name, so a slightly different spelling of something
-  /// already in Inventory doesn't quietly create a second, near-identical
-  /// product.
-  Future<Product?> _showQuickAddProduct(BuildContext context, AppProvider prov) {
-    final nameCtrl = TextEditingController();
-    final buyCtrl = TextEditingController();
-    final sellCtrl = TextEditingController();
-    String category = FilipinoCategories.productCategories.first;
-    bool isSaving = false;
-
-    return showModalBottomSheet<Product>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (sheetCtx) => StatefulBuilder(
-        builder: (sheetCtx, setS) {
-          final typed = nameCtrl.text.trim();
-          final similar = typed.isEmpty
-              ? const <Product>[]
-              : prov.products
-                  .where((p) => _looksSimilar(p.name, typed))
-                  .take(3)
-                  .toList();
-
-          return Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
-              left: 20,
-              right: 20,
-              top: 20),
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2)),
-              ),
-              const Text('Add New Product',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87)),
-              const SizedBox(height: 16),
-              _field(nameCtrl, 'Product Name *', Icons.inventory_2_outlined,
-                  onChanged: (_) => setS(() {})),
-              if (similar.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.amber.shade200),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Icon(Icons.warning_amber_outlined,
-                            size: 15, color: Colors.amber.shade800),
-                        const SizedBox(width: 6),
-                        Text('Already in Inventory?',
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.amber.shade900)),
-                      ]),
-                      const SizedBox(height: 6),
-                      ...similar.map((p) => Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: GestureDetector(
-                              onTap: () => Navigator.pop(sheetCtx, p),
-                              child: Row(children: [
-                                Expanded(
-                                  child: Text(
-                                      '${p.name}  (Stock: ${p.stock}${p.unit != null ? ' ${p.unit}' : ''})',
-                                      style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: Colors.amber.shade900,
-                                          decoration: TextDecoration.underline,
-                                          fontWeight: FontWeight.w600)),
-                                ),
-                                Icon(Icons.chevron_right,
-                                    size: 16, color: Colors.amber.shade800),
-                              ]),
-                            ),
-                          )),
-                      const SizedBox(height: 4),
-                      Text('Tap one to use it instead of creating a new product.',
-                          style: TextStyle(
-                              fontSize: 10.5, color: Colors.amber.shade800)),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey.shade300)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey.shade300)),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: category,
-                    isDense: true,
-                    isExpanded: true,
-                    items: FilipinoCategories.productCategories
-                        .map((c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(c, style: const TextStyle(fontSize: 13))))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) setS(() => category = v);
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                    child: _amountField(buyCtrl, 'Buy Price *')),
-                const SizedBox(width: 10),
-                Expanded(
-                    child: _amountField(sellCtrl, 'Sell Price *')),
-              ]),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: isSaving
-                      ? null
-                      : () async {
-                          if (nameCtrl.text.trim().isEmpty) {
-                            CenterToast.showError(
-                                context, 'Product name is required.');
-                            return;
-                          }
-                          final buyPrice = double.tryParse(buyCtrl.text);
-                          final sellPrice = double.tryParse(sellCtrl.text);
-                          if (buyPrice == null || buyPrice < 0) {
-                            CenterToast.showError(
-                                context, 'Enter a valid buy price.');
-                            return;
-                          }
-                          if (sellPrice == null || sellPrice < 0) {
-                            CenterToast.showError(
-                                context, 'Enter a valid sell price.');
-                            return;
-                          }
-                          setS(() => isSaving = true);
-                          final product = Product(
-                            id: _uuid.v4(),
-                            name: nameCtrl.text.trim(),
-                            category: category,
-                            buyPrice: buyPrice,
-                            sellPrice: sellPrice,
-                            stock: 0,
-                            unit: 'pcs',
-                            createdAt: DateTime.now(),
-                          );
-                          await prov.addProduct(product);
-                          if (sheetCtx.mounted) {
-                            Navigator.pop(sheetCtx, product);
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _blue,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: isSaving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Save Product',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600)),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ]),
-          ),
-        );
-        },
-      ),
-    ).whenComplete(() {
-      // See _pickProduct's whenComplete for why this is deferred a frame
-      // rather than disposed synchronously.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        nameCtrl.dispose();
-        buyCtrl.dispose();
-        sellCtrl.dispose();
-      });
-    });
-  }
-
-  void _showForm(BuildContext context, AppProvider prov, GroceryEntry? existing) {
+  void _showForm(BuildContext context, AppProvider prov, GroceryEntry? existing,
+      {Product? prefillProduct, bool startAsNewProduct = false}) {
     String? selectedProductId = existing?.productId.isNotEmpty == true
         ? existing!.productId
-        : null;
-    String selectedProductName = existing?.productName ?? '';
+        : (prefillProduct?.id);
+    String selectedProductName =
+        existing?.productName ?? prefillProduct?.name ?? '';
+    // Whether this entry is for a brand-new product rather than restocking
+    // an existing one — toggled right on this same sheet (see the "Add New
+    // Product" button below) instead of a separate nested popup, so name +
+    // category sit right above the quantity/price fields that follow.
+    bool isNewProduct = startAsNewProduct;
+    final newProductNameCtrl = TextEditingController();
+    String newProductCategory = FilipinoCategories.productCategories.first;
     final quantityCtrl = TextEditingController(
         text: existing != null ? existing.quantity.toString() : '');
-    final budgetCtrl = TextEditingController(
-        text: existing != null ? existing.budget.toStringAsFixed(2) : '');
-    final expensesCtrl = TextEditingController(
-        text: existing != null
-            ? existing.expensesForProducts.toStringAsFixed(2)
-            : '');
-    final transpoCtrl = TextEditingController(
-        text: existing != null ? existing.transpo.toStringAsFixed(2) : '');
+    // Price per unit drives the auto-computed Expenses for Products below,
+    // so a trip is just "how many, at what price" — the same two numbers
+    // already on the receipt — instead of also doing the multiplication
+    // by hand before typing in a total.
+    final priceCtrl = TextEditingController(
+        text: existing != null && existing.quantity > 0
+            ? (existing.expensesForProducts / existing.quantity)
+                .toStringAsFixed(2)
+            : prefillProduct != null
+                ? prefillProduct.buyPrice.toStringAsFixed(2)
+                : '');
+    // Transpo (fare/delivery) is no longer entered per product — a single
+    // trip can restock several products, and asking for it on each one
+    // would double- or triple-count the same fare. Log trip transport cost
+    // once, separately, via Expenses → Fare / Transport. Editing an entry
+    // logged before this change keeps whatever transpo it already has.
+    final transpo = existing?.transpo ?? 0;
     final notesCtrl = TextEditingController(text: existing?.notes ?? '');
     DateTime entryDate = existing?.date ?? DateTime.now();
     bool isSaving = false;
@@ -682,11 +473,11 @@ class _GroceryScreenState extends State<GroceryScreen> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) {
-          final budget = double.tryParse(budgetCtrl.text) ?? 0;
-          final expenses = double.tryParse(expensesCtrl.text) ?? 0;
-          final transpo = double.tryParse(transpoCtrl.text) ?? 0;
+          final quantityValue = int.tryParse(quantityCtrl.text) ?? 0;
+          final pricePerUnit = double.tryParse(priceCtrl.text) ?? 0;
+          final expenses =
+              CurrencyFormatter.roundCents(quantityValue * pricePerUnit);
           final total = CurrencyFormatter.roundCents(expenses + transpo);
-          final change = CurrencyFormatter.roundCents(budget - total);
 
           return Padding(
             padding: EdgeInsets.only(
@@ -712,95 +503,278 @@ class _GroceryScreenState extends State<GroceryScreen> {
                       color: Colors.black87),
                 ),
                 const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () async {
-                    final picked = await _pickProduct(context, prov);
-                    if (picked != null) {
-                      setS(() {
-                        selectedProductId = picked.id;
-                        selectedProductName = picked.name;
-                      });
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: selectedProductId == null
-                              ? Colors.grey.shade300
-                              : _blue),
+                if (!isNewProduct) ...[
+                  Text(
+                      'Restocking an existing product? Search its name below.',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 11.5)),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await _pickProduct(context, prov);
+                      if (picked != null) {
+                        setS(() {
+                          selectedProductId = picked.id;
+                          selectedProductName = picked.name;
+                          // Suggest the product's usual buy price as a
+                          // starting point — still editable to match
+                          // whatever the receipt actually says this trip.
+                          priceCtrl.text = picked.buyPrice.toStringAsFixed(2);
+                        });
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: selectedProductId == null
+                                ? Colors.grey.shade300
+                                : _blue),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.shopping_basket_outlined,
+                            size: 18,
+                            color: selectedProductId == null
+                                ? Colors.grey[500]
+                                : _blue),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            selectedProductId == null
+                                ? 'Select Product *'
+                                : selectedProductName,
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: selectedProductId == null
+                                    ? Colors.grey[500]
+                                    : Colors.black87),
+                          ),
+                        ),
+                        Icon(Icons.chevron_right,
+                            size: 18, color: Colors.grey[400]),
+                      ]),
                     ),
-                    child: Row(children: [
-                      Icon(Icons.shopping_basket_outlined,
-                          size: 18,
-                          color: selectedProductId == null
-                              ? Colors.grey[500]
-                              : _blue),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          selectedProductId == null
-                              ? 'Select Product *'
-                              : selectedProductName,
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => setS(() {
+                        isNewProduct = true;
+                        selectedProductId = null;
+                        selectedProductName = '';
+                      }),
+                      icon: const Icon(Icons.add_circle_outline,
+                          size: 17, color: _blue),
+                      label: const Text('Add New Product',
+                          style: TextStyle(
+                              color: _blue,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: _blue.withValues(alpha: 0.3)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  Row(children: [
+                    const Expanded(
+                      child: Text('New Product',
                           style: TextStyle(
                               fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: selectedProductId == null
-                                  ? Colors.grey[500]
-                                  : Colors.black87),
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87)),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => setS(() {
+                        isNewProduct = false;
+                        newProductNameCtrl.clear();
+                      }),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.swap_horiz, size: 15, color: _blue),
+                      label: const Text('Choose Existing Instead',
+                          style: TextStyle(
+                              color: _blue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline)),
+                    ),
+                  ]),
+                  const SizedBox(height: 4),
+                  _field(newProductNameCtrl, 'Product Name *',
+                      Icons.inventory_2_outlined,
+                      onChanged: (_) => setS(() {})),
+                  Builder(builder: (_) {
+                    final typed = newProductNameCtrl.text.trim();
+                    final similar = typed.isEmpty
+                        ? const <Product>[]
+                        : prov.products
+                            .where((p) => _looksSimilar(p.name, typed))
+                            .take(3)
+                            .toList();
+                    if (similar.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              Icon(Icons.warning_amber_outlined,
+                                  size: 15, color: Colors.amber.shade800),
+                              const SizedBox(width: 6),
+                              Text('Already in Inventory?',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.amber.shade900)),
+                            ]),
+                            const SizedBox(height: 6),
+                            ...similar.map((p) => Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: GestureDetector(
+                                    onTap: () => setS(() {
+                                      isNewProduct = false;
+                                      selectedProductId = p.id;
+                                      selectedProductName = p.name;
+                                      priceCtrl.text =
+                                          p.buyPrice.toStringAsFixed(2);
+                                    }),
+                                    child: Row(children: [
+                                      Expanded(
+                                        child: Text(
+                                            '${p.name}  (Stock: ${p.stock}${p.unit != null ? ' ${p.unit}' : ''})',
+                                            style: TextStyle(
+                                                fontSize: 12.5,
+                                                color: Colors.amber.shade900,
+                                                decoration:
+                                                    TextDecoration.underline,
+                                                fontWeight: FontWeight.w600)),
+                                      ),
+                                      Icon(Icons.chevron_right,
+                                          size: 16,
+                                          color: Colors.amber.shade800),
+                                    ]),
+                                  ),
+                                )),
+                            const SizedBox(height: 4),
+                            Text(
+                                'Tap one to use it instead of creating a new product.',
+                                style: TextStyle(
+                                    fontSize: 10.5,
+                                    color: Colors.amber.shade800)),
+                          ],
                         ),
                       ),
-                      Icon(Icons.chevron_right,
-                          size: 18, color: Colors.grey[400]),
-                    ]),
+                    );
+                  }),
+                  const SizedBox(height: 12),
+                  InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Category',
+                      labelStyle:
+                          TextStyle(color: Colors.grey[600], fontSize: 13),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade300)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade300)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: newProductCategory,
+                        isDense: true,
+                        isExpanded: true,
+                        items: FilipinoCategories.productCategories
+                            .map((c) => DropdownMenuItem(
+                                value: c,
+                                child: Text(c,
+                                    style: const TextStyle(fontSize: 13))))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) setS(() => newProductCategory = v);
+                        },
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: quantityCtrl,
-                  onChanged: (_) => setS(() {}),
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87),
-                  decoration: InputDecoration(
-                    labelText: 'Quantity *',
-                    hintText: 'e.g. 12',
-                    labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                    prefixIcon: Icon(Icons.numbers_outlined,
-                        size: 18, color: Colors.grey[500]),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.grey.shade300)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.grey.shade300)),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _blue.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                        'No need to set prices here — the price you enter below becomes its buy price. Set a sell price anytime in Inventory.',
+                        style: TextStyle(
+                            fontSize: 11.5,
+                            color: Colors.grey[600],
+                            height: 1.3)),
                   ),
-                ),
+                ],
                 const SizedBox(height: 12),
                 Row(children: [
                   Expanded(
-                    child: _amountField(budgetCtrl, 'Budget *',
-                        onChanged: (_) => setS(() {})),
+                    child: TextField(
+                      controller: quantityCtrl,
+                      onChanged: (_) => setS(() {}),
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87),
+                      decoration: InputDecoration(
+                        labelText: 'Quantity *',
+                        hintText: 'e.g. 12',
+                        labelStyle:
+                            TextStyle(color: Colors.grey[600], fontSize: 13),
+                        hintStyle:
+                            TextStyle(color: Colors.grey[400], fontSize: 13),
+                        prefixIcon: Icon(Icons.numbers_outlined,
+                            size: 18, color: Colors.grey[500]),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(color: Colors.grey.shade300)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(color: Colors.grey.shade300)),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _amountField(
-                        expensesCtrl, 'Expenses for Products *',
+                    child: _amountField(priceCtrl, 'Price per Unit *',
                         onChanged: (_) => setS(() {})),
                   ),
                 ]),
-                const SizedBox(height: 12),
-                _amountField(transpoCtrl, 'Transpo',
-                    onChanged: (_) => setS(() {})),
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
@@ -812,30 +786,45 @@ class _GroceryScreenState extends State<GroceryScreen> {
                   ),
                   child: Column(children: [
                     Row(children: [
-                      Text('Total Expenses',
+                      Text('Expenses for Products',
                           style: TextStyle(
                               fontSize: 12.5, color: Colors.grey[600])),
                       const Spacer(),
-                      Text(CurrencyFormatter.format(total),
+                      Text(CurrencyFormatter.format(expenses),
                           style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: Colors.black87)),
                     ]),
-                    const SizedBox(height: 6),
-                    Row(children: [
-                      Text('Change (Sukli)',
-                          style: TextStyle(
-                              fontSize: 12.5, color: Colors.grey[600])),
-                      const Spacer(),
-                      Text(CurrencyFormatter.format(change),
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: change < 0
-                                  ? Colors.red.shade600
-                                  : _green)),
-                    ]),
+                    // Only shown when editing a pre-existing entry that
+                    // already has a transpo amount from before this became
+                    // a separate Expense — new entries have nothing to add.
+                    if (transpo != 0) ...[
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        Text('Transpo (from original entry)',
+                            style: TextStyle(
+                                fontSize: 12.5, color: Colors.grey[600])),
+                        const Spacer(),
+                        Text(CurrencyFormatter.format(transpo),
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87)),
+                      ]),
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        Text('Total Expenses',
+                            style: TextStyle(
+                                fontSize: 12.5, color: Colors.grey[600])),
+                        const Spacer(),
+                        Text(CurrencyFormatter.format(total),
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87)),
+                      ]),
+                    ],
                   ]),
                 ),
                 const SizedBox(height: 12),
@@ -903,9 +892,15 @@ class _GroceryScreenState extends State<GroceryScreen> {
                     onPressed: isSaving
                         ? null
                         : () async {
-                            if (selectedProductId == null) {
+                            if (isNewProduct) {
+                              if (newProductNameCtrl.text.trim().isEmpty) {
+                                CenterToast.showError(
+                                    context, 'Product name is required.');
+                                return;
+                              }
+                            } else if (selectedProductId == null) {
                               CenterToast.showError(
-                                  context, 'Select a product.');
+                                  context, 'Select a product or add a new one.');
                               return;
                             }
                             final quantity = int.tryParse(quantityCtrl.text);
@@ -914,23 +909,34 @@ class _GroceryScreenState extends State<GroceryScreen> {
                                   context, 'Enter a valid quantity.');
                               return;
                             }
-                            if (budget <= 0) {
+                            if (pricePerUnit <= 0) {
                               CenterToast.showError(
-                                  context, 'Enter a valid budget.');
-                              return;
-                            }
-                            if (expenses <= 0) {
-                              CenterToast.showError(context,
-                                  'Enter valid expenses for products.');
+                                  context, 'Enter a valid price per unit.');
                               return;
                             }
                             setS(() => isSaving = true);
+                            var productId = selectedProductId;
+                            var productName = selectedProductName;
+                            if (isNewProduct) {
+                              final newProduct = Product(
+                                id: _uuid.v4(),
+                                name: newProductNameCtrl.text.trim(),
+                                category: newProductCategory,
+                                buyPrice: pricePerUnit,
+                                sellPrice: 0,
+                                stock: 0,
+                                unit: 'pcs',
+                                createdAt: DateTime.now(),
+                              );
+                              await prov.addProduct(newProduct);
+                              productId = newProduct.id;
+                              productName = newProduct.name;
+                            }
                             if (existing == null) {
                               await prov.addGroceryEntry(
-                                productId: selectedProductId!,
-                                productName: selectedProductName,
+                                productId: productId!,
+                                productName: productName,
                                 quantity: quantity,
-                                budget: budget,
                                 expensesForProducts: expenses,
                                 transpo: transpo,
                                 date: entryDate,
@@ -941,10 +947,9 @@ class _GroceryScreenState extends State<GroceryScreen> {
                             } else {
                               await prov.updateGroceryEntry(
                                 existing.copyWith(
-                                  productId: selectedProductId,
-                                  productName: selectedProductName,
+                                  productId: productId,
+                                  productName: productName,
                                   quantity: quantity,
-                                  budget: budget,
                                   expensesForProducts: expenses,
                                   transpo: transpo,
                                   date: entryDate,
@@ -999,10 +1004,9 @@ class _GroceryScreenState extends State<GroceryScreen> {
       // See _pickProduct's whenComplete for why this is deferred a frame
       // rather than disposed synchronously.
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        newProductNameCtrl.dispose();
         quantityCtrl.dispose();
-        budgetCtrl.dispose();
-        expensesCtrl.dispose();
-        transpoCtrl.dispose();
+        priceCtrl.dispose();
         notesCtrl.dispose();
       });
     });
@@ -1120,7 +1124,6 @@ class _GroceryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final overBudget = entry.change < 0;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -1202,17 +1205,16 @@ class _GroceryTile extends StatelessWidget {
                 ]),
                 const SizedBox(height: 8),
                 Row(children: [
-                  _chip('Budget', CurrencyFormatter.format(entry.budget),
+                  _chip('Products',
+                      CurrencyFormatter.format(entry.expensesForProducts),
                       Colors.grey.shade100, Colors.grey.shade700),
-                  const SizedBox(width: 6),
-                  _chip('Transpo', CurrencyFormatter.format(entry.transpo),
-                      Colors.grey.shade100, Colors.grey.shade700),
-                  const SizedBox(width: 6),
-                  _chip(
-                      'Sukli',
-                      CurrencyFormatter.format(entry.change),
-                      overBudget ? Colors.red.shade50 : Colors.green.shade50,
-                      overBudget ? Colors.red.shade700 : Colors.green.shade700),
+                  // Transpo no longer gets entered per product — only
+                  // entries logged before that change still carry one.
+                  if (entry.transpo != 0) ...[
+                    const SizedBox(width: 6),
+                    _chip('Transpo', CurrencyFormatter.format(entry.transpo),
+                        Colors.grey.shade100, Colors.grey.shade700),
+                  ],
                 ]),
                 if (entry.notes != null) ...[
                   const SizedBox(height: 6),

@@ -53,6 +53,19 @@ class AppProvider extends ChangeNotifier {
   CapitalEntry? capital;
   bool isLoading = false;
 
+  // Product ids touched by a grocery entry (new or restock) since the
+  // Products tab was last visited — lets Inventory pin what you just
+  // bought to the top so you don't have to hunt for it. The Products tab
+  // clears this itself when you navigate away, so a later, unrelated
+  // visit starts blank again.
+  final Set<String> recentlyRestockedProductIds = {};
+
+  void clearRecentlyRestockedProducts() {
+    if (recentlyRestockedProductIds.isEmpty) return;
+    recentlyRestockedProductIds.clear();
+    _safeNotifyListeners();
+  }
+
   List<Product> _products = [];
   List<Product> get products => _products;
   // Every reassignment refreshes any open cart entries against the new
@@ -844,7 +857,6 @@ class AppProvider extends ChangeNotifier {
     required String productId,
     required String productName,
     required int quantity,
-    required double budget,
     required double expensesForProducts,
     required double transpo,
     DateTime? date,
@@ -855,13 +867,26 @@ class AppProvider extends ChangeNotifier {
         productId: productId,
         productName: productName,
         quantity: quantity,
-        budget: budget,
         expensesForProducts: expensesForProducts,
         transpo: transpo,
         date: date ?? DateTime.now(),
         notes: notes));
     if (productId.isNotEmpty) {
       await _db.adjustProductStock(productId, quantity);
+      // A product quick-added from within Grocery starts with no buy price
+      // (that's set later in Inventory) — so its first restock's price per
+      // unit becomes its cost basis automatically, instead of asking for
+      // the same receipt price a second time. Products that already have
+      // a recorded buy price are left alone.
+      final product = products.where((p) => p.id == productId).firstOrNull;
+      if (product != null && product.buyPrice == 0 && quantity > 0) {
+        final pricePerUnit =
+            CurrencyFormatter.roundCents(expensesForProducts / quantity);
+        if (pricePerUnit > 0) {
+          await _db.setProductBuyPrice(productId, pricePerUnit);
+        }
+      }
+      recentlyRestockedProductIds.add(productId);
     }
     await reload();
   }
@@ -887,6 +912,9 @@ class AppProvider extends ChangeNotifier {
           await _db.adjustProductStock(updated.productId, updated.quantity);
         }
       }
+    }
+    if (updated.productId.isNotEmpty) {
+      recentlyRestockedProductIds.add(updated.productId);
     }
     await _db.updateGroceryEntry(updated);
     await reload();

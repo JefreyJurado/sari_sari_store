@@ -145,7 +145,6 @@ class DatabaseService {
       productId TEXT NOT NULL DEFAULT '',
       productName TEXT NOT NULL DEFAULT '',
       quantity INTEGER NOT NULL DEFAULT 0,
-      budget REAL NOT NULL DEFAULT 0,
       expensesForProducts REAL NOT NULL DEFAULT 0,
       transpo REAL NOT NULL DEFAULT 0,
       date TEXT NOT NULL,
@@ -328,7 +327,6 @@ class DatabaseService {
         productId TEXT NOT NULL DEFAULT '',
         productName TEXT NOT NULL DEFAULT '',
         quantity INTEGER NOT NULL DEFAULT 0,
-        budget REAL NOT NULL DEFAULT 0,
         expensesForProducts REAL NOT NULL DEFAULT 0,
         transpo REAL NOT NULL DEFAULT 0,
         date TEXT NOT NULL,
@@ -406,6 +404,16 @@ class DatabaseService {
     await db.rawUpdate(
         'UPDATE products SET stock = MAX(0, MIN(99999, stock + ?)) WHERE id = ?',
         [delta, productId]);
+  }
+
+  // Scoped like [adjustProductStock] — touches only buyPrice, so it can't
+  // race a concurrent stock write (or any other field) the way building a
+  // full Product via copyWith from a possibly-stale in-memory snapshot and
+  // calling [updateProduct] would.
+  Future<void> setProductBuyPrice(String productId, double buyPrice) async {
+    final db = await database;
+    await db.rawUpdate(
+        'UPDATE products SET buyPrice = ? WHERE id = ?', [buyPrice, productId]);
   }
 
   Future<void> archiveProduct(String id) async => (await database)

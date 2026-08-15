@@ -276,6 +276,8 @@ class _MainShellState extends State<_MainShell> {
     ReportsScreen(),
   ];
 
+  static const _productsTabIndex = 3;
+
   static const _tabColors = [
     AppColors.blue,
     AppColors.green,
@@ -352,6 +354,13 @@ class _MainShellState extends State<_MainShell> {
       onTap: () {
         if (_tab != index) {
           HapticFeedback.selectionClick();
+          if (_tab == _productsTabIndex) {
+            // Leaving Products — the "just restocked" pins granted to
+            // whatever Grocery touched are scoped to a single visit, so
+            // clear them now rather than carrying them into some later,
+            // unrelated visit.
+            context.read<AppProvider>().clearRecentlyRestockedProducts();
+          }
           setState(() => _tab = index);
         }
       },

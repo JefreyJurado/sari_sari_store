@@ -9,9 +9,11 @@ import '../utils/filipino_categories.dart';
 import 'barcode_scanner_screen.dart';
 import 'inventory_log_screen.dart';
 import 'archived_products_screen.dart';
+import 'grocery_screen.dart';
 import '../services/database_service.dart';
 import '../services/product_import_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/transitions.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/help_sheet.dart';
 import '../widgets/search_field.dart';
@@ -29,6 +31,57 @@ class _InventoryScreenState extends State<InventoryScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _search = '';
   String _sortBy = 'name';
+
+  // Clear Products and Import already explain themselves within their own
+  // flow (a warning dialog, and a title + subtitle on the sheet), so only
+  // the tools that jump straight to their destination need this — a short
+  // "what this is" note with a Continue step in front of it.
+  void _showToolInfo(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String message,
+    required VoidCallback onContinue,
+  }) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(title,
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87)),
+          ),
+        ]),
+        content: Text(message,
+            style:
+                TextStyle(fontSize: 13, color: Colors.grey[700], height: 1.4)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Cancel',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              onContinue();
+            },
+            child: Text('Continue',
+                style: TextStyle(
+                    color: color, fontWeight: FontWeight.w600, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _confirmClearDefaults(BuildContext context, AppProvider prov) {
     showDialog(
@@ -339,23 +392,37 @@ class _InventoryScreenState extends State<InventoryScreen> {
     super.dispose();
   }
 
-  List<Product> _getFilteredAndSortedProducts(List<Product> sourceProducts) {
+  int _sortComparator(Product a, Product b) {
+    switch (_sortBy) {
+      case 'stock':
+        return a.stock.compareTo(b.stock);
+      case 'price':
+        return b.sellPrice.compareTo(a.sellPrice);
+      default:
+        return a.name.compareTo(b.name);
+    }
+  }
+
+  List<Product> _getFilteredAndSortedProducts(
+      List<Product> sourceProducts, Set<String> recentlyRestockedIds) {
     final query = _search.trim().toLowerCase();
     final list = query.isEmpty
         ? List<Product>.from(sourceProducts)
         : sourceProducts
             .where((p) => p.name.toLowerCase().contains(query))
             .toList();
-    switch (_sortBy) {
-      case 'stock':
-        list.sort((a, b) => a.stock.compareTo(b.stock));
-        break;
-      case 'price':
-        list.sort((a, b) => b.sellPrice.compareTo(a.sellPrice));
-        break;
-      default:
-        list.sort((a, b) => a.name.compareTo(b.name));
-    }
+    // Pinned above everything else regardless of the chosen sort, so
+    // nothing has to be hunted down in a long alphabetical/stock/price
+    // list: products with no sell price yet (fresh from a Grocery
+    // restock — drop out once a price is set), and anything Grocery
+    // touched this visit to Products, whether or not it already had a
+    // price (drops out once you leave and come back).
+    list.sort((a, b) {
+      final aPinned = a.sellPrice <= 0 || recentlyRestockedIds.contains(a.id);
+      final bPinned = b.sellPrice <= 0 || recentlyRestockedIds.contains(b.id);
+      if (aPinned != bPinned) return aPinned ? -1 : 1;
+      return _sortComparator(a, b);
+    });
     return list;
   }
 
@@ -372,7 +439,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
             outCount: prov.outOfStock.length,
           ),
           builder: (context, data, _) {
-            final products = _getFilteredAndSortedProducts(data.list);
+            final products = _getFilteredAndSortedProducts(data.list,
+                context.read<AppProvider>().recentlyRestockedProductIds);
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 80),
@@ -459,10 +527,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         color: _blue,
                         bg: _blue.withValues(alpha: 0.06),
                         border: _blue.withValues(alpha: 0.2),
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const InventoryLogScreen())),
+                        onTap: () => _showToolInfo(
+                          context,
+                          icon: Icons.table_chart_outlined,
+                          color: _blue,
+                          title: 'Inventory Log',
+                          message:
+                              'A monthly snapshot per product — beginning stock, units sold, ending stock, and inventory value — so you can see how your stock moved over any given month.',
+                          onContinue: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const InventoryLogScreen())),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       _toolTile(
@@ -481,11 +558,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         color: Colors.orange.shade700,
                         bg: Colors.orange.shade50,
                         border: Colors.orange.shade200,
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) =>
-                                    const ArchivedProductsScreen())),
+                        onTap: () => _showToolInfo(
+                          context,
+                          icon: Icons.restore_outlined,
+                          color: Colors.orange.shade700,
+                          title: 'Archived Products',
+                          message:
+                              'Products archived here (via Clear Products, or one at a time) are hidden from your active catalog and can\'t be sold until you restore them.',
+                          onContinue: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ArchivedProductsScreen())),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       _toolTile(
@@ -496,6 +581,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         border: AppColors.purple.withValues(alpha: 0.2),
                         onTap: () => _showImportSheet(
                             context, context.read<AppProvider>()),
+                      ),
+                      const SizedBox(width: 8),
+                      // The rare, no-cost-tracking path (setup corrections,
+                      // consignment) — an occasional action, so it lives
+                      // here with the other occasional ones instead of
+                      // competing with the FAB for everyday attention.
+                      _toolTile(
+                        icon: Icons.edit_note_outlined,
+                        label: 'Manual Add',
+                        color: Colors.grey.shade700,
+                        bg: Colors.grey.shade100,
+                        border: Colors.grey.shade300,
+                        onTap: () => _showToolInfo(
+                          context,
+                          icon: Icons.edit_note_outlined,
+                          color: Colors.grey.shade700,
+                          title: 'Manual Add',
+                          message:
+                              'Adds a product straight to your catalog — no purchase is logged, so the cost won\'t be tracked in Grocery or your expense reports. Use this for initial setup, consignment items, or corrections.',
+                          onContinue: () => _showForm(
+                              context, context.read<AppProvider>(), null),
+                        ),
                       ),
                     ],
                   ),
@@ -547,6 +654,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               context, context.read<AppProvider>(), item),
                           onAdjust: () => _adjustStock(
                               context, context.read<AppProvider>(), item),
+                          onRestock: () => Navigator.push(
+                              context,
+                              CrossFadePageRoute(
+                                  child: GroceryScreen(prefillProduct: item))),
                         );
                       },
                     ),
@@ -558,7 +669,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'add',
-        onPressed: () => _showForm(context, context.read<AppProvider>(), null),
+        // Straight to Grocery's new-product form — adding a product almost
+        // always means you just bought it, so that's the direct path with
+        // no dialog in the way. The rare no-cost-tracking case (setup
+        // corrections, consignment) lives in the Tools Row as "Manual Add"
+        // instead, next to other occasional actions like Import.
+        onPressed: () => Navigator.push(
+            context,
+            CrossFadePageRoute(
+                child: const GroceryScreen(startAsNewProduct: true))),
         backgroundColor: _blue,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -816,7 +935,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                     ),
                     Text(
                         widget.existing == null
-                            ? 'Add Product'
+                            ? 'Add to Catalog'
                             : 'Edit Product',
                         style: const TextStyle(
                             fontSize: 16,
@@ -1323,6 +1442,7 @@ class _ProductTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onArchive;
   final VoidCallback onAdjust;
+  final VoidCallback onRestock;
   final AppProvider prov;
 
   const _ProductTile({
@@ -1330,6 +1450,7 @@ class _ProductTile extends StatelessWidget {
     required this.onEdit,
     required this.onArchive,
     required this.onAdjust,
+    required this.onRestock,
     required this.prov,
   });
 
@@ -1553,6 +1674,17 @@ class _ProductTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isOut = product.stock <= 0;
     final isLow = product.isLowStock;
+    // Flags a product quick-added from Grocery that hasn't had a sell
+    // price set yet — its buy price came from that trip automatically,
+    // but nothing picks a selling price for you, so it'd otherwise sit
+    // silently at ₱0 until someone happens to open and check it.
+    final needsPrice = product.sellPrice <= 0;
+    // Grocery touched this product (new or restock) since Products was
+    // last visited — cleared by _MainShell the moment you navigate away,
+    // so this is scoped to "since I last came here," not permanent.
+    final justRestocked =
+        !needsPrice && prov.recentlyRestockedProductIds.contains(product.id);
+    final pinned = needsPrice || justRestocked;
     final catColor = FilipinoCategories.getColor(product.category);
     final textColor = isOut ? Colors.grey[500] : AppColors.textPrimary;
 
@@ -1562,9 +1694,12 @@ class _ProductTile extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.xl),
         border: Border.all(
-            color:
-                isLow && !isOut ? Colors.orange.shade200 : Colors.grey.shade200,
-            width: isLow && !isOut ? 1.6 : 1),
+            color: isLow && !isOut
+                ? Colors.orange.shade200
+                : pinned
+                    ? _blue.withValues(alpha: 0.3)
+                    : Colors.grey.shade200,
+            width: (isLow && !isOut) || pinned ? 1.6 : 1),
         boxShadow: AppShadows.soft,
       ),
       child: ClipRRect(
@@ -1595,6 +1730,22 @@ class _ProductTile extends StatelessWidget {
                         fontSize: 13,
                         color: textColor)),
               ),
+              if (needsPrice || justRestocked)
+                Container(
+                  margin: const EdgeInsets.only(left: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _blue.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: _blue.withValues(alpha: 0.25)),
+                  ),
+                  child: Text(needsPrice ? 'SET PRICE' : 'RESTOCKED',
+                      style: TextStyle(
+                          fontSize: 9,
+                          color: _blue.withValues(alpha: 0.9),
+                          fontWeight: FontWeight.bold)),
+                ),
               if (product.seasonalTag != null)
                 Container(
                   margin: const EdgeInsets.only(left: 4),
@@ -1714,6 +1865,16 @@ class _ProductTile extends StatelessWidget {
                             style: TextStyle(
                                 fontSize: 13, color: Colors.grey[700]))
                       ])),
+                  PopupMenuItem(
+                      value: 'restock',
+                      child: Row(children: [
+                        Icon(Icons.shopping_basket_outlined,
+                            size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        Text('Restock (Grocery)',
+                            style: TextStyle(
+                                fontSize: 13, color: Colors.grey[700]))
+                      ])),
                   const PopupMenuItem(
                       value: 'archive',
                       child: Row(children: [
@@ -1729,6 +1890,8 @@ class _ProductTile extends StatelessWidget {
                     onEdit();
                   } else if (v == 'stock') {
                     onAdjust();
+                  } else if (v == 'restock') {
+                    onRestock();
                   } else if (v == 'archive') {
                     onArchive();
                   }
