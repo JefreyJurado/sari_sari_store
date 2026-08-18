@@ -19,7 +19,11 @@ class FilipinoCategories {
   ];
 
   static const List<String> expenseCategories = [
-    'Stocks / Resupply',
+    // Same label Grocery entries get in reports/PDF — kept identical on
+    // purpose so a stock-related cost logged here (rather than through
+    // Grocery) rolls up into the same category total instead of quietly
+    // splitting into a differently-spelled bucket.
+    'Grocery / Resupply',
     'Electricity',
     'Water',
     'Rent / Rental',
@@ -48,7 +52,7 @@ class FilipinoCategories {
     'School Supplies': Color(0xFF7C3AED),      // purple
 
     // Expense Categories
-    'Stocks / Resupply': Color(0xFF1E3A8A),    // brand blue
+    'Grocery / Resupply': Color(0xFF1E3A8A),   // brand blue
     'Electricity': Color(0xFFD97706),          // amber
     'Water': Color(0xFF0891B2),                // teal
     'Rent / Rental': Color(0xFF7C3AED),        // purple
@@ -79,7 +83,7 @@ class FilipinoCategories {
     'School Supplies': Icons.menu_book_outlined,
     
     // Expense Categories
-    'Stocks / Resupply': Icons.add_business_outlined,
+    'Grocery / Resupply': Icons.add_business_outlined,
     'Electricity': Icons.electric_bolt_outlined,
     'Water': Icons.water_drop_outlined,
     'Rent / Rental': Icons.maps_home_work_outlined,
@@ -110,7 +114,7 @@ class FilipinoCategories {
     'School Supplies': '✏️',
     
     // Expense Categories
-    'Stocks / Resupply': '📦',
+    'Grocery / Resupply': '📦',
     'Electricity': '⚡',
     'Water': '💧',
     'Rent / Rental': '🏠',

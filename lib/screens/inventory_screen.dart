@@ -348,6 +348,36 @@ class _InventoryScreenState extends State<InventoryScreen> {
   // happens to wrap to one line ("Import") or two ("Clear Products") at a
   // given screen width — previously each Container sized itself purely off
   // its own text content, so the boxes visibly differed in height.
+  Widget _toolTileContent({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color bg,
+    required Color border,
+  }) =>
+      Container(
+        height: 64,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: border),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(height: 4),
+            Text(label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+          ],
+        ),
+      );
+
   Widget _toolTile({
     required IconData icon,
     required String label,
@@ -359,30 +389,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       Expanded(
         child: GestureDetector(
           onTap: onTap,
-          child: Container(
-            height: 64,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: border),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 18, color: color),
-                const SizedBox(height: 4),
-                Text(label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: color)),
-              ],
-            ),
-          ),
+          child: _toolTileContent(
+              icon: icon, label: label, color: color, bg: bg, border: border),
         ),
       );
 
@@ -543,16 +551,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       ),
                       const SizedBox(width: 8),
                       _toolTile(
-                        icon: Icons.delete_sweep_outlined,
-                        label: 'Clear Products',
-                        color: Colors.red.shade600,
-                        bg: Colors.red.shade50,
-                        border: Colors.red.shade200,
-                        onTap: () => _confirmClearDefaults(
-                            context, context.read<AppProvider>()),
-                      ),
-                      const SizedBox(width: 8),
-                      _toolTile(
                         icon: Icons.restore_outlined,
                         label: 'Archived',
                         color: Colors.orange.shade700,
@@ -574,6 +572,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       ),
                       const SizedBox(width: 8),
                       _toolTile(
+                        icon: Icons.delete_sweep_outlined,
+                        label: 'Clear Products',
+                        color: Colors.red.shade600,
+                        bg: Colors.red.shade50,
+                        border: Colors.red.shade200,
+                        onTap: () => _confirmClearDefaults(
+                            context, context.read<AppProvider>()),
+                      ),
+                      const SizedBox(width: 8),
+                      _toolTile(
                         icon: Icons.file_upload_outlined,
                         label: 'Import',
                         color: AppColors.purple,
@@ -581,28 +589,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         border: AppColors.purple.withValues(alpha: 0.2),
                         onTap: () => _showImportSheet(
                             context, context.read<AppProvider>()),
-                      ),
-                      const SizedBox(width: 8),
-                      // The rare, no-cost-tracking path (setup corrections,
-                      // consignment) — an occasional action, so it lives
-                      // here with the other occasional ones instead of
-                      // competing with the FAB for everyday attention.
-                      _toolTile(
-                        icon: Icons.edit_note_outlined,
-                        label: 'Manual Add',
-                        color: Colors.grey.shade700,
-                        bg: Colors.grey.shade100,
-                        border: Colors.grey.shade300,
-                        onTap: () => _showToolInfo(
-                          context,
-                          icon: Icons.edit_note_outlined,
-                          color: Colors.grey.shade700,
-                          title: 'Manual Add',
-                          message:
-                              'Adds a product straight to your catalog — no purchase is logged, so the cost won\'t be tracked in Grocery or your expense reports. Use this for initial setup, consignment items, or corrections.',
-                          onContinue: () => _showForm(
-                              context, context.read<AppProvider>(), null),
-                        ),
                       ),
                     ],
                   ),
@@ -671,9 +657,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         heroTag: 'add',
         // Straight to Grocery's new-product form — adding a product almost
         // always means you just bought it, so that's the direct path with
-        // no dialog in the way. The rare no-cost-tracking case (setup
-        // corrections, consignment) lives in the Tools Row as "Manual Add"
-        // instead, next to other occasional actions like Import.
+        // no dialog in the way.
         onPressed: () => Navigator.push(
             context,
             CrossFadePageRoute(

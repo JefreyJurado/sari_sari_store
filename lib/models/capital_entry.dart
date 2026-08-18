@@ -18,8 +18,13 @@ SetupCostItem({
 }) : date = date ?? DateTime.now();
 
   static const categories = [
+    // Was "Product & Restoration Expenses" — the "Product" wording read as
+    // an invitation to log initial stock purchases here, which are
+    // already counted automatically via Starting Inventory Value (see
+    // AppProvider.currentInventoryValue), so a Setup Cost item under that
+    // category silently double-counted the same stock spend.
     'Equipment', 'Legal', 'Marketing',
-    'Rent', 'Utilities', 'Product & Restoration Expenses', 'Others'
+    'Rent', 'Utilities', 'Repairs & Restoration', 'Others'
   ];
 
   static const paymentMethods = [

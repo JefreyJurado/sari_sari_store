@@ -70,9 +70,16 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
               s.type == PaymentType.mixed ||
               s.type == PaymentType.installment)
           .fold(0.0, (s, t) => s + t.creditAmount));
+      // Folds grocery resupply trips in alongside Expense records — the
+      // same real-cash-outflow treatment AppProvider.totalExpensesAmount
+      // and ReportService already give it, so this screen's Expenses/Net
+      // Income don't disagree with Reports/PDF for the same calendar day.
       final expenses = CurrencyFormatter.roundCents(prov.expenses
-          .where((e) => DateHelper.isSameDay(e.date, _selectedDate))
-          .fold(0.0, (s, e) => s + e.amount));
+              .where((e) => DateHelper.isSameDay(e.date, _selectedDate))
+              .fold(0.0, (s, e) => s + e.amount) +
+          prov.groceryEntries
+              .where((g) => DateHelper.isSameDay(g.date, _selectedDate))
+              .fold(0.0, (s, g) => s + g.totalExpenses));
       final netIncome = CurrencyFormatter.roundCents(profit - expenses);
 
       final productMap = <String, Map<String, dynamic>>{};

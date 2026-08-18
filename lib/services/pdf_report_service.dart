@@ -3,8 +3,10 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
 import '../services/report_service.dart';
+import '../models/grocery_entry.dart';
 import '../utils/currency_formatter.dart';
 
 class PdfReportService {
@@ -20,6 +22,48 @@ class PdfReportService {
   static const _border = PdfColor.fromInt(0xFFE5E7EB);
   static const _black = PdfColor.fromInt(0xFF111827);
   static const _whiteSubtle = PdfColor.fromInt(0xFFCCDDFF);
+
+  // Same category labels the Expenses section merges grocery/transport
+  // into (see _buildExpensesSection) — kept here too so the period
+  // breakdown and the highlighted summary rows agree on what counts as
+  // "grocery" vs. "transport" without re-deriving the mapping twice.
+  static const _groceryCategory = 'Grocery / Resupply';
+  static const _transportCategory = 'Fare / Transport';
+
+  static final _monthYearFormat = DateFormat('MMMM yyyy');
+  static final _shortMonthDayFormat = DateFormat('MMM d');
+
+  String _monthLabel(String monthKey) {
+    final parts = monthKey.split('-').map(int.parse).toList();
+    return _monthYearFormat.format(DateTime(parts[0], parts[1]));
+  }
+
+  // Mirrors GroceryScreen._weekLabel — Monday-of-week key formatted as a
+  // "MMM d–d, yyyy" range so the PDF reads the same as the in-app cards.
+  String _weekLabel(String weekKey) {
+    final parts = weekKey.split('-').map(int.parse).toList();
+    final monday = DateTime(parts[0], parts[1], parts[2]);
+    final sunday = monday.add(const Duration(days: 6));
+    final sameMonth =
+        monday.month == sunday.month && monday.year == sunday.year;
+    final start = _shortMonthDayFormat.format(monday);
+    final end =
+        sameMonth ? '${sunday.day}' : _shortMonthDayFormat.format(sunday);
+    return '$start–$end, ${sunday.year}';
+  }
+
+  List<MapEntry<String, double>> _groupGroceryBy(
+    List<GroceryEntry> entries,
+    String Function(GroceryEntry) keyOf,
+  ) {
+    final totals = <String, double>{};
+    for (final g in entries) {
+      final key = keyOf(g);
+      totals[key] =
+          CurrencyFormatter.roundCents((totals[key] ?? 0) + g.totalExpenses);
+    }
+    return totals.entries.toList()..sort((a, b) => b.key.compareTo(a.key));
+  }
 
   // ── Replace ₱ with PHP for PDF font compatibility ──
   String _c(double amount) {
@@ -99,11 +143,15 @@ class PdfReportService {
         build: (ctx) => [
           _buildSummarySection(report, bold, font),
           pw.SizedBox(height: 16),
+          _buildCicoSection(report, bold, font),
+          pw.SizedBox(height: 16),
           _buildCapitalSection(prov, bold, font),
           pw.SizedBox(height: 16),
           _buildTopProductsSection(report, bold, font),
           pw.SizedBox(height: 16),
           _buildExpensesSection(report, bold, font),
+          pw.SizedBox(height: 16),
+          _buildGroceryPeriodSection(report, bold, font),
           pw.SizedBox(height: 16),
           _buildCreditSection(prov, bold, font),
           pw.SizedBox(height: 16),
@@ -226,27 +274,36 @@ class PdfReportService {
       children: [
         _sectionTitle('FINANCIAL SUMMARY', bold),
         pw.SizedBox(height: 8),
+        // Bumped past the rest of the report's text — these four numbers
+        // are the ones an owner (including older readers) needs to read
+        // at a glance. Kept short of the first size tried (18pt): at four
+        // cards per row that pushed "PHP 12,345.00" onto two lines, which
+        // reads worse than a slightly smaller single line.
         pw.Row(children: [
           _summaryCard('Total Sales',
               _c(report.totalRevenue), bold, font,
-              isHighlight: true),
+              isHighlight: true,
+              labelFontSize: 9, valueFontSize: 13),
           pw.SizedBox(width: 8),
           _summaryCard('Total Profit',
               _c(report.totalProfit), bold, font,
-              valueColor: _green),
+              valueColor: _green,
+              labelFontSize: 9, valueFontSize: 13),
           pw.SizedBox(width: 8),
           _summaryCard('Total Expenses',
               _c(report.totalExpenses), bold, font,
               valueColor: report.totalExpenses > 0
                   ? _red
-                  : _black),
+                  : _black,
+              labelFontSize: 9, valueFontSize: 13),
           pw.SizedBox(width: 8),
           _summaryCard('Net Income',
               _c(report.netIncome), bold, font,
               valueColor: report.netIncome >= 0
                   ? _green
                   : _red,
-              isHighlight: report.netIncome >= 0),
+              isHighlight: report.netIncome >= 0,
+              labelFontSize: 9, valueFontSize: 13),
         ]),
         pw.SizedBox(height: 8),
         pw.Container(
@@ -258,33 +315,107 @@ class PdfReportService {
             border:
                 pw.Border.all(color: _border, width: 0.5),
           ),
-          child: pw.Row(children: [
-            pw.Text('Total Transactions: ',
-                style: pw.TextStyle(
-                    font: font,
-                    fontSize: 9,
-                    color: _grey)),
-            pw.Text('${report.transactionCount}',
-                style: pw.TextStyle(
-                    font: bold,
-                    fontSize: 11,
-                    color: _black)),
-            pw.Spacer(),
-            pw.Text('Average per Transaction: ',
-                style: pw.TextStyle(
-                    font: font,
-                    fontSize: 9,
-                    color: _grey)),
-            pw.Text(
-                report.transactionCount > 0
-                    ? _c(report.totalRevenue /
-                        report.transactionCount)
-                    : 'PHP 0.00',
-                style: pw.TextStyle(
-                    font: bold,
-                    fontSize: 11,
-                    color: _black)),
-          ]),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Row(children: [
+                pw.Text('Total Transactions: ',
+                    style: pw.TextStyle(
+                        font: font,
+                        fontSize: 9,
+                        color: _grey)),
+                pw.Text('${report.transactionCount}',
+                    style: pw.TextStyle(
+                        font: bold,
+                        fontSize: 11,
+                        color: _black)),
+                pw.Spacer(),
+                pw.Text('Average Sale Amount: ',
+                    style: pw.TextStyle(
+                        font: font,
+                        fontSize: 9,
+                        color: _grey)),
+                pw.Text(
+                    report.transactionCount > 0
+                        ? _c(report.totalRevenue /
+                            report.transactionCount)
+                        : 'PHP 0.00',
+                    style: pw.TextStyle(
+                        font: bold,
+                        fontSize: 11,
+                        color: _black)),
+              ]),
+              pw.SizedBox(height: 4),
+              pw.Text(
+                'Average Sale Amount = Total Sales ÷ Total '
+                'Transactions — the typical peso amount per sale, not '
+                'profit.',
+                style: pw.TextStyle(font: font, fontSize: 7.5, color: _grey),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── CICO ──────────────────────────────────────────────
+  // Mirrors the "Cash In-Cash Out" card Reports shows on-screen for the
+  // same period — that card used to have no PDF counterpart at all, so
+  // anyone exporting a report to check CICO numbers found the section
+  // just missing with no note that it was intentionally left out.
+  pw.Widget _buildCicoSection(
+    ReportData report,
+    pw.Font bold,
+    pw.Font font,
+  ) {
+    if (report.cicoTransactionCount == 0 &&
+        report.cicoCommission <= 0 &&
+        report.cicoCashInVolume <= 0 &&
+        report.cicoCashOutVolume <= 0) {
+      return pw.SizedBox();
+    }
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('CASH IN - CASH OUT (AGENT SERVICES)', bold),
+        pw.SizedBox(height: 8),
+        pw.Row(children: [
+          _summaryCard('Commission', _c(report.cicoCommission), bold, font,
+              isHighlight: true, valueColor: _green),
+          pw.SizedBox(width: 8),
+          _summaryCard('Cash In', _c(report.cicoCashInVolume), bold, font),
+          pw.SizedBox(width: 8),
+          _summaryCard('Cash Out', _c(report.cicoCashOutVolume), bold, font),
+        ]),
+        pw.SizedBox(height: 8),
+        pw.Container(
+          padding: const pw.EdgeInsets.all(10),
+          decoration: pw.BoxDecoration(
+            color: _lightGrey,
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+            border: pw.Border.all(color: _border, width: 0.5),
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Row(children: [
+                pw.Text('CICO Transactions: ',
+                    style:
+                        pw.TextStyle(font: font, fontSize: 9, color: _grey)),
+                pw.Text('${report.cicoTransactionCount}',
+                    style:
+                        pw.TextStyle(font: bold, fontSize: 11, color: _black)),
+              ]),
+              pw.SizedBox(height: 4),
+              pw.Text(
+                'Commission is separate agent-service income — not '
+                'included in Net Income above.',
+                style: pw.TextStyle(font: font, fontSize: 8, color: _grey),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -548,7 +679,7 @@ class PdfReportService {
           )),
       ...report.groceryEntries.map((g) => (
             description: '${g.productName} ×${g.quantity}',
-            category: 'Grocery / Resupply',
+            category: _groceryCategory,
             date: g.date,
             amount: g.totalExpenses,
           )),
@@ -560,6 +691,20 @@ class PdfReportService {
           (byCategory[r.category] ?? 0) + r.amount;
     }
     final total = report.totalExpenses;
+
+    // Grocery and transport are the two categories the user most wants to
+    // watch trip-to-trip — call them out as their own highlighted rows
+    // above the rest instead of leaving them to sort wherever they land
+    // among the other categories. Still the same byCategory map/total, so
+    // nothing is double-counted or re-summed.
+    const highlightOrder = [_groceryCategory, _transportCategory];
+    final highlightEntries = highlightOrder
+        .where((k) => byCategory.containsKey(k))
+        .map((k) => MapEntry(k, byCategory[k]!))
+        .toList();
+    final otherEntries = byCategory.entries
+        .where((e) => !highlightOrder.contains(e.key))
+        .toList();
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -581,7 +726,41 @@ class PdfReportService {
                   color: _border, width: 0.5),
             ),
             child: pw.Column(children: [
-              ...byCategory.entries.map((e) =>
+              ...highlightEntries.map((e) => pw.Padding(
+                    padding:
+                        const pw.EdgeInsets.only(bottom: 4),
+                    child: pw.Row(children: [
+                      pw.Container(
+                        width: 3,
+                        height: 12,
+                        margin: const pw.EdgeInsets.only(
+                            right: 6),
+                        color: e.key == _groceryCategory
+                            ? _blue
+                            : _green,
+                      ),
+                      pw.Text(e.key,
+                          style: pw.TextStyle(
+                              font: bold,
+                              fontSize: 9,
+                              color: _black)),
+                      pw.Spacer(),
+                      pw.Text(_c(e.value),
+                          style: pw.TextStyle(
+                              font: bold,
+                              fontSize: 9.5,
+                              color: _black)),
+                    ]),
+                  )),
+              if (highlightEntries.isNotEmpty &&
+                  otherEntries.isNotEmpty)
+                pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(
+                      vertical: 3),
+                  child: pw.Divider(
+                      color: _border, thickness: 0.5),
+                ),
+              ...otherEntries.map((e) =>
                   pw.Padding(
                     padding: const pw.EdgeInsets.only(
                         bottom: 4),
@@ -714,6 +893,90 @@ class PdfReportService {
       ],
     );
   }
+
+  // ── GROCERY WEEKLY/MONTHLY ────────────────────────────
+  // Same week/month grouping as GroceryScreen's Weekly/Monthly Grocery
+  // cards, but scoped to just this report's date range so a reader can
+  // see resupply spend trend-over-time without cross-referencing the
+  // Grocery screen's all-time totals separately.
+  pw.Widget _buildGroceryPeriodSection(
+    ReportData report,
+    pw.Font bold,
+    pw.Font font,
+  ) {
+    if (report.groceryEntries.isEmpty) return pw.SizedBox();
+
+    final weekly =
+        _groupGroceryBy(report.groceryEntries, (g) => g.weekKey)
+            .take(12)
+            .toList();
+    final monthly =
+        _groupGroceryBy(report.groceryEntries, (g) => g.monthKey)
+            .take(12)
+            .toList();
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('GROCERY SPEND — WEEKLY & MONTHLY', bold),
+        pw.SizedBox(height: 8),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+                child: _groceryPeriodBox(
+                    'WEEKLY GROCERY', weekly, _weekLabel, bold, font)),
+            pw.SizedBox(width: 8),
+            pw.Expanded(
+                child: _groceryPeriodBox(
+                    'MONTHLY GROCERY', monthly, _monthLabel, bold, font)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _groceryPeriodBox(
+    String title,
+    List<MapEntry<String, double>> items,
+    String Function(String) labelOf,
+    pw.Font bold,
+    pw.Font font,
+  ) =>
+      pw.Container(
+        padding: const pw.EdgeInsets.all(10),
+        decoration: pw.BoxDecoration(
+          color: _lightGrey,
+          borderRadius:
+              const pw.BorderRadius.all(pw.Radius.circular(6)),
+          border: pw.Border.all(color: _border, width: 0.5),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(title,
+                style: pw.TextStyle(
+                    font: bold, fontSize: 9, color: _grey)),
+            pw.SizedBox(height: 6),
+            ...items.map((e) => pw.Padding(
+                  padding: const pw.EdgeInsets.only(bottom: 4),
+                  child: pw.Row(children: [
+                    pw.Expanded(
+                        child: pw.Text(labelOf(e.key),
+                            style: pw.TextStyle(
+                                font: font,
+                                fontSize: 8.5,
+                                color: _black))),
+                    pw.Text(_c(e.value),
+                        style: pw.TextStyle(
+                            font: bold,
+                            fontSize: 8.5,
+                            color: _black)),
+                  ]),
+                )),
+          ],
+        ),
+      );
 
   // ── CREDIT ────────────────────────────────────────────
   pw.Widget _buildCreditSection(
@@ -1102,6 +1365,8 @@ class PdfReportService {
     pw.Font font, {
     bool isHighlight = false,
     PdfColor? valueColor,
+    double labelFontSize = 8,
+    double valueFontSize = 11,
   }) =>
       pw.Expanded(
         child: pw.Container(
@@ -1121,13 +1386,15 @@ class PdfReportService {
               pw.Text(label,
                   style: pw.TextStyle(
                       font: font,
-                      fontSize: 8,
+                      fontSize: labelFontSize,
                       color: _grey)),
               pw.SizedBox(height: 4),
               pw.Text(value,
+                  maxLines: 1,
+                  overflow: pw.TextOverflow.clip,
                   style: pw.TextStyle(
                       font: bold,
-                      fontSize: 11,
+                      fontSize: valueFontSize,
                       color: valueColor ?? _black)),
             ],
           ),

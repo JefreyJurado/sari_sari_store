@@ -429,7 +429,8 @@ class _CapitalScreenState extends State<CapitalScreen> {
           HelpIconButton(
             title: 'Understanding Capital Overview',
             points: [
-              'Setup Costs are what you spent to start the business (shelving, initial stock, permits, etc.) — add each one here; tap an item to edit or delete it.',
+              'Setup Costs are one-time costs to start the business — shelving, permits, signage, renovations, etc. — add each one here; tap an item to edit or delete it.',
+              "Don't log initial stock purchases here — Starting Inventory Value is already tracked automatically from what's in Inventory, so adding it as a Setup Cost too would count it twice.",
               'ROI (Return on Investment) shows how much of that setup cost your profits have earned back so far.',
               'Profit Margin is what percentage of your sales revenue is actual profit, based on your real sales history.',
               "Break-Even Sales is how much you'd need to sell to cover all your logged expenses, given your current profit margin — it's in pesos, not units, since a sari-sari store sells many different items at different prices.",

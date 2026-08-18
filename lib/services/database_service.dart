@@ -22,7 +22,7 @@ class DatabaseService {
     final path = join(await getDatabasesPath(), 'pos_system.db');
     return openDatabase(
       path,
-      version: 16,
+      version: 17,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -331,6 +331,16 @@ class DatabaseService {
         transpo REAL NOT NULL DEFAULT 0,
         date TEXT NOT NULL,
         notes TEXT)''');
+    }
+    if (oldV < 17) {
+      // The Expenses category was renamed to match the label Grocery
+      // entries already get in reports/PDF — same real-world "money spent
+      // restocking", it just used to be spelled differently depending on
+      // which screen logged it, silently splitting one number into two in
+      // every category breakdown. Existing rows need the same rename or
+      // they'd stay stuck under the old spelling forever.
+      await db.execute(
+          "UPDATE expenses SET category = 'Grocery / Resupply' WHERE category = 'Stocks / Resupply'");
     }
   }
 

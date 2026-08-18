@@ -336,7 +336,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => _showPayment(inst),
+                    onPressed: () => _showPayment(inst, prov),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _blue,
                       foregroundColor: Colors.white,
@@ -1061,6 +1061,11 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                               saleId: saleId,
                             );
                             await InstallmentService.instance.save(installment);
+                            // recordInstallmentSale above already reloaded
+                            // AppProvider, but before this plan existed —
+                            // reload again now so its balance is visible
+                            // to the credit-limit check immediately.
+                            await prov.reload();
                             await _load();
                             if (ctx.mounted) Navigator.pop(ctx);
                             if (mounted) {
@@ -1162,7 +1167,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
         ),
       );
 
-  void _showPayment(Installment inst) {
+  void _showPayment(Installment inst, AppProvider prov) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -1233,6 +1238,11 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                       : inst.nextDueDate.add(const Duration(days: 30)),
                 );
                 await InstallmentService.instance.save(updated);
+                // AppProvider caches installments separately (see
+                // _loadAll) for the credit-limit check and the dashboard's
+                // debt total — without this they'd keep showing the
+                // pre-payment balance until something else reloads it.
+                await prov.reload();
                 await _load();
                 if (mounted) {
                   Navigator.pop(context);
@@ -1323,6 +1333,9 @@ class _InstallmentScreenState extends State<InstallmentScreen>
         }
       }
       await InstallmentService.instance.delete(inst.id);
+      // Keeps AppProvider's installments cache (credit-limit check,
+      // dashboard debt total) from still counting this plan's balance.
+      await prov.reload();
       await _load();
       if (mounted) {
         CenterToast.showError(context, 'Installment deleted.');

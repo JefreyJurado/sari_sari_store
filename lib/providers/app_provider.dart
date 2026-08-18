@@ -50,6 +50,12 @@ class AppProvider extends ChangeNotifier {
   List<Debt> debts = [];
   List<DebtPayment> payments = [];
   List<GroceryEntry> groceryEntries = [];
+  // Installment plans never get a `Debt` row (see recordInstallmentSale) —
+  // their unpaid balance lives only on `Installment.remainingBalance`, so
+  // it has to be loaded here and folded into unpaidDebtFor/totalUnpaidDebt
+  // below or a customer's installment balance is invisible to the credit
+  // limit check and the dashboard's debt total.
+  List<Installment> installments = [];
   CapitalEntry? capital;
   bool isLoading = false;
 
@@ -152,9 +158,15 @@ class AppProvider extends ChangeNotifier {
         .fold(0.0, (s, t) => s + t.totalAmount));
   }
 
+  // Installment plans never get a `Debt` row (see recordInstallmentSale),
+  // so this has to add their remaining balance too or the store's real
+  // total unpaid debt is understated whenever installment plans are active.
   double get totalUnpaidDebt => CurrencyFormatter.roundCents(debts
-      .where((d) => d.status != DebtStatus.paid)
-      .fold(0.0, (s, d) => s + d.remaining));
+          .where((d) => d.status != DebtStatus.paid)
+          .fold(0.0, (s, d) => s + d.remaining) +
+      installments
+          .where((i) => i.status != InstallmentStatus.completed)
+          .fold(0.0, (s, i) => s + i.remainingBalance));
 
   List<Product> get lowStock =>
       products.where((p) => p.isLowStock && p.isActive).toList();
@@ -199,7 +211,7 @@ class AppProvider extends ChangeNotifier {
   double get totalSalesProfit => grossProfit;
 
   // Expense records + grocery resupply trips combined — a grocery entry
-  // is real cash leaving the register just like a "Stocks / Resupply"
+  // is real cash leaving the register just like a "Grocery / Resupply"
   // expense, so it has to count here too or Net Profit/Current Capital/
   // Break-Even would understate cash outflow every time stock is bought
   // through Grocery instead of the Expenses screen.
@@ -328,6 +340,7 @@ class AppProvider extends ChangeNotifier {
       _db.getCicoTransactions(),
       _db.getRateRules(),
       _db.getGroceryEntries(),
+      InstallmentService.instance.getAll(),
     ]);
     customers = results[0] as List<Customer>;
     products = results[1] as List<Product>;
@@ -338,6 +351,7 @@ class AppProvider extends ChangeNotifier {
     cico = results[6] as List<CicoTransaction>;
     rates = results[7] as List<CicoRateRule>;
     groceryEntries = results[8] as List<GroceryEntry>;
+    installments = results[9] as List<Installment>;
     capital = await _db.getCapital();
     final totals = await _db.getAllTimeTotals();
     _allTimeRevenue = totals['revenue'] ?? 0;
@@ -1024,8 +1038,12 @@ class AppProvider extends ChangeNotifier {
   /// ladder previews so they don't each re-filter/sort [rates] themselves.
   List<CicoRateRule> rateTiersFor(
       {required String provider, required CicoType type}) {
+    // Filters out deactivated tiers, same as resolveRate above — without
+    // this, a tier turned off in Manage Rates still rendered as a normal,
+    // selectable-looking bracket here, so an amount falling in its range
+    // showed no bracket highlighted anywhere with no explanation why.
     final tiers = rates
-        .where((r) => r.provider == provider && r.txnType == type)
+        .where((r) => r.isActive && r.provider == provider && r.txnType == type)
         .toList()
       ..sort((a, b) => a.minAmount.compareTo(b.minAmount));
     return tiers;
@@ -1157,10 +1175,19 @@ class AppProvider extends ChangeNotifier {
   List<Debt> debtsFor(String customerId) =>
       debts.where((d) => d.customerId == customerId).toList();
 
+  // Same reasoning as totalUnpaidDebt above — a customer's active
+  // installment balance is real money they still owe the store, so the
+  // credit-limit check (credit_order_screen.dart) has to see it too or it
+  // keeps approving new "utang" for someone already deep in installments.
   double unpaidDebtFor(String customerId) =>
       CurrencyFormatter.roundCents(debtsFor(customerId)
-          .where((d) => d.status != DebtStatus.paid)
-          .fold(0.0, (s, d) => s + d.remaining));
+              .where((d) => d.status != DebtStatus.paid)
+              .fold(0.0, (s, d) => s + d.remaining) +
+          installments
+              .where((i) =>
+                  i.customerId == customerId &&
+                  i.status != InstallmentStatus.completed)
+              .fold(0.0, (s, i) => s + i.remainingBalance));
 
   Future<void> recordPayment(Debt debt, double amount, {String? notes}) async {
     await _db.insertPayment(DebtPayment(

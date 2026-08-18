@@ -5,9 +5,11 @@ import '../models/expense.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_helper.dart';
 import '../utils/filipino_categories.dart';
+import '../utils/transitions.dart';
 import '../theme/app_theme.dart';
 import '../widgets/center_toast.dart';
 import '../widgets/search_field.dart';
+import 'grocery_screen.dart';
 
 const _blue = AppColors.blue;
 
@@ -227,8 +229,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final amountCtrl = TextEditingController(
         text: existing != null ? existing.amount.toStringAsFixed(2) : '');
     final notesCtrl = TextEditingController(text: existing?.notes ?? '');
-    String category =
-        existing?.category ?? FilipinoCategories.expenseCategories.first;
+    // Defaults new entries to "Others" rather than the dropdown's first
+    // item ("Grocery / Resupply") — that used to pre-select the one
+    // category most likely to be picked by accident, silently logging a
+    // stock purchase with no product/quantity link (so Inventory's stock
+    // count never moves) instead of through Grocery, which updates it.
+    String category = existing?.category ?? 'Others';
     DateTime expenseDate = existing?.date ?? DateTime.now();
     bool isSaving = false;
 
@@ -296,6 +302,62 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     .toList(),
                 onChanged: (v) => setS(() => category = v!),
               ),
+              if (category == 'Grocery / Resupply') ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.amber.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Icon(Icons.warning_amber_outlined,
+                            size: 15, color: Colors.amber.shade800),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text('Buying stock to resell?',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.amber.shade900)),
+                        ),
+                      ]),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Logging it here won\'t add anything to your '
+                        'Inventory stock. Use Grocery instead so the '
+                        'quantity updates automatically — keep this '
+                        'category for costs with nothing to add to stock.',
+                        style:
+                            TextStyle(fontSize: 11, color: Colors.amber.shade800),
+                      ),
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          Navigator.push(context,
+                              CrossFadePageRoute(child: const GroceryScreen()));
+                        },
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Text('Go to Grocery instead',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.amber.shade900,
+                                  decoration: TextDecoration.underline)),
+                          Icon(Icons.chevron_right,
+                              size: 16, color: Colors.amber.shade800),
+                        ]),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               TextField(
                 controller: amountCtrl,

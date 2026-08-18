@@ -134,19 +134,32 @@ class _CreditOrderScreenState extends State<CreditOrderScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  if (_nameCtrl.text.trim().isEmpty) {
+                  final typedName = _nameCtrl.text.trim();
+                  if (typedName.isEmpty) {
                     CenterToast.showError(context, 'Name is required.');
                     return;
                   }
+                  // Typing a name that matches an existing customer
+                  // (instead of tapping their chip above) used to fall
+                  // through as a brand-new customer with no debt history —
+                  // silently splitting their utang across two profiles and
+                  // letting the credit-limit check below see $0 owed. Match
+                  // it here the same way sales_screen.dart already does
+                  // for regular sales.
+                  final resolved = _existingCustomer ??
+                      prov.customers
+                          .where((c) =>
+                              c.name.toLowerCase() == typedName.toLowerCase())
+                          .firstOrNull;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => CreditProductScreen(
-                        customerName: _nameCtrl.text.trim(),
+                        customerName: typedName,
                         customerPhone: _phoneCtrl.text.trim().isEmpty
                             ? null
                             : _phoneCtrl.text.trim(),
-                        existingCustomer: _existingCustomer,
+                        existingCustomer: resolved,
                       ),
                     ),
                   );
