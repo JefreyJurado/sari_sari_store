@@ -52,22 +52,36 @@ class PdfReportService {
     return '$start–$end, ${sunday.year}';
   }
 
-  List<MapEntry<String, double>> _groupGroceryBy(
-    List<GroceryEntry> entries,
-    String Function(GroceryEntry) keyOf,
+  // Shared by the Grocery and Fare/Transport weekly/monthly breakdowns —
+  // both group a (date, amount) series into Mon-Sun weeks or calendar
+  // months the same way.
+  List<MapEntry<String, double>> _groupByPeriod(
+    Iterable<MapEntry<DateTime, double>> items,
+    String Function(DateTime) keyOf,
   ) {
     final totals = <String, double>{};
-    for (final g in entries) {
-      final key = keyOf(g);
+    for (final it in items) {
+      final key = keyOf(it.key);
       totals[key] =
-          CurrencyFormatter.roundCents((totals[key] ?? 0) + g.totalExpenses);
+          CurrencyFormatter.roundCents((totals[key] ?? 0) + it.value);
     }
     return totals.entries.toList()..sort((a, b) => b.key.compareTo(a.key));
   }
 
+  String _monthKeyOf(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}';
+
+  // Monday of the date's week, as "yyyy-MM-dd" — mirrors GroceryEntry.weekKey.
+  String _weekKeyOf(DateTime date) {
+    final monday = date.subtract(Duration(days: date.weekday - 1));
+    return '${monday.year}-${monday.month.toString().padLeft(2, '0')}-'
+        '${monday.day.toString().padLeft(2, '0')}';
+  }
+
   // ── Replace ₱ with PHP for PDF font compatibility ──
   String _c(double amount) {
-    final formatted = amount.toStringAsFixed(2);
+    final negative = amount < 0;
+    final formatted = amount.abs().toStringAsFixed(2);
     final parts = formatted.split('.');
     final whole = parts[0];
     final decimal = parts[1];
@@ -78,7 +92,8 @@ class PdfReportService {
       buffer.write(whole[i]);
       count++;
     }
-    return 'PHP ${buffer.toString().split('').reversed.join()}.$decimal';
+    final grouped = buffer.toString().split('').reversed.join();
+    return '${negative ? '-' : ''}PHP $grouped.$decimal';
   }
 
   Future<void> generateAndPrint({
@@ -152,6 +167,8 @@ class PdfReportService {
           _buildExpensesSection(report, bold, font),
           pw.SizedBox(height: 16),
           _buildGroceryPeriodSection(report, bold, font),
+          pw.SizedBox(height: 16),
+          _buildTransportPeriodSection(report, bold, font),
           pw.SizedBox(height: 16),
           _buildCreditSection(prov, bold, font),
           pw.SizedBox(height: 16),
@@ -814,6 +831,7 @@ class PdfReportService {
                           font: bold,
                           fontSize: 8,
                           color: PdfColors.white))),
+              pw.SizedBox(width: 14),
               pw.Expanded(
                   flex: 2,
                   child: pw.Text('CATEGORY',
@@ -861,6 +879,7 @@ class PdfReportService {
                             font: font,
                             fontSize: 9,
                             color: _black))),
+                pw.SizedBox(width: 14),
                 pw.Expanded(
                     flex: 2,
                     child: pw.Text(row.category,
@@ -906,14 +925,12 @@ class PdfReportService {
   ) {
     if (report.groceryEntries.isEmpty) return pw.SizedBox();
 
+    final byDate =
+        report.groceryEntries.map((g) => MapEntry(g.date, g.totalExpenses));
     final weekly =
-        _groupGroceryBy(report.groceryEntries, (g) => g.weekKey)
-            .take(12)
-            .toList();
+        _groupByPeriod(byDate, _weekKeyOf).take(12).toList();
     final monthly =
-        _groupGroceryBy(report.groceryEntries, (g) => g.monthKey)
-            .take(12)
-            .toList();
+        _groupByPeriod(byDate, _monthKeyOf).take(12).toList();
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -924,11 +941,11 @@ class PdfReportService {
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Expanded(
-                child: _groceryPeriodBox(
+                child: _periodBox(
                     'WEEKLY GROCERY', weekly, _weekLabel, bold, font)),
             pw.SizedBox(width: 8),
             pw.Expanded(
-                child: _groceryPeriodBox(
+                child: _periodBox(
                     'MONTHLY GROCERY', monthly, _monthLabel, bold, font)),
           ],
         ),
@@ -936,7 +953,51 @@ class PdfReportService {
     );
   }
 
-  pw.Widget _groceryPeriodBox(
+  // ── FARE/TRANSPORT WEEKLY/MONTHLY ─────────────────────
+  // Fare/delivery cost for grocery trips is logged once per trip as its
+  // own Expense row (category "Fare / Transport") rather than per
+  // product — see GroceryScreen. It already gets a highlighted total in
+  // the Expenses Breakdown above, but had no trend view of its own the
+  // way Grocery spend does, so mirror that same weekly/monthly box here.
+  pw.Widget _buildTransportPeriodSection(
+    ReportData report,
+    pw.Font bold,
+    pw.Font font,
+  ) {
+    final transportExpenses = report.expenses
+        .where((e) => e.category == _transportCategory)
+        .toList();
+    if (transportExpenses.isEmpty) return pw.SizedBox();
+
+    final byDate =
+        transportExpenses.map((e) => MapEntry(e.date, e.amount));
+    final weekly =
+        _groupByPeriod(byDate, _weekKeyOf).take(12).toList();
+    final monthly =
+        _groupByPeriod(byDate, _monthKeyOf).take(12).toList();
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('FARE / TRANSPORT SPEND — WEEKLY & MONTHLY', bold),
+        pw.SizedBox(height: 8),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+                child: _periodBox(
+                    'WEEKLY TRANSPORT', weekly, _weekLabel, bold, font)),
+            pw.SizedBox(width: 8),
+            pw.Expanded(
+                child: _periodBox(
+                    'MONTHLY TRANSPORT', monthly, _monthLabel, bold, font)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _periodBox(
     String title,
     List<MapEntry<String, double>> items,
     String Function(String) labelOf,
