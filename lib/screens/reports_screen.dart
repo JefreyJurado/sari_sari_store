@@ -7,6 +7,7 @@ import '../widgets/profit_chart.dart';
 import '../services/pdf_report_service.dart';
 import 'sales_history_screen.dart';
 import 'expenses_screen.dart';
+import 'grocery_screen.dart';
 import 'period_summary_screen.dart';
 import 'cico_screen.dart';
 import '../theme/app_theme.dart';
@@ -17,6 +18,7 @@ const _blue = AppColors.blue;
 const _green = Color(0xFF059669);
 const _red = Color(0xFFDC2626);
 const _purple = Color(0xFF7C3AED);
+const _orange = Color(0xFFEA580C);
 // Same brand indigo used across the Cash In/Cash Out feature (CicoScreen,
 // Rate Settings, Padala Calculator) — ties this report card visually to
 // that redesigned area instead of it reading as a leftover of the old UI.
@@ -419,17 +421,34 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     _statCard(
                         'Expenses',
                         CurrencyFormatter.format(
-                            _report!.totalExpenses),
+                            _report!.totalExpenses -
+                                _report!.groceryTotal),
                         Icons.receipt_outlined,
                         accentColor: _red,
                         isAlert:
-                            _report!.totalExpenses > 0,
+                            (_report!.totalExpenses -
+                                    _report!.groceryTotal) >
+                                0,
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (_) =>
                                     const ExpensesScreen()))),
                     const SizedBox(width: 10),
+                    _statCard(
+                        'Grocery / Restock',
+                        CurrencyFormatter.format(
+                            _report!.groceryTotal),
+                        Icons.local_grocery_store_outlined,
+                        accentColor: _orange,
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const GroceryScreen()))),
+                  ]),
+                  const SizedBox(height: 10),
+                  Row(children: [
                     _statCard(
                         'Net Income',
                         CurrencyFormatter.format(
