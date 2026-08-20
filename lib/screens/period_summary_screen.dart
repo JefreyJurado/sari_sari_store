@@ -36,13 +36,17 @@ class PeriodSummaryScreen extends StatelessWidget {
       expenseByCategory[e.category] =
           (expenseByCategory[e.category] ?? 0) + e.amount;
     }
-    // Grocery trips aren't Expense records, but their cost is folded into
-    // report.totalExpenses (see ReportService) — bucketed here too so the
-    // category breakdown's percentages still add up to that total instead
-    // of silently summing to less than 100%.
-    if (report.groceryTotal > 0) {
+    // Grocery trips aren't Expense records, but their *transport* cost is
+    // folded into report.totalExpenses (see ReportService) — bucketed here
+    // too so the category breakdown's percentages still add up to that
+    // total. The item-cost portion is deliberately left out: it's capital
+    // that already nets out of Total Profit above, not a real expense.
+    final groceryTransportTotal = report.groceryEntries
+        .fold(0.0, (s, g) => s + g.transpo);
+    if (groceryTransportTotal > 0) {
       expenseByCategory['Grocery / Resupply'] =
-          (expenseByCategory['Grocery / Resupply'] ?? 0) + report.groceryTotal;
+          (expenseByCategory['Grocery / Resupply'] ?? 0) +
+              groceryTransportTotal;
     }
     final sortedExpenseCategories = expenseByCategory.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));

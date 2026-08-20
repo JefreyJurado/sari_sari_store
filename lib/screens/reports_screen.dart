@@ -420,15 +420,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   Row(children: [
                     _statCard(
                         'Expenses',
-                        CurrencyFormatter.format(
-                            _report!.totalExpenses -
-                                _report!.groceryTotal),
+                        CurrencyFormatter.format(_report!.expenses
+                            .fold(0.0, (s, e) => s + e.amount)),
                         Icons.receipt_outlined,
                         accentColor: _red,
-                        isAlert:
-                            (_report!.totalExpenses -
-                                    _report!.groceryTotal) >
-                                0,
+                        isAlert: _report!.expenses
+                                .fold(0.0, (s, e) => s + e.amount) >
+                            0,
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(

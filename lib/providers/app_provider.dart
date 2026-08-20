@@ -210,14 +210,16 @@ class AppProvider extends ChangeNotifier {
 
   double get totalSalesProfit => grossProfit;
 
-  // Expense records + grocery resupply trips combined — a grocery entry
-  // is real cash leaving the register just like a "Grocery / Resupply"
-  // expense, so it has to count here too or Net Profit/Current Capital/
-  // Break-Even would understate cash outflow every time stock is bought
-  // through Grocery instead of the Expenses screen.
+  // Expense records + the transport portion of grocery resupply trips —
+  // a grocery trip's transpo is real cash that never comes back, just like
+  // a "Fare / Transport" expense. The item-cost portion is excluded on
+  // purpose: that's capital going out to become inventory, and it's
+  // already subtracted once when the item sells (buyPrice nets out of
+  // totalCOGS/grossProfit above) — counting it again here would deduct
+  // the same peso twice from Net Profit/Current Capital/Break-Even.
   double get totalExpensesAmount => CurrencyFormatter.roundCents(
       expenses.fold(0.0, (s, e) => s + e.amount) +
-      groceryEntries.fold(0.0, (s, g) => s + g.totalExpenses));
+      groceryEntries.fold(0.0, (s, g) => s + g.transpo));
 
   // ── Grocery Computed ────────────────────────────────────────────
   // General Total — all-time grocery spend across every logged trip.

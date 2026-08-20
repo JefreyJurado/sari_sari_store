@@ -7,10 +7,15 @@ import '../utils/currency_formatter.dart';
 class ReportData {
   final double totalRevenue;
   final double totalProfit;
-  // Expense records + grocery resupply trips combined — both are real
-  // cash leaving the register, so Net Income/Break-Even/reports treat
-  // them the same way. [groceryTotal] is exposed separately so callers
-  // that need just the Expense-table portion can still get it.
+  // Expense records + the *transport* portion of grocery resupply trips —
+  // both are real cash leaving the register that never comes back, so Net
+  // Income/Break-Even/reports treat them the same way. The item-cost
+  // portion of a grocery trip is deliberately excluded: that money buys
+  // inventory (capital going back out to come back in as revenue), and its
+  // cost is already subtracted once when the item sells (see [totalProfit],
+  // which nets out each sale's buyPrice) — folding it in here too would
+  // deduct the same peso twice. [groceryTotal] (full item+transport spend)
+  // is exposed separately for "how much did I spend restocking" displays.
   final double totalExpenses;
   final double groceryTotal;
   final double netIncome;
@@ -100,8 +105,12 @@ class ReportService {
         filteredExpenses.fold(0.0, (s, e) => s + e.amount));
     final groceryTotal = CurrencyFormatter.roundCents(
         filteredGrocery.fold(0.0, (s, g) => s + g.totalExpenses));
+    // Only the transport portion of a grocery trip is a real expense — the
+    // item cost is capital that comes back as COGS when the item sells.
+    final groceryExpensePortion = CurrencyFormatter.roundCents(
+        filteredGrocery.fold(0.0, (s, g) => s + g.transpo));
     final combinedExpenses =
-        CurrencyFormatter.roundCents(expTotal + groceryTotal);
+        CurrencyFormatter.roundCents(expTotal + groceryExpensePortion);
 
     final daily = await _db.getDailyRevenue(sinceDay, untilDay);
     final top = await _db.getTopProducts(sinceDay, untilDay);

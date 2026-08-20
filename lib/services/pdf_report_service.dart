@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
 import '../services/report_service.dart';
-import '../models/grocery_entry.dart';
 import '../utils/currency_formatter.dart';
 
 class PdfReportService {
@@ -682,11 +681,14 @@ class PdfReportService {
     pw.Font bold,
     pw.Font font,
   ) {
-    // Expense records + grocery resupply trips merged into one shape so
-    // the category totals and itemized table both add up to
-    // report.totalExpenses — grocery entries aren't Expense rows, but
-    // their cost is folded into that total (see ReportService), so they
-    // have to appear here too or the listed rows would undercount it.
+    // Expense records + the *transport* cost of grocery resupply trips
+    // merged into one shape so the category totals and itemized table both
+    // add up to report.totalExpenses — grocery entries aren't Expense
+    // rows, but their transpo is folded into that total (see
+    // ReportService), so it has to appear here too or the listed rows
+    // would undercount it. The item-cost portion is excluded on purpose:
+    // that's capital buying inventory, already netted out of Total Profit
+    // once the item sells, not a real expense.
     final rows = [
       ...report.expenses.map((e) => (
             description: e.description,
@@ -694,11 +696,11 @@ class PdfReportService {
             date: e.date,
             amount: e.amount,
           )),
-      ...report.groceryEntries.map((g) => (
-            description: '${g.productName} ×${g.quantity}',
+      ...report.groceryEntries.where((g) => g.transpo > 0).map((g) => (
+            description: '${g.productName} ×${g.quantity} (transport)',
             category: _groceryCategory,
             date: g.date,
-            amount: g.totalExpenses,
+            amount: g.transpo,
           )),
     ]..sort((a, b) => b.date.compareTo(a.date));
 
