@@ -219,7 +219,7 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => StatefulBuilder(
+      builder: (_) => SafeArea(top: false, child: StatefulBuilder(
         builder: (ctx, setS) {
           final value = double.tryParse(valueCtrl.text) ?? 0;
           final min = double.tryParse(minCtrl.text) ?? 0;
@@ -496,7 +496,7 @@ class _RateSettingsScreenState extends State<RateSettingsScreen> {
             ),
           );
         },
-      ),
+      )),
     );
   }
 

@@ -454,7 +454,7 @@ class _ListaScreenState extends State<ListaScreen>
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) =>
-          _CustomerDebtSheet(customer: customer, debts: debts, prov: prov),
+          SafeArea(top: false, child: _CustomerDebtSheet(customer: customer, debts: debts, prov: prov)),
     );
   }
 }
@@ -759,7 +759,7 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => DraggableScrollableSheet(
+      builder: (_) => SafeArea(top: false, child: DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.75,
         builder: (_, ctrl) => Column(children: [
@@ -1029,7 +1029,7 @@ class _CustomerDebtSheetState extends State<_CustomerDebtSheet> {
               ),
             ),
         ]),
-      ),
+      )),
     );
   }
 

@@ -49,7 +49,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (sheetCtx) => StatefulBuilder(
+      builder: (sheetCtx) => SafeArea(top: false, child: StatefulBuilder(
         builder: (sheetCtx, setS) => Padding(
           padding: EdgeInsets.only(
               bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
@@ -306,7 +306,7 @@ class _CapitalScreenState extends State<CapitalScreen> {
             ]),
           ),
         ),
-      ),
+      )),
     ).whenComplete(() {
       labelCtrl.dispose();
       amtCtrl.dispose();

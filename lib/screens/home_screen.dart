@@ -903,7 +903,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (sheetCtx) => DraggableScrollableSheet(
+      builder: (sheetCtx) => SafeArea(top: false, child: DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.85,
         maxChildSize: 0.95,
@@ -1127,7 +1127,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ]),
-      ),
+      )),
     );
   }
 } // ← closing ng _HomeScreenState
@@ -1400,7 +1400,7 @@ class _SaleTile extends StatelessWidget {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => DraggableScrollableSheet(
+      builder: (_) => SafeArea(top: false, child: DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.65,
         maxChildSize: 0.90,
@@ -1564,7 +1564,7 @@ class _SaleTile extends StatelessWidget {
             ),
           ),
         ]),
-      ),
+      )),
     );
   }
 

@@ -326,7 +326,7 @@ class _GroceryScreenState extends State<GroceryScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (sheetCtx) => StatefulBuilder(
+      builder: (sheetCtx) => SafeArea(top: false, child: StatefulBuilder(
         builder: (sheetCtx, setS) {
           var products = prov.products;
           final q = searchCtrl.text.trim().toLowerCase();
@@ -398,7 +398,7 @@ class _GroceryScreenState extends State<GroceryScreen> {
             ),
           );
         },
-      ),
+      )),
     ).whenComplete(() {
       // Deferred a frame: this sheet and _showQuickAddProduct's sheet can
       // both pop back-to-back in the same tick (create product → auto-
@@ -471,7 +471,7 @@ class _GroceryScreenState extends State<GroceryScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => StatefulBuilder(
+      builder: (_) => SafeArea(top: false, child: StatefulBuilder(
         builder: (ctx, setS) {
           final quantityValue = int.tryParse(quantityCtrl.text) ?? 0;
           final pricePerUnit = double.tryParse(priceCtrl.text) ?? 0;
@@ -999,7 +999,7 @@ class _GroceryScreenState extends State<GroceryScreen> {
             ),
           );
         },
-      ),
+      )),
     ).whenComplete(() {
       // See _pickProduct's whenComplete for why this is deferred a frame
       // rather than disposed synchronously.

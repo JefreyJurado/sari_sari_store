@@ -173,7 +173,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
       backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Padding(
+      builder: (_) => SafeArea(top: false, child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
@@ -288,7 +288,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
             ),
           ),
         ]),
-      ),
+      )),
     ).then((_) => _resume());
   }
 
@@ -299,7 +299,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
       backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Padding(
+      builder: (_) => SafeArea(top: false, child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
@@ -353,7 +353,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
             ),
           ),
         ]),
-      ),
+      )),
     ).then((_) => _resume());
   }
 
@@ -447,7 +447,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
       backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => StatefulBuilder(
+      builder: (_) => SafeArea(top: false, child: StatefulBuilder(
         builder: (ctx, setS) => Padding(
           // Use ctx (the sheet's own context) rather than the outer
           // screen's context — MediaQuery.of(context) here would register
@@ -576,7 +576,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
             ]),
           ),
         ),
-      ),
+      )),
     ).then((_) => _resume());
   }
 
@@ -591,7 +591,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
       // (isScrollControlled alone only lets the sheet grow taller — it
       // doesn't make un-scrollable content scroll) rather than overflow
       // off the bottom of the screen.
-      builder: (_) => Padding(
+      builder: (_) => SafeArea(top: false, child: Padding(
         padding: const EdgeInsets.all(20),
         child: SingleChildScrollView(
           child: Column(
@@ -675,7 +675,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
                 ),
               ]),
         ),
-      ),
+      )),
     );
   }
 
@@ -695,7 +695,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
       backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => StatefulBuilder(
+      builder: (_) => SafeArea(top: false, child: StatefulBuilder(
         builder: (ctx, setS) => Padding(
           // ctx (the sheet's own context), not the outer screen context —
           // see the same fix in _showEditProduct above.
@@ -877,7 +877,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
             ]),
           ),
         ),
-      ),
+      )),
     ).then((_) => _resume());
   }
 

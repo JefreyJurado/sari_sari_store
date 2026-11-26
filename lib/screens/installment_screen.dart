@@ -390,7 +390,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => StatefulBuilder(
+      builder: (_) => SafeArea(top: false, child: StatefulBuilder(
         builder: (ctx, setS) {
           final totalAmount = CurrencyFormatter.roundCents(selectedProducts
               .entries
@@ -583,7 +583,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                       shape: const RoundedRectangleBorder(
                           borderRadius:
                               BorderRadius.vertical(top: Radius.circular(16))),
-                      builder: (_) => StatefulBuilder(
+                      builder: (_) => SafeArea(top: false, child: StatefulBuilder(
                         builder: (pCtx, pSetS) {
                           String search = '';
                           return StatefulBuilder(
@@ -800,7 +800,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
                             ),
                           );
                         },
-                      ),
+                      )),
                     );
                   },
                   child: Container(
@@ -1099,7 +1099,7 @@ class _InstallmentScreenState extends State<InstallmentScreen>
             ),
           );
         },
-      ),
+      )),
     );
   }
 
