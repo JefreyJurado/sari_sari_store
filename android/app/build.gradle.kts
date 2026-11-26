@@ -66,4 +66,10 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // 16 KB page sizes: lift the plugins' transitive native libs to releases
+    // built with NDK r28+ (Play Console warning). Remove once
+    // shared_preferences_android / mobile_scanner ship these versions.
+    implementation("androidx.datastore:datastore-preferences:1.3.0")
+    implementation("androidx.camera:camera-camera2:1.7.0")
+    implementation("androidx.camera:camera-lifecycle:1.7.0")
 }
