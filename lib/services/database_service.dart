@@ -409,8 +409,9 @@ class DatabaseService {
   /// call for an archived product — unlike [updateProduct], it never
   /// touches any other column, so it can't accidentally
   /// resurrect/overwrite an archived row's other fields.
-  Future<void> adjustProductStock(String productId, int delta) async {
-    final db = await database;
+  Future<void> adjustProductStock(String productId, int delta,
+      [DatabaseExecutor? ex]) async {
+    final db = ex ?? await database;
     await db.rawUpdate(
         'UPDATE products SET stock = MAX(0, MIN(99999, stock + ?)) WHERE id = ?',
         [delta, productId]);
@@ -424,6 +425,81 @@ class DatabaseService {
     final db = await database;
     await db.rawUpdate(
         'UPDATE products SET buyPrice = ? WHERE id = ?', [buyPrice, productId]);
+  }
+
+  /// Adds restocked units and moves buyPrice to the weighted average of the
+  /// units on hand and the new ones, so COGS follows supplier price changes.
+  /// No usable old cost (buyPrice or stock <= 0) -> the new unit cost.
+  /// SQLite evaluates every SET expression against the pre-update row.
+  Future<void> restockProduct(String productId, int qty, double unitCost,
+      [DatabaseExecutor? ex]) async {
+    final db = ex ?? await database;
+    await db.rawUpdate('''
+      UPDATE products SET
+        buyPrice = CASE
+          WHEN ? <= 0 OR ? <= 0 THEN buyPrice
+          WHEN buyPrice <= 0 OR stock <= 0 THEN ROUND(?, 2)
+          ELSE ROUND((stock * buyPrice + ? * ?) / (stock + ?), 2) END,
+        stock = MAX(0, MIN(99999, stock + ?))
+      WHERE id = ?
+    ''', [qty, unitCost, unitCost, qty, unitCost, qty, qty, productId]);
+  }
+
+  /// Logs a grocery trip and restocks its product in one transaction.
+  Future<void> addGroceryEntryWithStock(GroceryEntry g) async =>
+      (await database).transaction((txn) async {
+        await insertGroceryEntry(g, txn);
+        if (g.productId.isNotEmpty && g.quantity > 0) {
+          await restockProduct(
+              g.productId, g.quantity, g.expensesForProducts / g.quantity, txn);
+        }
+      });
+
+  /// Edits a grocery trip and nets its stock effect in one transaction.
+  Future<void> updateGroceryEntryWithStock(
+          GroceryEntry? old, GroceryEntry updated) async =>
+      (await database).transaction((txn) async {
+        if (old != null) {
+          if (old.productId == updated.productId) {
+            final delta = updated.quantity - old.quantity;
+            if (delta != 0 && updated.productId.isNotEmpty) {
+              await adjustProductStock(updated.productId, delta, txn);
+            }
+          } else {
+            if (old.productId.isNotEmpty) {
+              await adjustProductStock(old.productId, -old.quantity, txn);
+            }
+            if (updated.productId.isNotEmpty) {
+              await adjustProductStock(
+                  updated.productId, updated.quantity, txn);
+            }
+          }
+        }
+        await updateGroceryEntry(updated, txn);
+      });
+
+  /// Restores a sale's stock, marks it voided and drops its debts in one
+  /// transaction, so a crash can't leave stock restored on a live sale.
+  Future<void> voidSaleWithStock(Sale sale) async =>
+      (await database).transaction((txn) async {
+        for (final item in sale.items) {
+          await adjustProductStock(item.productId, item.quantity, txn);
+        }
+        await voidSale(sale.id, txn);
+        await deleteDebtsBySale(sale.id, txn);
+      });
+
+  /// Records a payment row and applies it to the debt in one transaction.
+  Future<void> recordPaymentAtomic(DebtPayment p) async =>
+      (await database).transaction((txn) async {
+        await insertPayment(p, txn);
+        await adjustDebtPaidAmount(p.debtId, p.amount, txn);
+      });
+
+  /// Tests only: closes the open database so the next call reopens a fresh file.
+  Future<void> closeForTest() async {
+    await _db?.close();
+    _db = null;
   }
 
   Future<void> archiveProduct(String id) async => (await database)
@@ -559,8 +635,8 @@ class DatabaseService {
     };
   }
 
-  Future<void> voidSale(String id) async => (await database)
-      .update('sales', {'status': 'voided'}, where: 'id=?', whereArgs: [id]);
+  Future<void> voidSale(String id, [DatabaseExecutor? ex]) async =>
+      (ex ?? await database).update('sales', {'status': 'voided'}, where: 'id=?', whereArgs: [id]);
 
   // ── EXPENSES ───────────────────────────────────────────
   Future<void> insertExpense(Expense e) async =>
@@ -579,8 +655,8 @@ class DatabaseService {
       (await database).delete('expenses', where: 'id=?', whereArgs: [id]);
 
   // ── GROCERY ────────────────────────────────────────────
-  Future<void> insertGroceryEntry(GroceryEntry g) async =>
-      (await database).insert('grocery_entries', g.toMap(),
+  Future<void> insertGroceryEntry(GroceryEntry g, [DatabaseExecutor? ex]) async =>
+      (ex ?? await database).insert('grocery_entries', g.toMap(),
           conflictAlgorithm: ConflictAlgorithm.replace);
 
   Future<List<GroceryEntry>> getGroceryEntries() async {
@@ -589,8 +665,8 @@ class DatabaseService {
     return maps.map(GroceryEntry.fromMap).toList();
   }
 
-  Future<void> updateGroceryEntry(GroceryEntry g) async => (await database)
-      .update('grocery_entries', g.toMap(), where: 'id=?', whereArgs: [g.id]);
+  Future<void> updateGroceryEntry(GroceryEntry g, [DatabaseExecutor? ex]) async =>
+      (ex ?? await database).update('grocery_entries', g.toMap(), where: 'id=?', whereArgs: [g.id]);
 
   Future<void> deleteGroceryEntry(String id) async =>
       (await database).delete('grocery_entries', where: 'id=?', whereArgs: [id]);
@@ -666,8 +742,9 @@ class DatabaseService {
   /// before an earlier payment on the same debt landed). Rounds to
   /// the nearest centavo and caps at `originalAmount` so an in-flight
   /// stale overpayment attempt can't push the balance negative.
-  Future<void> adjustDebtPaidAmount(String debtId, double amount) async {
-    final db = await database;
+  Future<void> adjustDebtPaidAmount(String debtId, double amount,
+      [DatabaseExecutor? ex]) async {
+    final db = ex ?? await database;
     await db.rawUpdate('''
       UPDATE debts
       SET paidAmount = MIN(ROUND(paidAmount + ?, 2), originalAmount),
@@ -690,8 +767,8 @@ class DatabaseService {
 
   /// Deletes any debt(s) tied to a sale (and their payment history),
   /// used when the originating sale is voided.
-  Future<void> deleteDebtsBySale(String saleId) async {
-    final db = await database;
+  Future<void> deleteDebtsBySale(String saleId, [DatabaseExecutor? ex]) async {
+    final db = ex ?? await database;
     final debtRows =
         await db.query('debts', where: 'saleId=?', whereArgs: [saleId]);
     for (final row in debtRows) {
@@ -701,8 +778,8 @@ class DatabaseService {
   }
 
   // ── PAYMENTS ───────────────────────────────────────────
-  Future<void> insertPayment(DebtPayment p) async =>
-      (await database).insert('payments', p.toMap(),
+  Future<void> insertPayment(DebtPayment p, [DatabaseExecutor? ex]) async =>
+      (ex ?? await database).insert('payments', p.toMap(),
           conflictAlgorithm: ConflictAlgorithm.replace);
 
   Future<List<DebtPayment>> getPayments() async {

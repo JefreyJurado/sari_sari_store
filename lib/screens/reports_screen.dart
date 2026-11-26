@@ -434,7 +434,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                     const ExpensesScreen()))),
                     const SizedBox(width: 10),
                     _statCard(
-                        'Grocery / Restock',
+                        'Restock (not an expense)',
                         CurrencyFormatter.format(
                             _report!.groceryTotal),
                         Icons.local_grocery_store_outlined,

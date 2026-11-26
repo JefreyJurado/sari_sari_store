@@ -610,6 +610,7 @@ class AppProvider extends ChangeNotifier {
   /// already has payments recorded: voiding would delete those payment
   /// rows and silently erase cash the store actually collected.
   Future<String?> voidSale(Sale sale) async {
+    if (sale.isVoided) return null;
     final alreadyPaid = await _db.getDebtPaidAmountBySale(sale.id);
     if (alreadyPaid > 0) {
       return 'Cannot void: ${CurrencyFormatter.format(alreadyPaid)} has '
@@ -636,11 +637,7 @@ class AppProvider extends ChangeNotifier {
     // the (active-only) in-memory list and rewriting the whole row — that
     // used to fabricate a blank stand-in for archived products and wipe
     // out their real price/category data when the update landed.
-    for (final item in sale.items) {
-      await _db.adjustProductStock(item.productId, item.quantity);
-    }
-    await _db.voidSale(sale.id);
-    await _db.deleteDebtsBySale(sale.id);
+    await _db.voidSaleWithStock(sale);
     if (sale.customerId != null) {
       await LoyaltyService.instance.voidPointsFromSale(
         customerId: sale.customerId!,
@@ -878,7 +875,9 @@ class AppProvider extends ChangeNotifier {
     DateTime? date,
     String? notes,
   }) async {
-    await _db.insertGroceryEntry(GroceryEntry(
+    // One transaction: the entry, the stock and the weighted-average buy
+    // price (first restock of a no-cost product sets it outright).
+    await _db.addGroceryEntryWithStock(GroceryEntry(
         id: _uuid.v4(),
         productId: productId,
         productName: productName,
@@ -887,23 +886,7 @@ class AppProvider extends ChangeNotifier {
         transpo: transpo,
         date: date ?? DateTime.now(),
         notes: notes));
-    if (productId.isNotEmpty) {
-      await _db.adjustProductStock(productId, quantity);
-      // A product quick-added from within Grocery starts with no buy price
-      // (that's set later in Inventory) — so its first restock's price per
-      // unit becomes its cost basis automatically, instead of asking for
-      // the same receipt price a second time. Products that already have
-      // a recorded buy price are left alone.
-      final product = products.where((p) => p.id == productId).firstOrNull;
-      if (product != null && product.buyPrice == 0 && quantity > 0) {
-        final pricePerUnit =
-            CurrencyFormatter.roundCents(expensesForProducts / quantity);
-        if (pricePerUnit > 0) {
-          await _db.setProductBuyPrice(productId, pricePerUnit);
-        }
-      }
-      recentlyRestockedProductIds.add(productId);
-    }
+    if (productId.isNotEmpty) recentlyRestockedProductIds.add(productId);
     await reload();
   }
 
@@ -914,25 +897,10 @@ class AppProvider extends ChangeNotifier {
   // stock double-counted or stuck at the old figure.
   Future<void> updateGroceryEntry(GroceryEntry updated) async {
     final old = groceryEntries.where((g) => g.id == updated.id).firstOrNull;
-    if (old != null) {
-      if (old.productId == updated.productId) {
-        final delta = updated.quantity - old.quantity;
-        if (delta != 0 && updated.productId.isNotEmpty) {
-          await _db.adjustProductStock(updated.productId, delta);
-        }
-      } else {
-        if (old.productId.isNotEmpty) {
-          await _db.adjustProductStock(old.productId, -old.quantity);
-        }
-        if (updated.productId.isNotEmpty) {
-          await _db.adjustProductStock(updated.productId, updated.quantity);
-        }
-      }
-    }
+    await _db.updateGroceryEntryWithStock(old, updated);
     if (updated.productId.isNotEmpty) {
       recentlyRestockedProductIds.add(updated.productId);
     }
-    await _db.updateGroceryEntry(updated);
     await reload();
   }
 
@@ -1192,7 +1160,7 @@ class AppProvider extends ChangeNotifier {
               .fold(0.0, (s, i) => s + i.remainingBalance));
 
   Future<void> recordPayment(Debt debt, double amount, {String? notes}) async {
-    await _db.insertPayment(DebtPayment(
+    await _db.recordPaymentAtomic(DebtPayment(
       id: _uuid.v4(),
       debtId: debt.id,
       customerId: debt.customerId,
@@ -1201,7 +1169,6 @@ class AppProvider extends ChangeNotifier {
       notes: notes,
       createdAt: DateTime.now(),
     ));
-    await _db.adjustDebtPaidAmount(debt.id, amount);
     await reload();
   }
 
