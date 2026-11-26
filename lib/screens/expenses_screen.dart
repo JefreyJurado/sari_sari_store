@@ -331,8 +331,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       Text(
                         'Logging it here won\'t add anything to your '
                         'Inventory stock. Use Grocery instead so the '
-                        'quantity updates automatically — keep this '
-                        'category for costs with nothing to add to stock.',
+                        'quantity updates automatically. Stock cost logged here is '
+                        'counted as an expense AND again when the item sells, so '
+                        'keep this category for costs with nothing to resell.',
                         style:
                             TextStyle(fontSize: 11, color: Colors.amber.shade800),
                       ),
