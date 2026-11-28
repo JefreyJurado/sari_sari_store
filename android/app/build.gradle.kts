@@ -66,4 +66,8 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // 16 KB page sizes: datastore 1.3.0's native lib is built with NDK r27
+    // (16 KB-aligned), up from r25c in the 1.1.7 that shared_preferences_android
+    // pins. Remove once shared_preferences_android ships datastore >= 1.3.0.
+    implementation("androidx.datastore:datastore-preferences:1.3.0")
 }
