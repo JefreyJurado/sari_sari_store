@@ -328,7 +328,7 @@ class _SalesScreenState extends State<SalesScreen> {
       useRootNavigator: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => _CartSheet(prov: prov),
+      builder: (_) => SafeArea(top: false, child: _CartSheet(prov: prov)),
     );
   }
 }

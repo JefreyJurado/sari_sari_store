@@ -801,7 +801,7 @@ class _CicoScreenState extends State<CicoScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => StatefulBuilder(
+      builder: (_) => SafeArea(top: false, child: StatefulBuilder(
         builder: (ctx, setS) {
           final isInOut = type == CicoType.cashIn || type == CicoType.cashOut;
           final banks = banksFor(prov, bankChoice);
@@ -1551,7 +1551,7 @@ class _CicoScreenState extends State<CicoScreen> {
             ),
           );
         },
-      ),
+      )),
     );
   }
 

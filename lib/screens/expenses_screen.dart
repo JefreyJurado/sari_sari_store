@@ -244,7 +244,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => StatefulBuilder(
+      builder: (_) => SafeArea(top: false, child: StatefulBuilder(
         builder: (ctx, setS) => Padding(
           padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -517,7 +517,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             ]),
           ),
         ),
-      ),
+      )),
     );
   }
 

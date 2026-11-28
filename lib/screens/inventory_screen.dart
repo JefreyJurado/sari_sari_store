@@ -154,7 +154,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (sheetCtx) => StatefulBuilder(
+      builder: (sheetCtx) => SafeArea(top: false, child: StatefulBuilder(
         builder: (ctx, setS) {
           Future<void> downloadTemplate() async {
             setS(() => busy = true);
@@ -340,7 +340,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
           );
         },
-      ),
+      )),
     );
   }
 
@@ -707,7 +707,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => _ProductFormSheet(
+      builder: (_) => SafeArea(top: false, child: _ProductFormSheet(
         existing: existing,
         prov: prov,
         nameCtrl: nameCtrl,
@@ -717,7 +717,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         unitCtrl: unitCtrl,
         initialCategory:
             existing?.category ?? FilipinoCategories.productCategories.first,
-      ),
+      )),
     ).then((saved) {
       nameCtrl.dispose();
       buyCtrl.dispose();
@@ -1485,7 +1485,7 @@ class _ProductTile extends StatelessWidget {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Padding(
+      builder: (_) => SafeArea(top: false, child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
@@ -1650,7 +1650,7 @@ class _ProductTile extends StatelessWidget {
           ]),
           const SizedBox(height: 8),
         ]),
-      ),
+      )),
     );
   }
 
