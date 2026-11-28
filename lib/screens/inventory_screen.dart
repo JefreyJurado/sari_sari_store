@@ -355,28 +355,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     required Color bg,
     required Color border,
   }) =>
-      Container(
-        height: 64,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: border),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(height: 4),
-            Text(label,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w700, color: color)),
-          ],
-        ),
-      );
+      inventoryToolTile(
+          icon: icon, label: label, color: color, bg: bg, border: border);
 
   Widget _toolTile({
     required IconData icon,
@@ -1888,3 +1868,42 @@ class _ProductTile extends StatelessWidget {
     );
   }
 }
+
+/// One Inventory tool tile (Import, Export, Clear Products, ...). Fixed height
+/// so the row stays even. The content must fit a two-line label: 4 px vertical
+/// padding and a fixed 1.15 line height leave room for the icon plus two lines
+/// at up to ~1.3x text size (8 px padding overflowed by 8 px when
+/// "Clear Products" wrapped on narrow screens).
+@visibleForTesting
+Widget inventoryToolTile({
+  required IconData icon,
+  required String label,
+  required Color color,
+  required Color bg,
+  required Color border,
+}) =>
+    Container(
+      height: 64,
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(height: 4),
+          Text(label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 11,
+                  height: 1.15,
+                  fontWeight: FontWeight.w700,
+                  color: color)),
+        ],
+      ),
+    );
